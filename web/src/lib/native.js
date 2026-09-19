@@ -18,13 +18,13 @@
  * @typedef {'granted'|'denied'|'prompt'|'unknown'} PermissionState
  * @typedef {'ok'|'restricted'|'unknown'} OsState
  * @typedef {{supported:boolean, simulated:boolean, running:boolean, bluetooth:BluetoothState,
- * permission:PermissionState, os:OsState, detail:string|null}} NativeStatus
+ * permission:PermissionState, os:OsState, notifications:boolean, detail:string|null}} NativeStatus
  */
 
 /** @type {NativeStatus} */
 export const UNSUPPORTED = {
   supported: false, simulated: false, running: false, bluetooth: 'unavailable',
-  permission: 'unknown', os: 'unknown', detail: null,
+  permission: 'unknown', os: 'unknown', notifications: true, detail: null,
 };
 
 const plugin = () => globalThis.Capacitor?.Plugins?.Discovery ?? null;
@@ -37,6 +37,7 @@ function normalize(status) {
     bluetooth: status?.bluetooth ?? 'unknown',
     permission: status?.permission ?? 'unknown',
     os: status?.os ?? 'unknown',
+    notifications: status?.notifications !== false,
     detail: status?.detail ?? null,
   };
 }
@@ -94,5 +95,9 @@ export function nativeBlocker(status) {
   if (status.bluetooth === 'off') return { level: 'blocked', text: 'Bluetooth가 꺼져 있어요. 켜면 주변 발견을 다시 시작해요.' };
   if (status.bluetooth === 'unavailable') return { level: 'blocked', text: '이 기기에서는 Bluetooth를 사용할 수 없어요.' };
   if (status.os === 'restricted') return { level: 'warn', text: '배터리 절약 설정 때문에 백그라운드 발견이 제한될 수 있어요.' };
+  // Discovery still runs; the user just cannot see the ongoing notice that says so.
+  if (status.notifications === false) return { level: 'warn', text: '알림 권한이 꺼져 있어서 발견 중이라는 표시가 보이지 않아요.' };
+  // Whatever the radio last failed at, said in its own words rather than swallowed.
+  if (status.detail) return { level: 'warn', text: status.detail };
   return null;
 }

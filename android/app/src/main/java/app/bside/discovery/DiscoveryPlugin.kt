@@ -46,7 +46,14 @@ import org.json.JSONObject
                 Manifest.permission.BLUETOOTH_SCAN,
                 Manifest.permission.BLUETOOTH_ADVERTISE,
             ],
-        )
+        ),
+        // The foreground-service notification is how the user sees that scanning is on
+        // and can stop it. On Android 13+ it does not appear without this, which a real
+        // device showed: the service ran with its notification silently suppressed.
+        Permission(
+            alias = DiscoveryPlugin.NOTIFICATIONS,
+            strings = [Manifest.permission.POST_NOTIFICATIONS],
+        ),
     ],
 )
 class DiscoveryPlugin : Plugin() {
@@ -54,6 +61,7 @@ class DiscoveryPlugin : Plugin() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var credentials: CredentialStore
     private var intended = false
+    private var askedForNotifications = false
 
     override fun load() {
         credentials = CredentialStore(context)
@@ -102,6 +110,13 @@ class DiscoveryPlugin : Plugin() {
             requestPermissionForAlias(BLUETOOTH, call, "permissionCallback")
             return
         }
+        // Asked after Bluetooth, and only once: a refused notification does not stop
+        // discovery, it just means the ongoing notice is hidden.
+        if (!hasNotificationPermission() && !askedForNotifications) {
+            askedForNotifications = true
+            requestPermissionForAlias(NOTIFICATIONS, call, "permissionCallback")
+            return
+        }
         DiscoveryService.start(context)
         call.resolve(status())
     }
@@ -120,6 +135,7 @@ class DiscoveryPlugin : Plugin() {
 
     @PermissionCallback
     private fun permissionCallback(call: PluginCall) {
+        // A denied notification permission is not a reason to refuse discovery.
         if (intended && hasBluetoothPermission()) DiscoveryService.start(context)
         call.resolve(status())
     }
@@ -156,6 +172,7 @@ class DiscoveryPlugin : Plugin() {
             .put("bluetooth", bluetoothState())
             .put("permission", permissionState())
             .put("os", osState())
+            .put("notifications", hasNotificationPermission())
             .put("detail", radio?.lastError)
     }
 
@@ -167,6 +184,12 @@ class DiscoveryPlugin : Plugin() {
     private fun hasBluetoothPermission(): Boolean = requiredPermissions().all {
         ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
     }
+
+    /** Before Android 13 a notification needed no permission at all. */
+    private fun hasNotificationPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
 
     /** Android 12 split BLE out of location; older releases still need fine location. */
     private fun requiredPermissions(): List<String> =
@@ -190,5 +213,6 @@ class DiscoveryPlugin : Plugin() {
 
     companion object {
         const val BLUETOOTH = "bluetooth"
+        const val NOTIFICATIONS = "notifications"
     }
 }

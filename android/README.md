@@ -3,8 +3,8 @@
 Capacitor 셸 + Kotlin BLE 계층. [`web/src/lib/native.js`](../web/src/lib/native.js)의 `Discovery`
 플러그인 계약을 구현한다.
 
-**빌드는 통과했고 실기기 BLE 검증은 하지 않았다.** 무엇을 확인했고 무엇을 안 했는지는 아래
-[검증](#검증) 절에 그대로 적었다.
+**실기기 한 대에서 광고·스캔·서버 연동까지 확인했고, 두 대 사이의 실제 발견은 아직이다.**
+무엇을 확인했고 무엇을 안 했는지는 아래 [검증](#검증) 절에 그대로 적었다.
 
 ## 빌드
 
@@ -118,39 +118,43 @@ service에서 돈다. 표시되는 알림은 "지금 스캔 중인가"에 대한
 
 ## 검증
 
-에뮬레이터(API 36)에 실제로 설치해서 **APK가 실제 FastAPI 서버와 통신하는 것까지** 확인했다.
+**실기기(SM-S937N, Android 16 / API 36)에서 확인했다.** 에뮬레이터로는 알 수 없던 것들이
+여기서 드러났다.
 
-**확인한 것**
+**실기기에서 확인한 것**
 
-- `assembleDebug`·`assembleRelease` 둘 다 빌드 성공. 디버그 APK 5.2MB
-- APK 권한에 `BLUETOOTH_SCAN`(neverForLocation), `BLUETOOTH_ADVERTISE`,
-  `FOREGROUND_SERVICE_CONNECTED_DEVICE`가 들어감
-- `DiscoveryService`가 `foregroundServiceType="connectedDevice"`로 매니페스트에 선언되고,
-  발견을 켤 때 실제로 시작됨 (`Background started FGS: Allowed ... app.bside/.discovery.DiscoveryService`)
-- 다섯 개 Kotlin 클래스가 APK dex에 들어간 것을 확인
-- 앱 실행 → **설치 등록 `POST /api/v1/installations` 201**, `GET /me` 200
-- 소개 저장 `POST /me/profile` 200, 발견 켜기 `POST /me/discovery` 200
-- **네이티브 스캐너가 `POST /api/v1/discovery/identifiers` 200을 직접 호출**.
-  WebView와 다른 소켓에서 나갔으므로 `ApiClient`가 `EncryptedSharedPreferences`의 자격
-  증명으로 스스로 인증한 것이 맞다 (확정 1·2가 실제로 도는 증거)
-- 플러그인 상태가 기기의 실제 값을 그대로 보고:
-  `{"supported":true,"simulated":false,"running":true,"bluetooth":"on","permission":"granted","os":"restricted"}`
-  화면에도 "배터리 절약 설정 때문에 백그라운드 발견이 제한될 수 있어요."로 나타남
-- API 주소가 비어 있을 때는 부트 오류 화면("연결하지 못했어요")이 정상적으로 뜸
+- `POST /api/v1/installations` 201 → `/me` 200 → 소개 저장 200 → 발견 켜기 200
+- **네이티브 스캐너가 `POST /api/v1/discovery/identifiers` 200을 직접 호출.** WebView와 다른
+  소켓에서 나갔으므로 `EncryptedSharedPreferences`의 자격 증명으로 스스로 인증한 것이 맞다
+- **BLE 광고가 실제로 전파에 나간다.** 블루투스 스택 덤프에
+  `Ongoing advertising: app.bside`, `Connectable: false`(GATT 안 씀), interval 400,
+  TX power -7로 잡힌다
+- **스캔 필터가 스택에 등록된다.** `[app.bside(if=8)] BluetoothLeScanFilter[ ManufacturerId=ffff ]`
+- foreground service가 `isForeground=true types=0x10(connectedDevice)`로 뜨고,
+  알림이 `channel=discovery flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE`로 실제 표시됨
+- `BLUETOOTH_SCAN`·`BLUETOOTH_ADVERTISE`·`POST_NOTIFICATIONS` 모두 실제 권한 요청 후 granted
+- 빌드: `assembleDebug`·`assembleRelease` 둘 다 성공
 
-이 과정에서 **서버 CORS에 `https://localhost`를 추가해야 한다는 것**과
-**`http://10.0.2.2`는 mixed content로 막힌다는 것**을 발견해 각각 고쳤다. 실제로 돌려보지
-않으면 나오지 않는 문제였다.
+**실기기에서 발견해 고친 것**
+
+- **알림 권한을 요청하지 않고 있었다.** Android 13+에서는 `POST_NOTIFICATIONS` 없이는
+  foreground service 알림이 조용히 안 뜬다. 서비스는 도는데 "지금 스캔 중"이라는 표시가
+  사용자에게 안 보이는 상태였다. 블루투스 권한 다음에 한 번만 묻도록 추가했고, 거부해도
+  발견은 계속된다. 상태에 `notifications`를 실어 화면에도 알린다.
+- 라디오의 `lastError`가 화면에 전혀 노출되지 않고 있었다. 광고가 실패해도 사용자는 아무것도
+  못 본다. `nativeBlocker`가 이제 그대로 보여준다.
 
 **확인하지 않은 것 — 여기가 남은 일이다**
 
-- **실제 BLE 광고·스캔.** 에뮬레이터에는 실제 BLE 라디오가 없다. 광고가 실제로 나가는지,
-  상대 기기가 듣는지, 31바이트 패킷에 문제가 없는지는 실기기에서 봐야 한다.
-- 안드로이드 두 대의 실제 발견 → 첫 메시지 왕복(T07)
-- 백그라운드 sweep이 Doze·배터리 최적화에서 얼마나 버티는지. 주기 15초도 측정 전 값이다.
-- 권한 거부·Bluetooth OFF 상태의 화면. 에뮬레이터는 권한을 자동 허용해서 그 경로를 못 봤다.
+- **두 대 사이의 실제 발견.** 한 대만 연결해서 테스트했다. 광고가 나가고 스캔 필터가 걸린
+  것까지는 확인했지만, 상대 기기의 광고를 실제로 잡아 `observed_users`가 채워지는지는
+  두 번째 기기가 있어야 안다. 여기서 31바이트 패킷 문제나 필터 오작동이 드러날 수 있다.
+- 두 대의 첫 메시지 왕복(T07)
+- Bluetooth OFF·권한 거부 상태의 화면. 코드 경로는 있으나 실제로 그 상태를 만들어보지 않았다
+- 백그라운드 sweep이 Doze·배터리 최적화에서 버티는 정도. 주기 15초도 측정 전 값이다.
+  실기기에서 `os: restricted`가 실제로 보고됐으므로 배터리 최적화 제외가 필요하다
 - 추천 알림. v0.1에 추천 데이터 자체가 없어 아직 붙일 것이 없다
-- 릴리스 서명. `assembleRelease`는 통과하지만 서명 설정은 하지 않았다
+- 릴리스 서명
 
 ## 개발 중 서버 연동만 따로 확인하기
 
