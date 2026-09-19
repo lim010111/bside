@@ -1,0 +1,11 @@
+{
+  "appId": "app.bside",
+  "appName": "Bside",
+  "webDir": "dist",
+  "android": {
+    "path": "../android"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

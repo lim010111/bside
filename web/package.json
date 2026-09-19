@@ -7,15 +7,19 @@
     "dev": "vite",
     "build": "vite build",
     "build:demo": "vite build --mode demo --outDir dist-demo",
+    "android:sync": "npm run build && cap sync android",
     "lint": "oxlint",
     "test": "node --test tests/*.test.js",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",

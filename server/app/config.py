@@ -7,8 +7,13 @@ class Settings(BaseSettings):
     redis_url: str = "redis://127.0.0.1:6379/0"
 
     cors_origins: list[str] = [
+        # Vite dev server.
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        # The Capacitor WebView. Its origin is the androidScheme from
+        # web/capacitor.config.json, not the API's own host, so the APK fails CORS
+        # preflight without this. Found by running the built APK against the server.
+        "https://localhost",
     ]
 
     # Implementation defaults from docs/api-contract.md v0.1. They are configuration,

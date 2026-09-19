@@ -94,16 +94,34 @@ cd web && VITE_USE_MOCK=0 VITE_DEV_RADIO=1 npm run dev
   멱등성 키 재생·충돌과 `client_message_id`가 공개 모양에 없는 것, 전진 전용 페이지네이션과
   비당사자 접근 거부, 저장 실패의 명시적 오류
 
+## Android APK와 실제 서버 (2026-09-20)
+
+[네이티브 계층](../android/README.md)을 구현하고 에뮬레이터(API 36)에 설치해 **APK가 실제
+FastAPI 서버와 통신하는 것까지** 확인했다.
+
+- 앱 실행 → `POST /api/v1/installations` 201 → `GET /me` 200
+- 소개 저장 200, 발견 켜기 200
+- **네이티브 스캐너가 `POST /api/v1/discovery/identifiers` 200을 직접 호출**. WebView와 다른
+  소켓에서 나갔으므로 네이티브가 보호 저장소의 자격 증명으로 스스로 인증한 것이 맞다
+- foreground service가 실제로 시작되고, 플러그인 상태
+  (`bluetooth: on`, `permission: granted`, `os: restricted`)가 화면에
+  "배터리 절약 설정 때문에 백그라운드 발견이 제한될 수 있어요."로 표시됨
+
+이 과정에서 두 가지를 발견해 고쳤다. 둘 다 실제로 돌려보지 않으면 나오지 않는 문제다.
+
+1. **서버 CORS에 `https://localhost`가 필요하다.** Capacitor WebView의 출처는 API 호스트가
+   아니라 `androidScheme`이라 preflight가 400으로 막혔다.
+2. **`http://10.0.2.2`는 mixed content로 차단된다.** `https://localhost` 페이지에서 http를
+   부르기 때문이다. `adb reverse` + `http://localhost`는 secure origin 예외라 통과한다.
+
 ## 아직 검증하지 못한 것
 
-- **BLE 그 자체.** 위 연동은 브라우저 두 탭이 식별자를 `localStorage`로 교환한 것이다.
-  실제 광고·스캔·임시 ID 회전은 확인하지 않았다.
-- **Capacitor `Discovery` 플러그인 구현(T01).** [`android/`](../android/README.md)에 계약과
-  골격만 있고 빌드·실행하지 않았다. 실제 권한 거부·Bluetooth OFF·배터리 제한 상태의 화면은
-  실기기에서 다시 봐야 한다.
-- 자격 증명을 Android 보호 저장소에서 WebView로 전달하는 실제 경로. 브라우저 폴백은
-  `localStorage`이며 보호된 저장소가 아니다.
-- 안드로이드 두 대의 실제 왕복과 백그라운드 관측·알림
+- **실제 BLE 광고·스캔.** 에뮬레이터에는 실제 BLE 라디오가 없고, 브라우저 두 탭 검증은
+  식별자를 `localStorage`로 교환한 것이다. 실제 무선 구간은 확인하지 않았다.
+- 안드로이드 두 대의 실제 발견 → 첫 메시지 왕복(T07)
+- 권한 거부·Bluetooth OFF 상태의 화면. 에뮬레이터가 권한을 자동 허용해 그 경로를 못 봤다
+- 백그라운드 sweep이 Doze·배터리 최적화에서 버티는 정도. 주기 15초도 측정 전 값이다
 - Redis 재시작·AOF 복원의 실제 장애 시나리오(V12). 앱 인스턴스 재시작만 확인했다
 - 부하·동시성 규모. 원자성은 검증했지만 성능은 측정하지 않았다
-- AI 추천 품질·지연과 AI-D5의 "후보 20명·추천 갱신 5초" 목표. v0.1에는 추천 자체가 없다
+- AI 추천 품질·지연. v0.1에는 추천 자체가 없다
+- 릴리스 서명. `assembleRelease`는 통과하지만 서명 설정은 하지 않았다
