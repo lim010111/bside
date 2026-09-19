@@ -12,6 +12,9 @@ export default function Nearby() {
   const ordered = orderNearby(people);
   const filtered = ordered.filter((person) => (person.profile.nickname + ' ' + person.profile.self_description).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const ranked = new Set(people.filter((person) => person.recommendation?.status === 'ready').map((person) => person.user_id));
+  // 'pending' is an evaluation still running, not a missing feature. Saying it
+  // is on the way is true; 'not ready yet' would not be.
+  const evaluating = people.some((person) => person.recommendation?.status === 'pending');
   const noRadio = !native.supported;
   return <section className="screen">
     <PageHeader title="주변 사람들" eyebrow="Bside" action={<button className="text-button" onClick={() => actions.navigate('profile')}>내 정보</button>} />
@@ -24,9 +27,10 @@ export default function Nearby() {
     <div className="section-head list-heading"><h2>지금 가까이 <span className="dim">{people.length}</span></h2><button className="text-button" onClick={actions.refreshAll} disabled={state.nearbyLoading}>새로고침</button></div>
     <label className="sr-only" htmlFor="people-search">주변 사람 검색</label>
     <input id="people-search" type="search" className="field search" placeholder="이름이나 자기소개로 찾아보세요" value={query} onChange={(event) => setQuery(event.target.value)} />
-    {/* v0.1의 추천 상태는 항상 unavailable이다. 준비되지 않은 것을 준비된 것처럼 적지 않는다. */}
+    {/* 준비되지 않은 것을 준비된 것처럼 적지 않는다. 평가 중과 추천 없음은 다른 상태다. */}
     <div className="recommendation-status" role="status">
       {ranked.size ? '추천된 사람부터 보여드려요. 이유는 상세에서 확인하세요.'
+        : evaluating ? '추천을 준비하고 있어요. 먼저 자기소개를 둘러보세요.'
         : 'AI 추천은 아직 준비 중이에요. 자기소개를 보고 편하게 대화를 시작해 보세요.'}
     </div>
     {/* AI-D2: 선택적 안내다. 목록과 채팅은 그대로 쓸 수 있고 추가 입력을 요구하지 않는다. */}
