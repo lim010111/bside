@@ -44,13 +44,37 @@ cd ../android && ./gradlew :app:installDebug
 WebView 출처가 `https://localhost`라서 상대 경로 `/api/v1`은 번들된 정적 파일로 간다.
 **웹과 네이티브 양쪽 모두 절대 주소가 필요하고, 둘이 같아야 한다.**
 
-| 어디 | 무엇이 쓰나 |
-| --- | --- |
-| `VITE_API_BASE` (빌드 시) | WebView의 호출 — 프로필·대화·메시지 |
-| [`app/src/main/res/values/api.xml`](app/src/main/res/values/api.xml)의 `api_base_url` | 스캐너 자신의 호출 — 식별자 발급·관측 보고 |
+| 어디 | 무엇이 쓰나 | 어떻게 넣나 |
+| --- | --- | --- |
+| WebView의 호출 — 프로필·대화·메시지 | `VITE_API_BASE` | `npm run build` 시 환경변수 |
+| 스캐너 자신의 호출 — 식별자 발급·관측 보고 | `api_base_url` 문자열 리소스 | Gradle 속성 `-Pbside.apiBaseUrl=` |
 
-`api_base_url`이 비어 있으면 플러그인은 스캔하지 않고 `supported: false`로 보고한다.
-없는 서버에 대고 도는 것보다 낫다.
+`api_base_url`은 체크인된 파일이 아니라 [`app/build.gradle`](app/build.gradle)의 `resValue`가
+빌드 시점에 만든다. 기본값은 debug가 `http://localhost:8000`(로컬 루프), release는
+**빈 값**이다. 빈 값이면 플러그인이 스캔하지 않고 `supported: false`로 보고한다. 없는 서버에
+대고 도는 것보다 낫다.
+
+### 운영 주소로 빌드
+
+```sh
+cd web
+VITE_API_BASE=https://bside-api.sungblab.com npm run build
+npx cap sync android
+
+cd ../android
+./gradlew :app:assembleDebug -Pbside.apiBaseUrl=https://bside-api.sungblab.com
+```
+
+`assembleDebug`인 이유는 **릴리스 서명 키가 아직 없기 때문이다.** 디버그 키로 서명된 APK는
+사이드로딩으로 설치할 수 있어 팀 테스트와 시연에는 충분하다. 배포용 서명은 별도 결정이며,
+키를 만들면 그 키를 계속 보관해야 한다.
+
+두 주소가 실제로 들어갔는지는 빌드 산출물에서 확인한다.
+
+```powershell
+$aapt = "$env:LOCALAPPDATA\Android\Sdk\build-tools\35.0.1\aapt2.exe"
+& $aapt dump resources app-debug.apk | Select-String api_base_url -Context 0,1
+```
 
 ## 확정 1 — 설치 자격 증명을 WebView로 넘기는 방법
 

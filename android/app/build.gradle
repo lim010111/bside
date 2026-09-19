@@ -11,6 +11,16 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // Where the native scanner calls the product API. It has to match the
+        // VITE_API_BASE the web assets were built with, so both halves talk to the
+        // same server. Set it per build instead of editing a checked-in file:
+        //
+        //   ./gradlew :app:assembleDebug -Pbside.apiBaseUrl=https://bside-api.sungblab.com
+        //
+        // Empty is the deliberate default for a release: the plugin then reports
+        // supported:false rather than scanning into a server that is not there.
+        resValue "string", "api_base_url", (project.findProperty("bside.apiBaseUrl") ?: "")
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
@@ -25,6 +35,14 @@ android {
         jvmTarget = '21'
     }
     buildTypes {
+        debug {
+            // The local loop: `adb reverse tcp:8000 tcp:8000` plus a dev server.
+            // localhost rather than 10.0.2.2 because the WebView page is
+            // https://localhost, and calling http://10.0.2.2 is blocked as mixed
+            // content while http://localhost is a secure-origin exception.
+            resValue "string", "api_base_url",
+                (project.findProperty("bside.apiBaseUrl") ?: "http://localhost:8000")
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
