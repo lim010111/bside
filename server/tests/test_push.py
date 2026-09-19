@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.push import FcmSender, Push
-from app.store import Store
+from app.store import Store, now_ms
 
 
 class RecordingSender:
@@ -331,6 +331,132 @@ def test_the_fcm_endpoint_targets_the_configured_project():
     assert sender.endpoint == (
         "https://fcm.googleapis.com/v1/projects/bside-5a002/messages:send"
     )
+
+
+def _store(days: int = 60) -> tuple:
+    """A Store on its own connection, so a test can drive it without HTTP."""
+    from redis.asyncio import Redis
+
+    settings = Settings(
+        _env_file=None, redis_url="redis://127.0.0.1:6379/15", push_token_ttl_days=days
+    )
+    return Redis.from_url(settings.redis_url, decode_responses=True), settings
+
+
+def test_a_device_that_stops_checking_in_expires(client: TestClient):
+    """Otherwise a token is only ever dropped when FCM rejects a send to it.
+
+    For a user nobody messages again that never happens, so the token — and the
+    right to push to whatever device now holds it — would live for ever.
+    """
+
+    async def run() -> tuple[list[str], list[str]]:
+        redis, settings = _store(days=30)
+        store = Store(redis, settings)
+        try:
+            await store.put_push_token("quiet-user", "old-device", "android")
+            fresh = await store.push_tokens("quiet-user")
+            # Backdate the check-in past the window, as a device gone silent for
+            # a month looks.
+            await redis.zadd(
+                "push:tokens:quiet-user",
+                {"old-device": now_ms() - 31 * 24 * 60 * 60 * 1000},
+            )
+            return fresh, await store.push_tokens("quiet-user")
+        finally:
+            await redis.aclose()
+
+    fresh, stale = asyncio.run(run())
+
+    assert fresh == ["old-device"]
+    assert stale == [], "확인이 끊긴 기기가 계속 남아 있다"
+
+
+def test_launching_the_app_keeps_a_live_device_alive(client: TestClient):
+    """Re-registering is the check-in, so an in-use device must never expire."""
+
+    async def run() -> list[str]:
+        redis, settings = _store(days=30)
+        store = Store(redis, settings)
+        try:
+            await store.put_push_token("live-user", "phone", "android")
+            await redis.zadd(
+                "push:tokens:live-user", {"phone": now_ms() - 31 * 24 * 60 * 60 * 1000}
+            )
+            # The app comes back and registers the same token again.
+            await store.put_push_token("live-user", "phone", "android")
+            return await store.push_tokens("live-user")
+        finally:
+            await redis.aclose()
+
+    assert asyncio.run(run()) == ["phone"]
+
+
+def test_the_token_list_carries_its_own_expiry(client: TestClient):
+    """A user who never returns leaves nothing behind, with no sweep job."""
+
+    async def run() -> tuple[int, int]:
+        redis, settings = _store(days=30)
+        store = Store(redis, settings)
+        try:
+            await store.put_push_token("ttl-user", "device", "android")
+            return (
+                await redis.ttl("push:tokens:ttl-user"),
+                await redis.ttl("push:owner:device"),
+            )
+        finally:
+            await redis.aclose()
+
+    tokens_ttl, owner_ttl = asyncio.run(run())
+    expected = 30 * 24 * 60 * 60
+    assert 0 < tokens_ttl <= expected
+    assert 0 < owner_ttl <= expected
+
+
+def test_a_list_left_in_the_old_set_shape_still_works(client: TestClient):
+    """Deployed data predates the scores, and ZADD on a set is an error.
+
+    A user whose tokens were stored before this change must keep receiving
+    notifications, not a WRONGTYPE on the send path.
+    """
+
+    async def run() -> tuple[list[str], list[str], str]:
+        redis, settings = _store()
+        store = Store(redis, settings)
+        try:
+            # Exactly what the previous version wrote.
+            await redis.sadd("push:tokens:legacy-user", "legacy-device")
+            await redis.set("push:owner:legacy-device", "legacy-user")
+
+            before = await store.push_tokens("legacy-user")
+            await store.put_push_token("legacy-user", "new-device", "android")
+            after = await store.push_tokens("legacy-user")
+            return before, after, await redis.type("push:tokens:legacy-user")
+        finally:
+            await redis.aclose()
+
+    before, after, shape = asyncio.run(run())
+
+    assert before == ["legacy-device"], "예전 모양을 읽지 못하면 알림이 끊긴다"
+    assert after == ["legacy-device", "new-device"], "변환하면서 기존 기기를 잃었다"
+    assert shape == "zset", "새 등록이 들어와도 변환되지 않았다"
+
+
+def test_a_dead_token_is_dropped_from_an_old_shape_list_too(client: TestClient):
+    """The removal command has to match the shape, or it raises instead."""
+
+    async def run() -> list[str]:
+        redis, settings = _store()
+        store = Store(redis, settings)
+        try:
+            await redis.sadd("push:tokens:legacy-drop", "gone-device")
+            await redis.set("push:owner:gone-device", "legacy-drop")
+            await store.drop_push_token("gone-device")
+            return await store.push_tokens("legacy-drop")
+        finally:
+            await redis.aclose()
+
+    assert asyncio.run(run()) == []
 
 
 def test_the_store_hands_a_token_over_rather_than_sharing_it(client: TestClient):
