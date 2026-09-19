@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { lengthOf, validateProfile, orderParticipants, mergeMessages, roomCode, validReason } from '../src/lib/contracts.js';
+import { lengthOf, validateProfile, orderNearby, mergeMessages, validReason, needsRicherIntent } from '../src/lib/contracts.js';
+import { nativeBlocker, UNSUPPORTED } from '../src/lib/native.js';
 import { profile } from './helpers.js';
 
 test('Unicode code points and trimmed input match the API limits', () => {
@@ -10,23 +11,41 @@ test('Unicode code points and trimmed input match the API limits', () => {
   assert.ok(validateProfile({ ...profile(), connection_intent: '  \n ' }).connection_intent);
   assert.deepEqual(validateProfile({ ...profile(), nickname: '' }, true), {});
 });
-test('unscored candidates remain visible and stale rankings do not reorder them', () => {
-  const items = ['a', 'b', 'c'].map((id) => ({ id, joined_at: '2026-09-19T00:00:00Z' }));
-  assert.deepEqual(orderParticipants(items, { candidate_version: 4, ordered_evaluated_ids: ['c', 'missing'] }, 4).map((p) => p.id), ['c', 'a', 'b']);
-  assert.deepEqual(orderParticipants(items, { candidate_version: 3, ordered_evaluated_ids: ['c'] }, 4).map((p) => p.id), ['a', 'b', 'c']);
-  assert.equal(orderParticipants(items, null, 4).length, 3);
+test('unscored people remain visible and stale rankings do not reorder them', () => {
+  const items = ['a', 'b', 'c'].map((id) => ({ id, last_observed_at: '2026-09-20T00:00:00Z' }));
+  assert.deepEqual(orderNearby(items, { nearby_version: 4, ordered_evaluated_ids: ['c', 'missing'] }, 4).map((p) => p.id), ['c', 'a', 'b']);
+  assert.deepEqual(orderNearby(items, { nearby_version: 3, ordered_evaluated_ids: ['c'] }, 4).map((p) => p.id), ['a', 'b', 'c']);
+  assert.equal(orderNearby(items, null, 4).length, 3);
+});
+test('without a ranking the most recently observed person comes first', () => {
+  const items = [
+    { id: 'old', last_observed_at: '2026-09-20T00:00:00Z' },
+    { id: 'fresh', last_observed_at: '2026-09-20T00:05:00Z' },
+  ];
+  assert.deepEqual(orderNearby(items, null, 1).map((p) => p.id), ['fresh', 'old']);
 });
 test('send and SSE history are deduplicated by server ID and ordered by sequence', () => {
   assert.deepEqual(mergeMessages([{ id: 'b', seq: 2 }], [{ id: 'a', seq: 1 }, { id: 'b', seq: 2 }]).map((m) => m.id), ['a', 'b']);
 });
-test('stale profile reasons and stopped candidates are not shown', () => {
-  const detail = { participant: { profile_version: 2, participation_status: 'active' }, recommendation: { state: 'ready', reason: 'reason', viewer_profile_version: 1, candidate_profile_version: 2 } };
-  assert.ok(validReason(detail, { profile_version: 1 }));
-  assert.equal(validReason(detail, { profile_version: 2 }), false);
-  detail.participant.participation_status = 'stopped';
-  assert.equal(validReason(detail, { profile_version: 1 }), false);
+test('a reason written for another revision of either side is not shown', () => {
+  const detail = { person: { profile_revision: 2 }, recommendation: { state: 'ready', reason: 'reason', viewer_profile_revision: 1, candidate_profile_revision: 2 } };
+  assert.ok(validReason(detail, { profile_revision: 1 }));
+  assert.equal(validReason(detail, { profile_revision: 2 }), false);
+  detail.person.profile_revision = 3;
+  assert.equal(validReason(detail, { profile_revision: 1 }), false);
 });
-test('supports prepared /r/ links and legacy ?r= links', () => {
-  assert.equal(roomCode({ pathname: '/r/room%20one', search: '?r=ignored' }), 'room one');
-  assert.equal(roomCode({ pathname: '/', search: '?r=FEMEETUP' }), 'FEMEETUP');
+test('the optional intent hint appears only when nothing evaluated, never as a gate', () => {
+  const unscored = (id) => ({ id, evaluation_state: 'unscored' });
+  assert.equal(needsRicherIntent([unscored('a'), unscored('b'), unscored('c')]), true);
+  assert.equal(needsRicherIntent([unscored('a'), unscored('b'), { id: 'c', evaluation_state: 'ready' }]), false);
+  assert.equal(needsRicherIntent([unscored('a'), unscored('b')]), false);
+  // Still pending is not the same as insufficient evidence.
+  assert.equal(needsRicherIntent([{ id: 'a', evaluation_state: 'pending' }]), false);
+});
+test('participation intent and the radio state are reported separately', () => {
+  assert.equal(nativeBlocker({ ...UNSUPPORTED, supported: true, bluetooth: 'on', permission: 'granted', os: 'ok' }), null);
+  assert.equal(nativeBlocker(UNSUPPORTED).level, 'info');
+  assert.equal(nativeBlocker({ ...UNSUPPORTED, supported: true, permission: 'denied' }).action, 'permission');
+  assert.equal(nativeBlocker({ ...UNSUPPORTED, supported: true, permission: 'granted', bluetooth: 'off' }).level, 'blocked');
+  assert.equal(nativeBlocker({ ...UNSUPPORTED, supported: true, permission: 'granted', bluetooth: 'on', os: 'restricted' }).level, 'warn');
 });
