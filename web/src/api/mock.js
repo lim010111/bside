@@ -1,16 +1,18 @@
 import { SEED_NEARBY } from './seeds.js';
 import { ApiError, lengthOf, validateProfile } from '../lib/contracts.js';
 
-// Browser-only demo of the SERVER, not of the radio. It has no BLE: it stands in for
-// what the server would know after Kotlin reported observations. Seeded people never
-// reply — there is no second device here.
+// Browser-only demo of the SERVER described by docs/api-contract.md v0.1. It has no
+// BLE: it stands in for what the server would know after the native layer reported
+// observations. Seeded people never reply — there is no second device here.
 //
-// Isolated v3 keys leave earlier prototype data untouched.
-export const OBSERVATION_TTL = 120000;
+// Isolated v4 keys leave earlier prototype data untouched.
+export const IDENTIFIER_TTL = 300000;      // 5 minutes, per the contract
+export const ELIGIBILITY_WINDOW = 600000;  // 10 minutes, per the contract
 
-export function createMockApi({ storage = () => globalThis.localStorage, installKey = 'bside:demo:v3:install', seeded = true, now = Date.now } = {}) {
-  const listeners = new Set();
-  const STATE = 'bside:demo:v3:state';
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+export function createMockApi({ storage = () => globalThis.localStorage, seeded = true, now = Date.now } = {}) {
+  const STATE = 'bside:demo:v4:state';
   const uuid = () => globalThis.crypto.randomUUID();
   const fail = (code, message, extra) => { throw new ApiError(code, message, extra); };
   const stamp = (offset = 0) => new Date(now() - offset).toISOString();
@@ -22,269 +24,271 @@ export function createMockApi({ storage = () => globalThis.localStorage, install
     try { storage().setItem(name, JSON.stringify(value)); }
     catch { fail('STORAGE_UNAVAILABLE', '내용을 저장하지 못했어요. 저장 공간을 확인하고 다시 시도해 주세요.'); }
   }
+  // A 22-char unpadded base64url token, like the contract's 128-bit identifier.
+  function token() {
+    const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
+    return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
   function load() {
     let data = read(STATE);
     if (!data) {
-      const people = {};
+      const users = {};
       if (seeded) for (const person of SEED_NEARBY) {
-        people[person.id] = {
-          user_id: person.id, nickname: person.name, self_description: person.self,
-          connection_intent: person.intent, profile_revision: 1,
-          discovery_enabled: true, discovery_revision: 1, seed_age: person.age,
+        users[person.id] = {
+          user_id: person.id,
+          profile: { nickname: person.name, self_description: person.self, connection_intent: person.intent },
+          discovery_enabled: true, seed_age: person.age,
         };
       }
-      data = { people, installs: {}, observations: {}, conversations: {}, nearby_version: 1 };
+      data = { users, credentials: {}, installRequests: {}, identifiers: {}, observations: {}, conversations: {} };
       write(STATE, data);
     }
     return data;
   }
-  function save(data) { write(STATE, data); }
-  function identify(data, required = true) {
-    const me = data.people[data.installs[read(installKey)]] ?? null;
-    if (!me && required) fail('PROFILE_REQUIRED', '먼저 내 소개를 입력해 주세요.');
-    return me;
+  const save = (data) => write(STATE, data);
+  function auth(data, credential) {
+    const user = data.users[data.credentials[credential]] ?? null;
+    if (!user) fail('UNAUTHORIZED', '설치 정보를 다시 확인해 주세요.', { status: 401 });
+    return user;
   }
-  function auth() {
-    const data = load();
-    return { data, me: identify(data) };
+  const publicProfile = (user) => user.profile && { ...user.profile };
+  const requireProfile = (user) => { if (!user.profile) fail('PROFILE_REQUIRED', '먼저 내 소개를 입력해 주세요.', { status: 409 }); };
+
+  // Identifiers rotate on the server's clock, exactly like the contract describes.
+  function identifierFor(data, user) {
+    const current = data.identifiers[user.user_id];
+    if (current && now() < Date.parse(current.refresh_after)) return current;
+    const issued = now();
+    const next = {
+      identifier: token(),
+      issued_at: new Date(issued).toISOString(),
+      refresh_after: new Date(issued + IDENTIFIER_TTL - 60000).toISOString(),
+      expires_at: new Date(issued + IDENTIFIER_TTL).toISOString(),
+      previous: current ? { identifier: current.identifier, expires_at: current.expires_at } : null,
+    };
+    data.identifiers[user.user_id] = next;
+    return next;
   }
-  function emit(type, data = {}) {
-    queueMicrotask(() => { for (const listener of listeners) listener({ type, data }); });
+  function resolveIdentifier(data, value) {
+    for (const [userId, record] of Object.entries(data.identifiers)) {
+      if (record.identifier === value && now() < Date.parse(record.expires_at)) return userId;
+      // A replaced identifier stays valid until its own original expiry.
+      if (record.previous?.identifier === value && now() < Date.parse(record.previous.expires_at)) return userId;
+    }
+    return null;
   }
-  function changed(data, self = false) {
-    save(data);
-    emit('nearby.changed', { nearby_version: data.nearby_version });
-    if (self) emit('self.changed');
-  }
-  // The demo stands in for the native scanner: while discovery is ON, seeded people
-  // are treated as observed. Turning discovery OFF stops refreshing observations, so
-  // they age out of the list exactly like a real proximity departure.
-  function sweep(data, me) {
-    if (!me.discovery_enabled) return;
-    for (const person of Object.values(data.people)) {
-      if (person.user_id === me.user_id || !person.discovery_enabled) continue;
-      data.observations[person.user_id] = stamp((person.seed_age ?? 0) * 1000 % OBSERVATION_TTL);
+  // The demo stands in for the radio too: seeded people advertise while they have
+  // discovery on, so a scan has something to resolve.
+  function seedIdentifiers(data, me) {
+    for (const user of Object.values(data.users)) {
+      if (user.user_id === me.user_id || !user.discovery_enabled || !user.profile) continue;
+      identifierFor(data, user);
     }
   }
-  function nearby(data, me) {
-    if (!me.discovery_enabled) return [];
-    const cutoff = now() - OBSERVATION_TTL;
-    return Object.values(data.people).filter((person) => {
-      if (person.user_id === me.user_id || !person.discovery_enabled) return false;
-      const observed = data.observations[person.user_id];
-      return observed && Date.parse(observed) > cutoff;
-    }).map((person) => ({ ...person, last_observed_at: data.observations[person.user_id] }))
-      .sort((a, b) => b.last_observed_at.localeCompare(a.last_observed_at) || a.user_id.localeCompare(b.user_id));
+  function observedUser(data, viewerId, userId) {
+    const user = data.users[userId];
+    const seen = data.observations[viewerId]?.[userId];
+    if (!user || !seen) return null;
+    return {
+      user_id: user.user_id,
+      profile: { ...user.profile },
+      // v0.1 always reports 'unavailable'. AI evaluation is a follow-up task.
+      recommendation: { status: 'unavailable' },
+      last_seen_at: seen.last_seen_at,
+      conversation_eligibility_expires_at: seen.eligible_until,
+    };
+  }
+  function checkProfile(payload) {
+    if (!payload || typeof payload !== 'object') fail('VALIDATION_ERROR', '입력 내용을 확인해 주세요.', { status: 422 });
+    const fields = validateProfile(payload);
+    const field = Object.keys(fields)[0];
+    if (field) fail('VALIDATION_ERROR', fields[field], { status: 422, fields: { [field]: fields[field] } });
   }
 
-  // 데모용 규칙 추천기다. 모델 호출이 아니다 — 발표에서도 그렇게 말한다.
-  //
-  // 활용형을 정규식에 나열하지 않는다. `막힌`을 빠뜨려서 씨드 45명이 한 명도
-  // 추천되지 않은 적이 있다. 어간까지만 적고 어미는 흘려보낸다.
-  const ASKS = /막히|막힌|막혀|막혔|막막|모르|어렵|어려|헤매|궁금|찾|도움|필요|배우|알고 싶|보고 싶|익숙한 분|처음|감이 안|어떻게|보신 분|하실 분|계실까요|계신가요|있나요|있을까요|주실|봐주|물어보|여쭤|구해|구하/;
-  const OFFERS = /해봤|해봐|해봅|구축|경험|자신|물어보셔도|물어봐 주|도와|알려|설명|봐드|드릴|드려|나누|공유|잡아봤|통과시켜|만들어봤|할 줄|잘 아|많이 했|많이 해|오래 했|좀 합니다|웬만한|가능해|가능합/;
-  // 낱말이 정확히 겹치는 일은 드물다. 주제로 묶어야 추천이 사람 수만큼 나온다.
-  const TOPICS = [
-    ['배포와 인프라', ['도커', 'CI', '배포', 'AWS', '빌드', '파이프라인', '서버', '백엔드', '인증', 'OAuth', 'Firebase', '권한']],
-    ['프론트엔드', ['React', '리액트', '프론트', '타입스크립트', '제네릭', '상태관리', '웹소켓', 'SSE', '소켓', '통신']],
-    ['디자인', ['디자인', '피그마', '토큰', '일러스트', '아이콘', '프로토타입', '오토레이아웃']],
-    ['기획과 제품', ['기획', 'PM', '기획서', '제품', '논문', 'NLP']],
-    ['발표 준비', ['발표', '대본', '자료', '심사', '대회']],
-    ['팀 구성', ['팀원', '팀 ', '팀이', '팀을']],
-    ['첫 참가', ['처음', '비전공', '부트캠프', '편입', '1학년', '3학년', '구경', '익숙한', '분위기', '혼자', '아는 사람']],
-    ['모바일', ['안드로이드', '앱 스토어', '스토어']],
-    ['데이터', ['파이썬', '크롤링', '지도', 'API']],
-    ['협업 도구', ['테스트', '깃', '충돌']],
-  ];
-  // `안 해봤어요`, `할 줄 아는 게 별로 없어요`는 `해봤`·`할 줄`을 품고 있다.
-  // 부정을 걸러내지 않으면 못 한다고 쓴 사람을 근거로 추천하게 된다.
-  const CANT = /안 해봤|못 해봤|해본 적 없|할 줄 아는 게 별로 없|아직 할 줄|한 번도|처음이라|별로 없|잘 몰라|모르겠/;
-  const wrote = (person) => person.self_description + ' ' + person.connection_intent;
-  const asks = (person) => ASKS.test(wrote(person));
-  const offers = (person) => OFFERS.test(wrote(person)) && !CANT.test(wrote(person));
-  function sharedTopic(viewer, candidate) {
-    const mine = wrote(viewer), theirs = wrote(candidate);
-    const hit = TOPICS.find(([, words]) => words.some((w) => mine.includes(w)) && words.some((w) => theirs.includes(w)));
-    return hit ? hit[0] : null;
-  }
-  function reason(viewer, candidate) {
-    // 상보성: 한쪽이 찾고 다른 쪽이 내어줄 때 성립한다. 방향은 양쪽 다 본다.
-    const complementary = (asks(viewer) && offers(candidate)) || (offers(viewer) && asks(candidate));
-    const topic = complementary ? sharedTopic(viewer, candidate) : null;
-    return { state: topic ? 'ready' : 'unscored',
-      // 근거는 상대가 실제로 쓴 원문에서 가져온다. 지어내지 않는다.
-      reason: topic ? candidate.nickname + '님의 "' + candidate.self_description + '"가 지금 찾으시는 것과 맞아 보여요.' : null,
-      viewer_profile_revision: viewer.profile_revision,
-      candidate_profile_revision: candidate.profile_revision,
-      policy_revision: 'demo-rules-1' };
-  }
-  function checkProfile(payload, editing = false) {
-    const fields = validateProfile(payload, editing);
-    if (Object.keys(fields).length) fail('INVALID_INPUT', '입력 내용을 확인해 주세요.', { fields });
-  }
-  const publicMe = (me) => ({
-    user_id: me.user_id, nickname: me.nickname, self_description: me.self_description,
-    connection_intent: me.connection_intent, profile_revision: me.profile_revision,
-    discovery_enabled: me.discovery_enabled, discovery_revision: me.discovery_revision,
-  });
   return {
-    async registerInstall() {
-      if (!read(installKey)) write(installKey, uuid());
-      const data = load();
-      return { user_id: data.installs[read(installKey)] ?? null };
-    },
-    async getMe() {
-      const data = load();
-      const me = identify(data, false);
-      return me ? publicMe(me) : null;
-    },
-    async createProfile(payload) {
-      const data = load();
-      const install = read(installKey);
-      if (!install) fail('INSTALL_REQUIRED', '설치 정보를 다시 확인해 주세요.');
-      const existing = identify(data, false);
-      if (existing) return publicMe(existing);
-      checkProfile(payload);
-      const me = { user_id: uuid(), nickname: payload.nickname.trim(),
-        self_description: payload.self_description.trim(), connection_intent: payload.connection_intent.trim(),
-        profile_revision: 1, discovery_enabled: true, discovery_revision: 1 };
-      data.people[me.user_id] = me;
-      data.installs[install] = me.user_id;
-      data.nearby_version++;
-      sweep(data, me);
-      changed(data);
-      return publicMe(me);
-    },
-    async updateProfile(payload) {
-      const { data, me } = auth();
-      if (payload.expected_profile_revision !== me.profile_revision) fail('REVISION_CONFLICT', '다른 화면에서 정보가 변경됐어요. 최신 정보를 확인한 뒤 다시 저장해 주세요.');
-      checkProfile(payload, true);
-      const self = payload.self_description.trim(), intent = payload.connection_intent.trim();
-      if (self !== me.self_description || intent !== me.connection_intent) {
-        Object.assign(me, { self_description: self, connection_intent: intent, profile_revision: me.profile_revision + 1 });
-        data.nearby_version++;
-        changed(data, true);
+    async registerInstallation(payload) {
+      if (!UUID_V4.test(payload?.installation_request_id ?? '') || payload?.platform !== 'android') {
+        fail('VALIDATION_ERROR', '설치 등록 요청을 확인해 주세요.', { status: 422 });
       }
-      return publicMe(me);
-    },
-    async setDiscovery(payload) {
-      const { data, me } = auth();
-      if (payload.expected_discovery_revision !== undefined && payload.expected_discovery_revision !== me.discovery_revision) {
-        fail('REVISION_CONFLICT', '발견 설정이 다른 곳에서 바뀌었어요. 다시 확인해 주세요.');
+      const data = load();
+      const previous = data.installRequests[payload.installation_request_id];
+      if (previous) {
+        if (previous.platform !== payload.platform) fail('IDEMPOTENCY_CONFLICT', '같은 등록 요청의 내용이 달라졌어요.', { status: 409 });
+        if (now() - previous.at > 600000) fail('IDEMPOTENCY_REPLAY_EXPIRED', '등록 요청이 만료됐어요. 앱을 다시 시작해 주세요.', { status: 409 });
+        return { user_id: previous.user_id, installation_credential: previous.installation_credential, created_at: previous.created_at };
       }
-      if (me.discovery_enabled !== Boolean(payload.enabled)) {
-        me.discovery_enabled = Boolean(payload.enabled);
-        me.discovery_revision++;
-        data.nearby_version++;
-        // Turning discovery off drops observations of me and stops new ones of others.
-        if (!me.discovery_enabled) data.observations = {};
-        else sweep(data, me);
-        changed(data, true);
-      }
-      return publicMe(me);
-    },
-    async reportObservations(payload) {
-      const { data, me } = auth();
-      if (!me.discovery_enabled) fail('DISCOVERY_OFF', '발견 참여가 꺼져 있어요.');
-      if (!Array.isArray(payload?.observations)) fail('INVALID_INPUT', '관측 보고 형식을 확인해 주세요.');
-      sweep(data, me);
-      save(data);
-      return { nearby_version: data.nearby_version };
-    },
-    async getNearby() {
-      const { data, me } = auth();
-      sweep(data, me);
-      save(data);
-      return { nearby_version: data.nearby_version, recommendation_state: 'ready',
-        items: nearby(data, me).map((person) => ({
-          id: person.user_id, nickname: person.nickname, self_description: person.self_description,
-          profile_revision: person.profile_revision, last_observed_at: person.last_observed_at,
-          evaluation_state: reason(me, person).state,
-        })) };
-    },
-    async getRecommendations() {
-      const { data, me } = auth();
-      return { nearby_version: data.nearby_version, state: 'ready',
-        ordered_evaluated_ids: nearby(data, me).filter((person) => reason(me, person).state === 'ready').map((person) => person.user_id) };
-    },
-    async refreshRecommendations() {
-      const { data } = auth();
-      emit('recommendation.changed', { nearby_version: data.nearby_version, state: 'ready' });
-      return { nearby_version: data.nearby_version, state: 'ready' };
-    },
-    async getPerson(id) {
-      const { data, me } = auth();
-      const person = nearby(data, me).find((candidate) => candidate.user_id === id);
-      if (!person) fail('OBSERVATION_EXPIRED', '지금은 주변에 없는 사람이에요.');
-      return {
-        person: { id: person.user_id, nickname: person.nickname, self_description: person.self_description,
-          connection_intent: person.connection_intent, profile_revision: person.profile_revision,
-          last_observed_at: person.last_observed_at },
-        recommendation: reason(me, person),
+      const user = { user_id: uuid(), profile: null, discovery_enabled: false };
+      const credential = 'ic_' + token() + token();
+      data.users[user.user_id] = user;
+      data.credentials[credential] = user.user_id;
+      data.installRequests[payload.installation_request_id] = {
+        user_id: user.user_id, installation_credential: credential, platform: payload.platform,
+        created_at: stamp(), at: now(),
       };
+      save(data);
+      return { user_id: user.user_id, installation_credential: credential, created_at: stamp() };
     },
-    async getConversations() {
-      const { data, me } = auth();
-      const visible = new Set(nearby(data, me).map((person) => person.user_id));
-      return { items: Object.values(data.conversations).filter((c) => c.people.includes(me.user_id)).map((c) => {
-        const peer = data.people[c.people.find((id) => id !== me.user_id)];
-        return { id: c.id, peer: { id: peer.user_id, nickname: peer.nickname },
-          peer_nearby: visible.has(peer.user_id), last_seq: c.messages.length, last_message: c.messages.at(-1) };
-      }).sort((a, b) => b.last_message.created_at.localeCompare(a.last_message.created_at)) };
+    async getMe(credential) {
+      const data = load();
+      const me = auth(data, credential);
+      return { user_id: me.user_id, profile: publicProfile(me), discovery_enabled: me.discovery_enabled };
     },
-    async sendMessage(payload) {
-      const { data, me } = auth();
-      const peer = data.people[payload.recipient_id];
-      if (!peer || peer.user_id === me.user_id) fail('NOT_FOUND', '상대를 찾을 수 없어요.');
-      const text = payload.text.trim();
-      if (!text || lengthOf(text) > 2000 || !payload.client_message_id || payload.client_message_id.length > 64) fail('INVALID_INPUT', '메시지는 1~2,000자로 입력해 주세요.');
+    async putProfile(credential, payload) {
+      const data = load();
+      const me = auth(data, credential);
+      checkProfile(payload);
+      me.profile = {
+        nickname: payload.nickname.trim(),
+        self_description: payload.self_description.trim(),
+        connection_intent: payload.connection_intent.trim(),
+      };
+      save(data);
+      return { ...me.profile };
+    },
+    async setDiscovery(credential, payload) {
+      const data = load();
+      const me = auth(data, credential);
+      if (typeof payload?.enabled !== 'boolean') fail('VALIDATION_ERROR', '발견 설정 값을 확인해 주세요.', { status: 422 });
+      me.discovery_enabled = payload.enabled;
+      if (!me.discovery_enabled) {
+        // Turning discovery off stops advertising and drops what I observed. It does
+        // not touch conversations.
+        delete data.identifiers[me.user_id];
+        delete data.observations[me.user_id];
+      }
+      save(data);
+      return { discovery_enabled: me.discovery_enabled };
+    },
+    async issueIdentifier(credential) {
+      const data = load();
+      const me = auth(data, credential);
+      requireProfile(me);
+      if (!me.discovery_enabled) fail('DISCOVERY_DISABLED', '주변 발견이 꺼져 있어요.', { status: 409 });
+      const record = identifierFor(data, me);
+      save(data);
+      const { previous: _rotated, ...response } = record;
+      return response;
+    },
+    async reportObservations(credential, payload) {
+      const data = load();
+      const me = auth(data, credential);
+      requireProfile(me);
+      const identifiers = payload?.identifiers;
+      if (!Array.isArray(identifiers) || identifiers.length < 1 || identifiers.length > 50) {
+        fail('VALIDATION_ERROR', '관측 보고 형식을 확인해 주세요.', { status: 422 });
+      }
+      // Discovery OFF means I neither advertise nor collect: no valid observations.
+      if (!me.discovery_enabled) return { observed_users: [] };
+      const mine = (data.observations[me.user_id] ??= {});
+      const resolved = new Set();
+      for (const value of identifiers) {
+        const userId = resolveIdentifier(data, value);
+        const other = userId && data.users[userId];
+        // Invalid, expired, self and non-participating identifiers are ignored,
+        // never a batch failure.
+        if (!other || other.user_id === me.user_id || !other.discovery_enabled || !other.profile) continue;
+        mine[other.user_id] = { last_seen_at: stamp(), eligible_until: new Date(now() + ELIGIBILITY_WINDOW).toISOString() };
+        resolved.add(other.user_id);
+      }
+      save(data);
+      return { observed_users: [...resolved].map((id) => observedUser(data, me.user_id, id)).filter(Boolean) };
+    },
+    async getConversations(credential) {
+      const data = load();
+      const me = auth(data, credential);
+      return { conversations: Object.values(data.conversations)
+        .filter((c) => c.people.includes(me.user_id) && c.messages.length)
+        .map((c) => {
+          const peer = data.users[c.people.find((id) => id !== me.user_id)];
+          return {
+            conversation_id: c.id,
+            participant: { user_id: peer.user_id, profile: { ...peer.profile } },
+            last_message: c.messages.at(-1),
+          };
+        })
+        .sort((a, b) => b.last_message.created_at.localeCompare(a.last_message.created_at)) };
+    },
+    async sendMessage(credential, payload) {
+      const data = load();
+      const me = auth(data, credential);
+      const text = typeof payload?.text === 'string' ? payload.text.trim() : '';
+      if (!UUID_V4.test(payload?.client_message_id ?? '') || !text || lengthOf(text) > 2000) {
+        fail('VALIDATION_ERROR', '메시지는 1~2,000자로 입력해 주세요.', { status: 422 });
+      }
+      if (payload.recipient_id === me.user_id) fail('VALIDATION_ERROR', '자신에게는 보낼 수 없어요.', { status: 422 });
       const all = Object.values(data.conversations);
       const previous = all.flatMap((c) => c.messages).find((m) => m.sender_id === me.user_id && m.client_message_id === payload.client_message_id);
       if (previous) {
-        const conversation = all.find((c) => c.id === previous.conversation_id);
-        if (previous.text !== text || !conversation.people.includes(peer.user_id)) fail('IDEMPOTENCY_CONFLICT', '같은 전송 요청의 내용이 달라졌어요.');
-        return { message: previous, replayed: true };
+        if (previous.text !== text || previous.recipient_id !== payload.recipient_id) fail('IDEMPOTENCY_CONFLICT', '같은 전송 요청의 내용이 달라졌어요.', { status: 409 });
+        return strip(previous);
       }
+      const peer = data.users[payload.recipient_id];
+      if (!peer) fail('RECIPIENT_NOT_FOUND', '상대를 찾을 수 없어요.', { status: 404 });
       let conversation = all.find((c) => c.people.includes(me.user_id) && c.people.includes(peer.user_id));
-      // A new relationship needs current proximity and both sides participating.
-      // An existing conversation does not re-check either.
+      // A new relationship is re-checked at save time. An existing conversation is not.
       if (!conversation) {
-        if (!me.discovery_enabled) fail('DISCOVERY_OFF', '발견 참여를 켜야 새 대화를 시작할 수 있어요.');
-        if (!nearby(data, me).some((candidate) => candidate.user_id === peer.user_id)) fail('OBSERVATION_EXPIRED', '지금은 주변에 없는 사람이에요.');
+        requireProfile(me);
+        if (!peer.profile) fail('PROFILE_REQUIRED', '상대가 아직 소개를 작성하지 않았어요.', { status: 409 });
+        if (!me.discovery_enabled || !peer.discovery_enabled) fail('DISCOVERY_DISABLED', '주변 발견이 꺼져 있어요.', { status: 403 });
+        const seen = data.observations[me.user_id]?.[peer.user_id];
+        if (!seen || now() >= Date.parse(seen.eligible_until)) fail('OBSERVATION_REQUIRED', '지금은 주변에 없는 사람이에요.', { status: 403 });
         conversation = { id: uuid(), people: [me.user_id, peer.user_id].sort(), messages: [] };
         data.conversations[conversation.id] = conversation;
       }
-      const message = { id: uuid(), conversation_id: conversation.id, seq: conversation.messages.length + 1,
-        sender_id: me.user_id, client_message_id: payload.client_message_id, text, created_at: stamp() };
+      const message = {
+        message_id: uuid(), conversation_id: conversation.id, sender_id: me.user_id,
+        recipient_id: peer.user_id, seq: conversation.messages.length + 1,
+        text, created_at: stamp(), client_message_id: payload.client_message_id,
+      };
       conversation.messages.push(message);
       save(data);
-      emit('conversation.changed', { conversation_id: conversation.id, latest_seq: message.seq });
-      return { message, replayed: false };
+      return strip(message);
     },
-    async getMessages(id, query = {}) {
-      const { data, me } = auth();
+    async getMessages(credential, id, query = {}) {
+      const data = load();
+      const me = auth(data, credential);
       const conversation = data.conversations[id];
-      if (!conversation?.people.includes(me.user_id)) fail('NOT_FOUND', '대화를 찾을 수 없어요.');
-      const { after_seq, before_seq, limit = 50 } = query;
-      if ((after_seq !== undefined && before_seq !== undefined) || limit < 1 || limit > 100) fail('INVALID_INPUT', '이력 조회 범위를 확인해 주세요.');
-      const matching = conversation.messages.filter((m) => (after_seq === undefined || m.seq > after_seq) && (before_seq === undefined || m.seq < before_seq));
-      const items = after_seq === undefined ? matching.slice(-limit) : matching.slice(0, limit);
-      return { items, has_more: matching.length > items.length, next_after_seq: items.at(-1)?.seq ?? null,
-        next_before_seq: items[0]?.seq ?? null, latest_seq: conversation.messages.length };
+      if (!conversation?.people.includes(me.user_id)) fail('CONVERSATION_NOT_FOUND', '대화를 찾을 수 없어요.', { status: 404 });
+      const after = Number(query.after_seq ?? 0), limit = Number(query.limit ?? 50);
+      if (!Number.isInteger(after) || after < 0 || !Number.isInteger(limit) || limit < 1 || limit > 100) {
+        fail('VALIDATION_ERROR', '이력 조회 범위를 확인해 주세요.', { status: 422 });
+      }
+      const matching = conversation.messages.filter((m) => m.seq > after);
+      const messages = matching.slice(0, limit).map(strip);
+      const has_more = matching.length > messages.length;
+      return { messages, next_after_seq: has_more ? messages.at(-1).seq : null, has_more };
     },
-    subscribe(callback, onError) {
-      listeners.add(callback);
-      let alive = true;
-      const ready = () => {
-        try {
-          const data = load();
-          callback({ type: 'ready', data: { nearby_version: data.nearby_version } });
-        } catch { onError(); }
+    // Demo-only: lets the demo radio learn which identifiers are in the air.
+    _advertisedIdentifiers(credential) {
+      const data = load();
+      const me = auth(data, credential);
+      seedIdentifiers(data, me);
+      save(data);
+      return Object.entries(data.identifiers)
+        .filter(([userId]) => userId !== me.user_id)
+        .map(([, record]) => record.identifier);
+    },
+    // Demo-only: the one thing a single browser cannot produce is a reply from the
+    // other device. Tests use this to land a peer message the client has not seen.
+    _injectPeerMessage(conversationId, senderId, text = '상대가 보낸 메시지') {
+      const data = load();
+      const conversation = data.conversations[conversationId];
+      if (!conversation?.people.includes(senderId)) throw new ApiError('CONVERSATION_NOT_FOUND', '대화를 찾을 수 없어요.', { status: 404 });
+      const message = {
+        message_id: uuid(), conversation_id: conversationId, sender_id: senderId,
+        recipient_id: conversation.people.find((id) => id !== senderId),
+        seq: conversation.messages.length + 1, text, created_at: stamp(),
+        client_message_id: uuid(),
       };
-      const onStorage = (event) => { if (event.key === STATE) ready(); };
-      globalThis.addEventListener?.('storage', onStorage);
-      queueMicrotask(() => { if (alive) ready(); });
-      return () => { alive = false; listeners.delete(callback); globalThis.removeEventListener?.('storage', onStorage); };
+      conversation.messages.push(message);
+      save(data);
+      return strip(message);
     },
   };
+}
+
+// client_message_id is the client's dedupe key, not part of the public Message shape.
+function strip(message) {
+  const { client_message_id: _dedupeKey, ...rest } = message;
+  return rest;
 }

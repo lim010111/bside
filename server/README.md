@@ -1,53 +1,77 @@
 # Bside 서버
 
+FastAPI · Redis. [API 계약 v0.1](../docs/api-contract.md)과 [OpenAPI](../docs/openapi.yaml)를 구현한다.
+저장 계약은 [redis.md](docs/redis.md)를 따른다.
 
-Python 3.12와 [uv](https://docs.astral.sh/uv/)가 필요합니다.
+**실기기·BLE 없이 검증한 상태다.** 아래 테스트와 프론트 연동은 전부 로컬에서 돌린 것이며,
+안드로이드 두 대의 실제 왕복은 [네이티브 계층](../android/README.md)이 구현된 뒤의 일이다.
 
-```bash
-cd server
-cp .env.example .env
-uv sync --locked
-uv run fastapi dev --port 8000
-```
+## 실행
 
-- `GET http://localhost:8000/health` → `200 {"status":"ok"}`
-- API 문서: `/docs`, `/redoc`, `/openapi.json`
-- `CORS_ORIGINS`는 JSON 문자열 배열입니다. 기본값은 로컬 Vite의 localhost 및 127.0.0.1 Origin입니다.
-- 검증: `uv run pytest`
-
-진입점은 `app.main:app`이며 `create_app()`으로 앱을 생성합니다. 설정과 라우터는
-[FastAPI 공식 구조 안내](https://fastapi.tiangolo.com/tutorial/bigger-applications/)에 따라 분리했습니다.
-현재 구현은 health/ready·Redis 연결·기본 OpenAPI까지입니다. 설치 인증·프로필·BLE 관측·추천·바로 채팅·클라이언트 연결은 후속 작업입니다. [현재 API 계약](../docs/api-contract.md)과 [팀 작업 T00~T08](../docs/team-plan.md)을 따르며, 과거 상태 한 줄·5분 만료·행사 방·요청/수락 계약을 구현하지 않습니다. BLE 발견은 Android가 담당하고 서버는 관측·추천·채팅을 처리합니다. 프론트는 아직 mock입니다.
-
-## Docker로 함께 실행
-
-Docker Compose가 있으면 FastAPI와 Redis를 함께 실행할 수 있습니다.
-
-```bash
-cd server
-docker compose up -d --build --wait
-```
-
-접속 주소는 `http://localhost:8000`입니다. 종료는 `docker compose down`입니다.
-Compose의 API는 `redis://redis:6379/0`으로 연결하며, `CORS_ORIGINS`는 `.env`에서 변경할 수 있습니다.
-
-## Redis
-
-같은 앱 설치 복원·부재 중 메시지 보관을 구현할 Redis 저장 기반입니다. 초기 API worker는 하나이며 수평 확장·프로세스 간 SSE 알림은 아직 구현하지 않았습니다.
-`server/`에서 Docker Compose로 실행합니다.
-
-```bash
+```sh
 docker compose up -d --wait redis
-curl -i http://localhost:8000/ready
-docker compose down  # 저장 데이터 유지
+uv sync --group dev
+uv run fastapi dev app/main.py        # http://127.0.0.1:8000
+uv run pytest
 ```
 
-`REDIS_URL` 기본값은 `redis://127.0.0.1:6379/0`입니다.
-`/ready`는 Redis 연결 성공 시 200, 실패 시 503을 반환하며 복구 후 다시 200을 반환합니다.
-`/health`는 Redis 장애와 무관하게 정상 응답합니다.
+전체를 컨테이너로 올리려면 `docker compose up -d --wait`를 쓴다. `docker compose down -v`는
+제품 데이터를 지우므로 일반 재시작 절차가 아니다.
 
-상세 설정과 장애·영속화 검증 절차는 [Redis 운영 및 검증](docs/redis.md)을 참고하세요.
+테스트는 **실제 Redis의 15번 데이터베이스**를 쓰고 각 테스트 전후로 비운다. 0번은 건드리지
+않는다. Redis가 없으면 테스트는 실패가 아니라 건너뛴다. 원자적 전송이 Lua 스크립트라서
+가짜 Redis로는 정작 검증할 가치가 있는 부분을 못 본다.
 
-Compose는 AOF `appendfsync always`와 영속 volume을 사용합니다. 사용자·채팅에는 5분 TTL이나 시연 종료 특별 삭제를 적용하지 않습니다. 실제 제품 저장과 변경한 AOF 설정의 장애 복원 검증은 아직 남아 있습니다.
+## 엔드포인트
 
-기존 OCI/Nginx 재사용과 Android APK의 원격 API·인증 경계는 [배포 기준](../docs/deployment.md)을 참고하세요. 이번 통합에서 운영 서버에 접속하거나 배포하지 않았습니다.
+| 경로 | 하는 일 |
+| --- | --- |
+| `POST /api/v1/installations` | 설치 등록. 인증 없이 호출하는 유일한 API |
+| `GET /api/v1/me` | 현재 설치 사용자. 프로필 작성 전 `profile`은 `null` |
+| `POST /api/v1/me/profile` | 공개 프로필 **전체 교체**. 부분 수정 없음 |
+| `POST /api/v1/me/discovery` | 발견 참여 ON/OFF |
+| `POST /api/v1/discovery/identifiers` | BLE 임시 ID 발급·회전 |
+| `POST /api/v1/discovery/observations` | 스캔 보고 → 관측된 사용자의 공개 프로필 |
+| `GET /api/v1/conversations` | 내 대화 목록 |
+| `POST /api/v1/messages` | 메시지 전송 |
+| `GET /api/v1/conversations/{id}/messages` | 이력 (전진 전용) |
+
+`/health`는 API 생존, `/ready`는 Redis 연결 상태다.
+
+## 구현에서 신경 쓴 것
+
+**인증.** 설치 자격 증명은 `sha256` 해시로만 저장한다. Redis 덤프가 그대로 유효한 자격
+증명이 되지 않는다. 공개 `user_id`와 BLE 임시 ID는 인증 수단이 아니며, 요청 본문의 발신자
+ID도 신뢰하지 않는다.
+
+**첫 메시지의 원자성.** 관측 유효성·양쪽 발견 상태·양쪽 프로필 확인, 대화 생성, 순번 부여,
+중복 방지 키 기록을 [`send_message.lua`](app/scripts/send_message.lua) 한 스크립트에서
+처리한다. 파이썬으로 나눠 호출하면 그 사이에 다른 쓰기가 끼어들 수 있다. 스크립트 안에서는
+외부 호출을 하지 않는다(AI·HTTP 없음).
+
+**임시 ID 겹침.** 회전은 새 `ident:map` 키를 쓰고, 교체된 키는 자기 TTL로 만료된다. 계약의
+"교체된 이전 ID도 최대 1분간 겹쳐 인정한다"가 별도 관리 없이 나온다.
+
+**발견 OFF.** 광고를 멈추고 내가 모은 관측을 지운다. 대화와 이력은 건드리지 않는다.
+
+**오류.** 모든 실패가 `{error:{code,message,details}}` 한 모양으로 나간다. FastAPI 기본 검증
+오류도 `details.field`를 붙여 같은 모양으로 바꾼다. 잘못된 JSON은 400, 필드 오류는 422로
+구분한다.
+
+## 검증 범위
+
+`uv run pytest` 33개가 계약 경계를 덮는다: 등록 멱등성과 10분 재생 창 만료, 공개 ID를
+자격으로 쓸 수 없음, 알 수 없는 필드·깨진 JSON 거부, 코드 포인트 길이 한도(이모지 포함),
+임시 ID의 선행 조건과 안정성, 관측이 잡음을 무시하되 배치를 실패시키지 않음, 발견 OFF인
+상대는 관측되지 않음, 첫 메시지의 세 가지 거부 사유 구분, 기존 대화가 근접·발견을 다시
+요구하지 않음, 멱등성 재생과 충돌, 양쪽이 동시에 첫 메시지를 보내도 대화는 하나,
+전진 전용 페이지네이션, 비당사자 접근 거부, **재시작 후 이력·순번·중복 방지 키 복원**.
+
+프론트와의 연동은 [web/VERIFICATION.md](../web/VERIFICATION.md)에 기록했다.
+
+## 아직 검증하지 못한 것
+
+- 실제 BLE와 안드로이드 두 대의 왕복
+- Redis 재시작·AOF 복원의 실제 장애 시나리오 (V12). 앱 인스턴스 재시작만 확인했다
+- 부하·동시성 규모. 원자성은 검증했지만 성능은 측정하지 않았다
+- AI 추천. v0.1의 `recommendation.status`는 항상 `unavailable`이다
