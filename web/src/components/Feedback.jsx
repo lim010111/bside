@@ -1,4 +1,4 @@
-import { useRoom } from '../use-room.js';
+import { useDiscovery } from '../use-discovery.js';
 import { useCountdown } from '../lib/use-countdown.js';
 
 export function PageHeader({ title, eyebrow, onBack, action }) {
@@ -21,11 +21,11 @@ export function EmptyState({ title, text, action, compact }) {
   return <div className={'empty' + (compact ? ' compact' : '')}><svg className="ic" aria-hidden="true"><use href="#i-inbox" /></svg><h2>{title}</h2>{text && <p className="dim">{text}</p>}{action}</div>;
 }
 export function Navigation() {
-  const { state, actions } = useRoom();
-  return <nav className="navigation" aria-label="행사 메뉴">{[['people', '사람들'], ['conversations', '대화']].map(([view, title]) => <button key={view} type="button" aria-current={state.view === view ? 'page' : undefined} onClick={() => actions.navigate(view)}>{title}{view === 'conversations' && state.conversations.length > 0 && <span>{state.conversations.length}</span>}</button>)}</nav>;
+  const { state, actions } = useDiscovery();
+  return <nav className="navigation" aria-label="메뉴">{[['nearby', '주변'], ['conversations', '대화']].map(([view, title]) => <button key={view} type="button" aria-current={state.view === view ? 'page' : undefined} onClick={() => actions.navigate(view)}>{title}{view === 'conversations' && state.conversations.length > 0 && <span>{state.conversations.length}</span>}</button>)}</nav>;
 }
 export function RecommendationRetry() {
-  const { state, actions } = useRoom();
+  const { state, actions } = useDiscovery();
   const remaining = useCountdown(state.retryAt);
   return <button className="text-button" disabled={remaining > 0} onClick={actions.retryRecommendations}>{remaining ? `${remaining}초 후 다시 시도` : '추천 다시 받기'}</button>;
 }

@@ -10,7 +10,7 @@ export class ApiError extends Error {
 }
 
 export function validateProfile(values, editing = false) {
-  const labels = { nickname: '닉네임', self_description: '자기소개', connection_intent: '찾는 사람' };
+  const labels = { nickname: '닉네임', self_description: '자기소개', connection_intent: '만나고 싶은 사람' };
   return Object.fromEntries(Object.entries(labels).flatMap(([key, label]) => {
     if (editing && key === 'nickname') return [];
     const count = lengthOf((values[key] ?? '').trim());
@@ -18,11 +18,13 @@ export function validateProfile(values, editing = false) {
   }));
 }
 
-export const baseOrder = (a, b) => a.joined_at.localeCompare(b.joined_at) || a.id.localeCompare(b.id);
+// Proximity has no join order. The most recent valid observation wins, then the ID
+// keeps the list stable while observations of the same second arrive out of order.
+export const baseOrder = (a, b) => b.last_observed_at.localeCompare(a.last_observed_at) || a.id.localeCompare(b.id);
 
-// Recommendations never determine membership. Unevaluated people remain visible.
-export function orderParticipants(items, recommendations, candidateVersion) {
-  const ordered = recommendations?.candidate_version === candidateVersion ? recommendations.ordered_evaluated_ids : [];
+// Recommendations never determine who is nearby. Unevaluated people remain visible.
+export function orderNearby(items, recommendations, nearbyVersion) {
+  const ordered = recommendations?.nearby_version === nearbyVersion ? recommendations.ordered_evaluated_ids : [];
   const rank = new Map((ordered ?? []).map((id, i) => [id, i]));
   return [...items].sort((a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity) || baseOrder(a, b));
 }
@@ -33,18 +35,18 @@ export function mergeMessages(current, incoming) {
   return [...messages.values()].sort((a, b) => a.seq - b.seq);
 }
 
+// A reason is written for one viewer against one revision pair. Once either side
+// edits their text the old sentence no longer cites what is on screen.
 export function validReason(detail, me) {
   const reason = detail?.recommendation;
   return reason?.state === 'ready' && reason.reason
-    && reason.viewer_profile_version === me?.profile_version
-    && reason.candidate_profile_version === detail.participant.profile_version
-    && detail.participant.participation_status === 'active';
+    && reason.viewer_profile_revision === me?.profile_revision
+    && reason.candidate_profile_revision === detail.person.profile_revision;
 }
 
-export function roomCode(location) {
-  const match = location.pathname.match(/^\/r\/([^/]+)\/?$/);
-  if (match) {
-    try { return decodeURIComponent(match[1]); } catch { return match[1]; }
-  }
-  return new URLSearchParams(location.search).get('r') || 'KOSS26';
+// AI-D2: ambiguous input is 'insufficient evidence', never a low score or an error,
+// and never a gate. The hint is optional and the list and chat stay usable.
+export function needsRicherIntent(items) {
+  const evaluated = items.filter((person) => person.evaluation_state !== 'pending');
+  return evaluated.length >= 3 && evaluated.every((person) => person.evaluation_state === 'unscored');
 }
