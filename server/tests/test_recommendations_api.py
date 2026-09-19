@@ -133,7 +133,10 @@ class Evaluations:
                 self.bridge._service, self.cache, settings=self.bridge._settings, redis=redis
             )
             try:
-                return await bridge._claim(viewer, candidates)
+                leases = {}
+                return all(await asyncio.gather(*(
+                    bridge._claim(viewer, candidate, leases) for candidate in candidates
+                )))
             finally:
                 await redis.aclose()
 
@@ -358,8 +361,8 @@ def test_the_job_key_is_the_same_in_every_worker():
     program = (
         "from app.recommendations import job_key;"
         "from app.ai import ParticipantProfile as P;"
-        "print(job_key('viewer', 'digest',"
-        " (P(user_id='b', profile_revision=1), P(user_id='a', profile_revision=1))))"
+        "print(job_key(P(user_id='viewer', profile_revision=1), 'digest',"
+        " P(user_id='b', profile_revision=1)))"
     )
 
     def key_with(seed: str) -> str:
@@ -396,3 +399,59 @@ def test_without_configuration_the_field_says_unavailable(client, install):
 
     # No rank either: with nothing evaluated there is no order to claim.
     assert recommendation == {"status": "unavailable"}
+
+
+def refresh(installation, *user_ids):
+    response = installation.post('/api/v1/discovery/recommendations/refresh', json={'user_ids': list(user_ids)})
+    assert response.status_code == 200, response.text
+    return response.json()['observed_users']
+
+
+def test_refresh_delivers_a_completed_reason_without_a_new_scan_or_renewed_proximity(ai, install):
+    alice, bob, stranger = install('앨리스'), install('밥'), install('미관측')
+    original = alice.observe(bob.identifier())[0]
+    ai.evaluated(ai.profile(alice.user_id, '앨리스'), ai.profile(bob.user_id, '밥'),
+                 score=.9, reason='새 스캔 없이 완료된 추천입니다.', quote='밥의 자기소개입니다')
+    rows = refresh(alice, bob.user_id, stranger.user_id, bob.user_id, alice.user_id)
+    assert len(rows) == 1
+    assert rows[0]['recommendation']['status'] == 'ready'
+    for field in ('last_seen_at', 'conversation_eligibility_expires_at'):
+        assert rows[0][field] == original[field]
+
+
+@pytest.mark.parametrize('scenario', ['expired', 'candidate_off', 'viewer_off'])
+def test_refresh_rechecks_proximity_and_participation(ai, install, settings, scenario):
+    import redis as sync_redis
+    alice, bob = install('앨리스'), install('밥')
+    alice.observe(bob.identifier())
+    if scenario == 'expired':
+        with sync_redis.Redis.from_url(settings.redis_url) as redis:
+            redis.zadd(f'obs:{alice.user_id}', {bob.user_id: 1})
+    elif scenario == 'candidate_off':
+        bob.discovery(False)
+    else:
+        alice.discovery(False)
+    assert refresh(alice, bob.user_id) == []
+
+
+def test_refresh_uses_current_profiles_and_starts_new_evaluation(ai, install):
+    alice, bob = install('앨리스'), install('밥')
+    original = alice.observe(bob.identifier())[0]
+    ai.evaluated(ai.profile(alice.user_id, '앨리스'), ai.profile(bob.user_id, '밥'),
+                 score=.9, reason='이전 소개의 이유입니다.', quote='밥의 자기소개입니다')
+    assert refresh(alice, bob.user_id)[0]['recommendation']['status'] == 'ready'
+    bob.profile('새로운 밥')
+    row = refresh(alice, bob.user_id)[0]
+    assert row['profile']['nickname'] == '새로운 밥'
+    assert row['recommendation']['status'] == 'pending'
+    assert 'reason' not in row['recommendation']
+    assert row['last_seen_at'] == original['last_seen_at']
+
+
+def test_refresh_rejects_missing_auth_and_invalid_or_unbounded_requests(client, install):
+    alice = install('앨리스')
+    path = '/api/v1/discovery/recommendations/refresh'
+    assert client.post(path, json={'user_ids': [alice.user_id]}).status_code == 401
+    for body in ({'user_ids': []}, {'user_ids': ['invalid']}, {'user_ids': [alice.user_id] * 51},
+                 {'user_ids': [alice.user_id], 'last_seen_at': 'forged'}):
+        assert alice.post(path, json=body).status_code == 422

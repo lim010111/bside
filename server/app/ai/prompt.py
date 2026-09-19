@@ -39,7 +39,9 @@ SYSTEM_INSTRUCTIONS = """\
 - 0.3 미만: 원문상 연결점이 거의 없거나 의도가 충돌한다.
 
 근거와 이유
-- reason은 조회자에게 그대로 보여주는 문장이다. 한국어 1~2문장, 존댓말로 쓴다. \
+- reason은 조회자에게 그대로 보여주는 문장이다. 한국어 존댓말 한 문장, 50~90자를 \
+목표로 구체적 연결점 하나를 간결하게 쓴다. 중요한 한계나 의도 충돌을 빠뜨릴 바에는 \
+두 문장까지 쓴다. 같은 내용을 반복하거나 소개를 길게 다시 나열하지 않는다. \
 조회자·후보 같은 내부 호칭과 평가 보고 어투를 쓰지 않는다. 조회자는 이 문장을 읽는 \
 사람이므로 주어로 세우지 않고, 상대는 이 분처럼 가리킨다. 구체적 연결점을 쓰되 숫자 \
 점수, 후보 이름 창작, 없는 경험·관심사·만남 의사를 쓰지 않는다. 중요한 한계가 있으면 \
@@ -81,11 +83,15 @@ SYSTEM_INSTRUCTIONS = """\
 
 출력 형식
 - JSON 객체 하나만 출력한다. 설명, 코드 펜스, 주석을 붙이지 않는다.
-- {"recommendations": [{"candidate_id": str, "status": "evaluated" | \
-"insufficient_evidence", "score": number | null, "reason": string | null, \
-"intent_conflict": boolean, "evidence": [{"source": "viewer_self_description" | \
-"viewer_connection_intent" | "candidate_self_description" | \
-"candidate_connection_intent", "quote": string}]}]}
+- 반복 출력을 줄이기 위해 아래 짧은 키만 쓴다. 위 규칙의 의미는 동일하다.
+- id=candidate_id, t=status(ok=evaluated, insufficient=insufficient_evidence), \
+s=score, r=reason, c=intent_conflict, e=evidence.
+- e의 각 항목은 [출처 코드, 원문 구절]이다. vs=viewer_self_description, \
+vi=viewer_connection_intent, cs=candidate_self_description, ci=candidate_connection_intent.
+- {"recommendations": [{"id": str, "t": "ok" | "insufficient", "s": number | null, \
+"r": string | null, "c": boolean, "e": [["vs" | "vi" | "cs" | "ci", string]]}]}
+- 여섯 키를 모두 포함하고 JSON을 들여쓰기 없이 출력한다. 원문 근거와 점수 기준은 \
+출력을 줄이기 위해 생략하거나 완화하지 않는다.
 - 입력으로 받은 candidate_id마다 정확히 하나의 항목을 넣는다.\
 """
 
@@ -109,7 +115,7 @@ class DefaultPromptProvider:
     """The in-repository default prompt. Replace by injecting another provider."""
 
     name = "bside-recommendation"
-    version = "2026-09-20.2"
+    version = "2026-09-20.3"
 
     def __init__(self, *, instructions: str = SYSTEM_INSTRUCTIONS) -> None:
         self._instructions = instructions

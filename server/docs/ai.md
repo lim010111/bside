@@ -4,6 +4,10 @@
 
 **이 문서는 구현과 모의 테스트 결과만 기술한다.** 실제 모델 호출·품질 비교·성능 목표 달성은 [AI 추천 검증 기록](ai-validation.md)(검증 담당 소유: `server/evals/`, `server/tests/test_ai_acceptance.py`)의 실행 결과로만 주장한다. 리뷰 담당의 결함 보고는 [AI 구현 리뷰](ai-review.md)에 있다.
 
+후속 변경인 압축 응답, 후보별 중복 방지, 추천 독립 조회와 현재 전체 검증 결과는
+[AI 지연 개선](ai-latency-improvements.md)에 있다. 아래의 초기 실측·검증 기록은 해당
+프롬프트와 당시 구현에 대한 기록이며 새 프롬프트의 실모델 검증을 대신하지 않는다.
+
 ## 공개 이름
 
 모두 `from app.ai import ...`로 가져온다.
@@ -60,7 +64,7 @@
 | `AI_BASE_URL` | `https://ai.cs.kookmin.ac.kr/v1` |
 | `AI_MODEL` | `claude-haiku-4-5` |
 | `AI_API_KEY` | `server/.env`에 설정됨 (값은 기록·출력하지 않는다) |
-| 프롬프트 | `bside-recommendation` `2026-09-20.2`, digest `32db67109c375cf1` |
+| 프롬프트 | `bside-recommendation` `2026-09-20.3`, digest `ff85b83b0d8db46e` ([속도 실측과 품질 한계](ai-latency-ab.md)) |
 | `AI_BATCH_SIZE` / `AI_MAX_CONCURRENT_REQUESTS` | `5` / `4` (기본값 유지) |
 | `AI_NOTIFICATION_SCORE_THRESHOLD` | `0.72` (**잠정값**) |
 
@@ -336,9 +340,12 @@ if matches_current_inputs(result, current_request) and discovery_unchanged(...):
 | 항목 | 값 |
 | --- | --- |
 | `DefaultPromptProvider.name` | `bside-recommendation` |
-| `DefaultPromptProvider.version` | `2026-09-20.2` |
-| `prompt_digest` | `32db67109c375cf1` |
-| 기본 설정의 `inference_digest` | `5c0a59ef8b4edef1` (`AI_MODEL` 등 설정이 바뀌면 달라진다) |
+| `DefaultPromptProvider.version` | `2026-09-20.3` |
+| `prompt_digest` | `ff85b83b0d8db46e` |
+| `inference_digest` | `service.inference_digest`로 확인 (`AI_MODEL` 등 설정에 따라 달라진다) |
+
+`2026-09-20.3`은 출력 키와 근거 출처명을 압축하고 이유 한 문장(50~90자 목표)을 요청한다.
+중요한 한계에는 두 문장을 허용한다. 서버의 점수·원문 근거·알림 검증은 유지한다.
 
 `2026-09-20.2`에서 실모델 평가의 E05·E03 관찰을 반영해 두 가지를 좁게 고쳤다. 기존 규칙은 그대로 두었고 사례의 이름·문장에 맞춘 조건은 넣지 않았다.
 

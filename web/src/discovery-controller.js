@@ -27,12 +27,14 @@ export function discoveryReducer(state, action) {
 // observation report. It also has no per-user endpoint, so the detail screen reads
 // the last observation response from memory — a cache for redrawing, never proof of
 // proximity. The server re-checks eligibility when the first message is saved.
-export function createDiscoveryController({ api, native, credentials, route = () => ({ view: 'nearby' }), writeRoute = () => {}, now = Date.now }) {
+export function createDiscoveryController({ api, native, credentials, route = () => ({ view: 'nearby' }), writeRoute = () => {}, now = Date.now, timers = globalThis }) {
   let state = initialState();
   const listeners = new Set(), requests = new Map();
   let epoch = 0, alive = false, unsubscribeStatus, unsubscribeObservations, refreshTimer;
   let refreshRunning = false, refreshAgain = false;
   let historyRunning = false, historyAgain = false;
+  let recommendationTimer, recommendationGeneration = 0, recommendationDeadline = 0;
+  let recommendationDelay = 1000;
   const emit = (action) => {
     state = discoveryReducer(state, action);
     for (const listener of listeners) listener(state);
@@ -49,6 +51,7 @@ export function createDiscoveryController({ api, native, credentials, route = ()
   }
   function disconnect() {
     clearInterval(refreshTimer);
+    stopRecommendationRefresh();
   }
   function errorBoundary(error) {
     if (['UNAUTHORIZED', 'INSTALL_REQUIRED'].includes(error.code)) {
@@ -79,7 +82,9 @@ export function createDiscoveryController({ api, native, credentials, route = ()
     }
   }
   function applyMe(me) {
+    const changed = state.me?.profile && JSON.stringify(state.me.profile) !== JSON.stringify(me.profile);
     patch({ me, connection: 'connected' });
+    if (changed) invalidateRecommendations();
     void syncNative(me);
   }
   // The setting is the user's intent; the radio is what is actually running. We push
@@ -89,12 +94,57 @@ export function createDiscoveryController({ api, native, credentials, route = ()
     const status = await (me.discovery_enabled && me.profile ? native.start() : native.stop());
     if (!open()) return;
     patch({ native: status });
-    if (!me.discovery_enabled) patch({ people: [], observedAt: null, nearbyLoading: false });
+    if (!me.discovery_enabled) {
+      stopRecommendationRefresh();
+      patch({ people: [], observedAt: null, nearbyLoading: false });
+      selectDetail();
+    }
   }
   // The only source of a nearby list in v0.1.
   function applyObservations(result) {
-    if (!result?.observed_users) return;
+    if (!result?.observed_users || !state.me?.discovery_enabled) return;
     patch({ people: result.observed_users, observedAt: now(), nearbyLoading: false, nearbyError: null });
+    selectDetail();
+    startRecommendationRefresh();
+  }
+  function stopRecommendationRefresh() {
+    recommendationGeneration++;
+    timers.clearTimeout(recommendationTimer);
+    cancelScope('recommendations');
+  }
+  function startRecommendationRefresh() {
+    stopRecommendationRefresh();
+    recommendationDeadline = now() + 60000;
+    recommendationDelay = 1000;
+    scheduleRecommendationRefresh();
+  }
+  function invalidateRecommendations() {
+    patch({ people: state.people.map((person) => ({ ...person, recommendation: { status: 'pending' } })) });
+    selectDetail();
+    startRecommendationRefresh();
+  }
+  function scheduleRecommendationRefresh() {
+    const pending = state.people.some((person) => person.recommendation?.status === 'pending');
+    const failed = state.people.some((person) => person.recommendation?.status === 'failed');
+    if (!open() || !api.refreshRecommendations || !state.me?.discovery_enabled
+      || now() >= recommendationDeadline
+      || (!pending && !failed)) return;
+    const generation = recommendationGeneration;
+    recommendationTimer = timers.setTimeout(async () => {
+      if (!open() || generation !== recommendationGeneration || now() >= recommendationDeadline) return;
+      if (globalThis.document?.visibilityState !== 'hidden' && ['nearby', 'detail'].includes(state.view)) {
+        const ids = state.people.map((person) => person.user_id);
+        await request('recommendations', (options) => api.refreshRecommendations({ user_ids: ids }, options), (result) => {
+          if (generation !== recommendationGeneration || !state.me?.discovery_enabled) return;
+          // This response only re-reads server observations; it never renews
+          // last_seen_at or message eligibility and cannot resurrect an old list.
+          patch({ people: result.observed_users });
+          selectDetail();
+          recommendationDelay = 1000;
+        }, () => { recommendationDelay = Math.min(recommendationDelay * 2, 8000); });
+      }
+      if (generation === recommendationGeneration) scheduleRecommendationRefresh();
+    }, Math.min(pending ? recommendationDelay : 15000, recommendationDeadline - now()));
   }
   async function scanNearby() {
     if (!state.me?.discovery_enabled || !state.me.profile) {
@@ -199,6 +249,7 @@ export function createDiscoveryController({ api, native, credentials, route = ()
   // observation reporting stay in the native layer, never on this timer.
   function connect() {
     disconnect();
+    startRecommendationRefresh();
     refreshTimer = setInterval(() => {
       if (open() && globalThis.document?.visibilityState !== 'hidden') void refreshAll();
     }, 15000);
@@ -258,6 +309,7 @@ export function createDiscoveryController({ api, native, credentials, route = ()
       cancelScope('me');
       const first = !state.me?.profile;
       patch({ me: { ...state.me, profile }, busy: null });
+      invalidateRecommendations();
       outcome = { ok: true };
       navigate('nearby');
       if (first) { connect(); void syncNative({ ...state.me, profile }); }
@@ -274,6 +326,11 @@ export function createDiscoveryController({ api, native, credentials, route = ()
       cancelScope('me');
       const me = { ...state.me, discovery_enabled: result.discovery_enabled };
       patch({ me, busy: null });
+      if (!me.discovery_enabled) {
+        stopRecommendationRefresh();
+        patch({ people: [], observedAt: null, nearbyLoading: false });
+        selectDetail();
+      }
       outcome = { ok: true };
       void syncNative(me).then(() => { if (open()) void refreshAll(); });
     }, (error) => { patch({ busy: null }); outcome = { ok: false, error }; });

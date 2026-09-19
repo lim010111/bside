@@ -9,6 +9,8 @@ The scalar types are strict on purpose. Lax coercion would let ``"0.9"`` or
 returns the wrong JSON type fails the entry instead.
 """
 
+from typing import Literal
+
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -38,3 +40,40 @@ class RawEvaluation(BaseModel):
     reason: StrictStr | None = None
     intent_conflict: StrictBool = False
     evidence: list[RawExcerpt] = Field(default_factory=list)
+
+
+_SOURCES = {
+    "vs": "viewer_self_description",
+    "vi": "viewer_connection_intent",
+    "cs": "candidate_self_description",
+    "ci": "candidate_connection_intent",
+}
+
+
+class CompactEvaluation(BaseModel):
+    """Transport compression only; the same claims still pass the same checks."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: StrictStr = Field(min_length=1)
+    t: Literal["ok", "insufficient"]
+    s: StrictFloat | StrictInt | None
+    r: StrictStr | None
+    c: StrictBool
+    e: list[tuple[Literal["vs", "vi", "cs", "ci"], StrictStr]]
+
+
+def parse_evaluation(raw) -> RawEvaluation:
+    # Legacy responses remain usable by injected prompt providers and replays.
+    # Compact objects forbid extra keys so mixed/ambiguous representations fail.
+    if not isinstance(raw, dict) or "id" not in raw:
+        return RawEvaluation.model_validate(raw)
+    compact = CompactEvaluation.model_validate(raw)
+    return RawEvaluation(
+        candidate_id=compact.id,
+        status="evaluated" if compact.t == "ok" else "insufficient_evidence",
+        score=compact.s,
+        reason=compact.r,
+        intent_conflict=compact.c,
+        evidence=[RawExcerpt(source=_SOURCES[source], quote=quote) for source, quote in compact.e],
+    )

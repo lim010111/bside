@@ -1,0 +1,10 @@
+{
+  "mode": "offline; production controller, fake native observation events",
+  "after_native_ready_event": {
+    "list": "ready",
+    "detail": "pending"
+  },
+  "after_full_refresh": {
+    "detail": "ready"
+  }
+}

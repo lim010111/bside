@@ -201,6 +201,37 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+  /discovery/recommendations/refresh:
+    post:
+      tags: [Discovery]
+      summary: Refresh recommendations for previously observed users
+      operationId: refreshDiscoveryRecommendations
+      description: Reads current profiles and cached recommendations without renewing last_seen_at or conversation eligibility. Only users with an unexpired observation and discovery enabled are returned. Missing evaluations run in the background. Discovery disabled returns an empty list.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationRefreshRequest'
+      responses:
+        '200':
+          description: Still eligible requested users, with current recommendations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObservationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: PROFILE_REQUIRED.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /conversations:
     get:
       tags: [Chat]
@@ -441,6 +472,17 @@ components:
           maxItems: 50
           items:
             $ref: '#/components/schemas/DiscoveryIdentifier'
+    RecommendationRefreshRequest:
+      type: object
+      additionalProperties: false
+      required: [user_ids]
+      properties:
+        user_ids:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/UserId'
     ObservationResponse:
       type: object
       additionalProperties: false

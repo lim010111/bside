@@ -66,6 +66,7 @@ export function createClient({ base = '', credentials, fetcher = globalThis.fetc
     // Native BLE layer only. Screens never rotate the advertised identifier.
     issueIdentifier: (options) => request('/discovery/identifiers', { ...options, method: 'POST' }),
     reportObservations: (payload, options) => request('/discovery/observations', { ...options, method: 'POST', body: payload }),
+    refreshRecommendations: (payload, options) => request('/discovery/recommendations/refresh', { ...options, method: 'POST', body: payload }),
     getConversations: (options) => request('/conversations', options),
     sendMessage: (payload, options) => request('/messages', { ...options, method: 'POST', body: payload }),
     getMessages: (id, query = {}, options) => request('/conversations/' + encodeURIComponent(id) + '/messages?' + new URLSearchParams({ after_seq: 0, limit: 50, ...query }), options),

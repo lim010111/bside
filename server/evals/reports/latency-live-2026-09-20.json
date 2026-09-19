@@ -1,0 +1,382 @@
+{
+  "at": "2026-09-19T20:00:50.232486+00:00",
+  "run_id": "b4df5ce382b3",
+  "commit": "af74f332006c36abcd6acc727066bc008902a885",
+  "mode": "live",
+  "model": "claude-haiku-4-5",
+  "settings": {
+    "batch_size": 5,
+    "max_concurrent_requests": 4,
+    "max_output_tokens": 4096,
+    "max_attempts": 1,
+    "temperature": 0.2,
+    "request_timeout_seconds": 20.0,
+    "total_timeout_seconds": 45.0,
+    "cache_ttl_seconds": 900
+  },
+  "fixture": "fixtures/bench20.json (prefixes of 1/5/20; synthetic, not daily-use quality validation)",
+  "cache_backend": "disposable local Redis",
+  "runs": [
+    {
+      "failure_codes": {},
+      "usage": {
+        "input_tokens": 2539,
+        "output_tokens": 322,
+        "total_tokens": 2861,
+        "complete": true,
+        "reported_calls": 1,
+        "provider_calls": 1
+      },
+      "repeat": 0,
+      "wall_ms": 2383.4,
+      "duration_ms": 2383.398,
+      "gateway_calls": 1,
+      "cache_hits": 0,
+      "statuses": {
+        "EVALUATED": 1
+      },
+      "evaluated": 1,
+      "returned": 1,
+      "anomalies": [],
+      "candidates": 1,
+      "pending_ms": 0.541,
+      "pending_statuses": {
+        "pending": 1
+      },
+      "prompt_digest": "042d9e7cf2358995",
+      "inference_digest": "527544c990f8e174",
+      "warm_ms": 0.432,
+      "warm_statuses": {
+        "ready": 1
+      },
+      "warm_gateway_calls": 0
+    },
+    {
+      "failure_codes": {},
+      "usage": {
+        "input_tokens": 2894,
+        "output_tokens": 1472,
+        "total_tokens": 4366,
+        "complete": true,
+        "reported_calls": 1,
+        "provider_calls": 1
+      },
+      "repeat": 0,
+      "wall_ms": 8565.8,
+      "duration_ms": 8565.795,
+      "gateway_calls": 1,
+      "cache_hits": 0,
+      "statuses": {
+        "EVALUATED": 5
+      },
+      "evaluated": 5,
+      "returned": 5,
+      "anomalies": [],
+      "candidates": 5,
+      "pending_ms": 5.423,
+      "pending_statuses": {
+        "pending": 5
+      },
+      "prompt_digest": "042d9e7cf2358995",
+      "inference_digest": "527544c990f8e174",
+      "warm_ms": 0.658,
+      "warm_statuses": {
+        "ready": 5
+      },
+      "warm_gateway_calls": 0
+    },
+    {
+      "failure_codes": {},
+      "usage": {
+        "input_tokens": 11553,
+        "output_tokens": 6075,
+        "total_tokens": 17628,
+        "complete": true,
+        "reported_calls": 4,
+        "provider_calls": 4
+      },
+      "repeat": 0,
+      "wall_ms": 9167.3,
+      "duration_ms": 9167.249,
+      "gateway_calls": 4,
+      "cache_hits": 0,
+      "statuses": {
+        "EVALUATED": 20
+      },
+      "evaluated": 20,
+      "returned": 20,
+      "anomalies": [],
+      "candidates": 20,
+      "pending_ms": 16.663,
+      "pending_statuses": {
+        "pending": 20
+      },
+      "prompt_digest": "042d9e7cf2358995",
+      "inference_digest": "527544c990f8e174",
+      "warm_ms": 1.945,
+      "warm_statuses": {
+        "ready": 20
+      },
+      "warm_gateway_calls": 0
+    },
+    {
+      "failure_codes": {},
+      "usage": {
+        "input_tokens": 2539,
+        "output_tokens": 322,
+        "total_tokens": 2861,
+        "complete": true,
+        "reported_calls": 1,
+        "provider_calls": 1
+      },
+      "repeat": 1,
+      "wall_ms": 2583.1,
+      "duration_ms": 2583.056,
+      "gateway_calls": 1,
+      "cache_hits": 0,
+      "statuses": {
+        "EVALUATED": 1
+      },
+      "evaluated": 1,
+      "returned": 1,
+      "anomalies": [],
+      "candidates": 1,
+      "pending_ms": 0.393,
+      "pending_statuses": {
+        "pending": 1
+      },
+      "prompt_digest": "042d9e7cf2358995",
+      "inference_digest": "527544c990f8e174",
+      "warm_ms": 0.365,
+      "warm_statuses": {
+        "ready": 1
+      },
+      "warm_gateway_calls": 0
+    },
+    {
+      "failure_codes": {},
+      "usage": {
+        "input_tokens": 2894,
+        "output_tokens": 1650,
+        "total_tokens": 4544,
+        "complete": true,
+        "reported_calls": 1,
+        "provider_calls": 1
+      },
+      "repeat": 1,
+      "wall_ms": 9093.2,
+      "duration_ms": 9093.16,
+      "gateway_calls": 1,
+      "cache_hits": 0,
+      "statuses": {
+        "EVALUATED": 5
+      },
+      "evaluated": 5,
+      "returned": 5,
+      "anomalies": [],
+      "candidates": 5,
+      "pending_ms": 0.764,
+      "pending_statuses": {
+        "pending": 5
+      },
+      "prompt_digest": "042d9e7cf2358995",
+      "inference_digest": "527544c990f8e174",
+      "warm_ms": 0.631,
+      "warm_statuses": {
+        "ready": 5
+      },
+      "warm_gateway_calls": 0
+    },
+    {
+      "failure_codes": {},
+      "usage": {
+        "input_tokens": 11553,
+        "output_tokens": 6039,
+        "total_tokens": 17592,
+        "complete": true,
+        "reported_calls": 4,
+        "provider_calls": 4
+      },
+      "repeat": 1,
+      "wall_ms": 9051.0,
+      "duration_ms": 9050.946,
+      "gateway_calls": 4,
+      "cache_hits": 0,
+      "statuses": {
+        "EVALUATED": 20
+      },
+      "evaluated": 20,
+      "returned": 20,
+      "anomalies": [],
+      "candidates": 20,
+      "pending_ms": 4.145,
+      "pending_statuses": {
+        "pending": 20
+      },
+      "prompt_digest": "042d9e7cf2358995",
+      "inference_digest": "527544c990f8e174",
+      "warm_ms": 2.048,
+      "warm_statuses": {
+        "ready": 20
+      },
+      "warm_gateway_calls": 0
+    },
+    {
+      "failure_codes": {},
+      "usage": {
+        "input_tokens": 2539,
+        "output_tokens": 322,
+        "total_tokens": 2861,
+        "complete": true,
+        "reported_calls": 1,
+        "provider_calls": 1
+      },
+      "repeat": 2,
+      "wall_ms": 2459.9,
+      "duration_ms": 2459.908,
+      "gateway_calls": 1,
+      "cache_hits": 0,
+      "statuses": {
+        "EVALUATED": 1
+      },
+      "evaluated": 1,
+      "returned": 1,
+      "anomalies": [],
+      "candidates": 1,
+      "pending_ms": 0.354,
+      "pending_statuses": {
+        "pending": 1
+      },
+      "prompt_digest": "042d9e7cf2358995",
+      "inference_digest": "527544c990f8e174",
+      "warm_ms": 0.44,
+      "warm_statuses": {
+        "ready": 1
+      },
+      "warm_gateway_calls": 0
+    },
+    {
+      "failure_codes": {},
+      "usage": {
+        "input_tokens": 2894,
+        "output_tokens": 1609,
+        "total_tokens": 4503,
+        "complete": true,
+        "reported_calls": 1,
+        "provider_calls": 1
+      },
+      "repeat": 2,
+      "wall_ms": 8657.6,
+      "duration_ms": 8657.558,
+      "gateway_calls": 1,
+      "cache_hits": 0,
+      "statuses": {
+        "EVALUATED": 5
+      },
+      "evaluated": 5,
+      "returned": 5,
+      "anomalies": [],
+      "candidates": 5,
+      "pending_ms": 0.596,
+      "pending_statuses": {
+        "pending": 5
+      },
+      "prompt_digest": "042d9e7cf2358995",
+      "inference_digest": "527544c990f8e174",
+      "warm_ms": 0.735,
+      "warm_statuses": {
+        "ready": 5
+      },
+      "warm_gateway_calls": 0
+    },
+    {
+      "failure_codes": {},
+      "usage": {
+        "input_tokens": 11553,
+        "output_tokens": 5906,
+        "total_tokens": 17459,
+        "complete": true,
+        "reported_calls": 4,
+        "provider_calls": 4
+      },
+      "repeat": 2,
+      "wall_ms": 8353.2,
+      "duration_ms": 8353.222,
+      "gateway_calls": 4,
+      "cache_hits": 0,
+      "statuses": {
+        "EVALUATED": 20
+      },
+      "evaluated": 20,
+      "returned": 20,
+      "anomalies": [],
+      "candidates": 20,
+      "pending_ms": 3.582,
+      "pending_statuses": {
+        "pending": 20
+      },
+      "prompt_digest": "042d9e7cf2358995",
+      "inference_digest": "527544c990f8e174",
+      "warm_ms": 2.097,
+      "warm_statuses": {
+        "ready": 20
+      },
+      "warm_gateway_calls": 0
+    }
+  ],
+  "boundaries": "pending/warm: annotate(); cold: recommend(), including local Redis and gateway; no HTTP/BLE/polling",
+  "redis_version": "7.0.15",
+  "summary": {
+    "1": {
+      "wall_ms": {
+        "min": 2383.4,
+        "median": 2459.9,
+        "max": 2583.1
+      },
+      "pending_ms": {
+        "min": 0.354,
+        "median": 0.393,
+        "max": 0.541
+      },
+      "warm_ms": {
+        "min": 0.365,
+        "median": 0.432,
+        "max": 0.44
+      }
+    },
+    "5": {
+      "wall_ms": {
+        "min": 8565.8,
+        "median": 8657.6,
+        "max": 9093.2
+      },
+      "pending_ms": {
+        "min": 0.596,
+        "median": 0.764,
+        "max": 5.423
+      },
+      "warm_ms": {
+        "min": 0.631,
+        "median": 0.658,
+        "max": 0.735
+      }
+    },
+    "20": {
+      "wall_ms": {
+        "min": 8353.2,
+        "median": 9051.0,
+        "max": 9167.3
+      },
+      "pending_ms": {
+        "min": 3.582,
+        "median": 4.145,
+        "max": 16.663
+      },
+      "warm_ms": {
+        "min": 1.945,
+        "median": 2.048,
+        "max": 2.097
+      }
+    }
+  }
+}

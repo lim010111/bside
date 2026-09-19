@@ -14,6 +14,7 @@ participation and observation validity before showing or notifying anything.
 
 import hashlib
 import json
+from time import monotonic
 from typing import Protocol, runtime_checkable
 
 from app.ai.models import CandidateRecommendation, ParticipantProfile
@@ -120,15 +121,22 @@ class InMemoryRecommendationCache:
     """Process-local cache for tests and single-worker development."""
 
     def __init__(self) -> None:
-        self._entries: dict[str, CandidateRecommendation] = {}
+        self._entries: dict[str, tuple[float, CandidateRecommendation]] = {}
 
     async def get(self, key: str) -> CandidateRecommendation | None:
-        return self._entries.get(key)
+        entry = self._entries.get(key)
+        if entry is None:
+            return None
+        expires, value = entry
+        if expires <= monotonic():
+            self._entries.pop(key, None)
+            return None
+        return value
 
     async def set(
         self, key: str, value: CandidateRecommendation, ttl_seconds: int
     ) -> None:
-        self._entries[key] = value
+        self._entries[key] = (monotonic() + ttl_seconds, value)
 
     def clear(self) -> None:
         self._entries.clear()

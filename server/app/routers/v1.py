@@ -24,6 +24,7 @@ from app.models import (
     PublicProfile,
     PushTokenRequest,
     PushTokenResponse,
+    RecommendationRefreshRequest,
 )
 from app.push import Push
 from app.recommendations import Recommendations
@@ -135,6 +136,30 @@ async def report_observations(
         return ObservationResponse(observed_users=[])
 
     observed = await store.report_observations(user_id, body.identifiers)
+    return await _annotated_observations(user_id, user, profile, observed, store, recommendations)
+
+
+@router.post(
+    "/discovery/recommendations/refresh",
+    response_model=ObservationResponse,
+    response_model_exclude_none=True,
+    tags=["Discovery"],
+)
+async def refresh_recommendations(
+    body: RecommendationRefreshRequest, user_id: CurrentUser,
+    store: StoreDep, recommendations: RecommendationsDep,
+):
+    user = await store.get_user(user_id)
+    profile = store.profile_of(user)
+    if profile is None:
+        raise ApiError(status.HTTP_409_CONFLICT, "PROFILE_REQUIRED", "A complete profile is required.")
+    if user.get("discovery_enabled") != "1":
+        return ObservationResponse(observed_users=[])
+    observed = await store.observed_snapshots(user_id, [str(value) for value in body.user_ids])
+    return await _annotated_observations(user_id, user, profile, observed, store, recommendations)
+
+
+async def _annotated_observations(user_id, user, profile, observed, store, recommendations):
     # Cache reads only. Anything not evaluated yet comes back 'pending' and is
     # worked on in the background, so the list is never held up by the gateway.
     annotations = await recommendations.annotate(

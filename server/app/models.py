@@ -75,6 +75,10 @@ class ObservationRequest(Strict):
     identifiers: Annotated[list[Identifier], Field(min_length=1, max_length=50)]
 
 
+class RecommendationRefreshRequest(Strict):
+    user_ids: Annotated[list[UUID], Field(min_length=1, max_length=50)]
+
+
 class Recommendation(Strict):
     """What the viewer is told about one candidate.
 
