@@ -6,7 +6,3 @@
 # Operating system files
 .DS_Store
 Thumbs.db
-
-# Tooling scratch output (web fetch / pdf rendering)
-pdfs/
-pdfout/
