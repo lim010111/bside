@@ -65,3 +65,40 @@ uv run pytest tests/test_ai_acceptance.py -q
   호스트 외에는 쓰지 않는다(브리지와 조사 스크립트가 호스트를 검사한다).
 - 실사용 예산은 **실제 배치 호출 수**로 센다(후보 6명·배치 5 = 2건, 재시도 포함 최악값으로
   사전 확인). 상한은 `EVAL_LIVE_CALL_CAP`(기본 80), 장부는 `results/live-budget.json`.
+
+## 3단계: Grok 4.6 / Sonnet 5 동결 비교
+
+[결과와 제한](../docs/ai-model-comparison.md), [비밀값 없는 요약](reports/model-comparison-2026-09-20.json).
+`comparison-config.json`은 이번 비교 전용이며 운영 기본값을 바꾸지 않는다.
+
+```bash
+cd server/evals
+# 기본은 저장 결과만 확인: 생성하지 않음
+node scripts/compare-models.js --stage=full
+node scripts/comparison-summary.js
+node scripts/comparison-report.js
+node scripts/test-comparison.js
+# 아래 명시 옵션만 실제 생성. 저장된 사례/진단은 재사용한다.
+EVAL_LIVE_CALL_CAP=240 node scripts/compare-models.js --live --stage=smoke
+EVAL_LIVE_CALL_CAP=240 node scripts/compare-models.js --live --stage=diagnostic
+EVAL_LIVE_CALL_CAP=240 node scripts/compare-models.js --live --stage=full
+cd ..
+EVAL_LIVE_CALL_CAP=240 uv run --frozen python evals/scripts/comparison-bench.py --live
+cd evals
+node scripts/comparison-summary.js
+node scripts/comparison-report.js
+node scripts/test-comparison.js
+cd ..
+uv run --frozen python evals/scripts/test-comparison-cleanup.py
+```
+
+E01/E02가 smoke를 겸한다. 진단은 timeout 모델별 E01 한 번만 60/90초로 실행하며 기본
+점수에 합치지 않는다. 실제 17사례와 mock E08, 공통7과 교차 사례를 각각 집계한다.
+`replay.js`도 새 raw를 읽지만 누락 출력 분모·완전성 보고의 기준은 새 summary다.
+원본은 `results/comparison-*-2026-09-20.json`에 건별/phase별 저장된다.
+
+cold+warm 매 반복 최악 8호출을 사전 확인하고 각 phase 실제 호출을 장부에 기록한다.
+warm에 호출이 있으면 순수 캐시가 아니다. 빈 캐시가 사라진 중단 반복의 cold를 자동
+재호출하지 않는다. `.inflight`가 남으면 원본·장부를 수동 대조하기 전 진행하지 않는다.
+bridge 오류는 실제 호출수 불명으로 최악값을 예약하고 marker를 유지한다. 품질 응답은
+장부 쓰기보다 먼저 저장한다. 누락 응답은 예정 fixture 적용 검사를 전부 실패 처리한다.
