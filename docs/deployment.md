@@ -1,6 +1,6 @@
 # Android 앱과 서버 배포 경계
 
-2026-09-20. **서버 API를 운영에 배포했다**(아래 [배포 현황](#배포-현황)). Android APK 배포는 아직이다. [Android 구성](android-design.md), [API](api-contract.md), [검증](validation.md)을 따른다. 이전 웹 같은 출처 배포안은 [이력](history/event-mvp/docs/deployment.md)에 보존한다.
+2026-09-20. **서버 API를 운영에 배포했고, 운영 주소로 빌드한 APK를 실기기 두 대에서 검증했다**(아래 [배포 현황](#배포-현황)). 참여자 대상 APK 배포는 아직이다. [Android 구성](android-design.md), [API](api-contract.md), [검증](validation.md)을 따른다. 이전 웹 같은 출처 배포안은 [이력](history/event-mvp/docs/deployment.md)에 보존한다.
 
 ## 기존 로컬 자산
 
@@ -44,21 +44,21 @@ Nginx 설정과 인증서는 이전에 준비돼 있었고 오리진만 비어 5
 
 저장소가 private이라 서버에서 clone하지 않는다. 커밋된 트리에서 `server/`만 보낸다.
 
+**설정의 원본은 `~/apps/bside/server.env`다.** 배포가 `server/`를 통째로 지우므로 `server/.env`를
+원본으로 두면 배포할 때마다 사라진다. 한 단계 위에 두고, 풀어낸 뒤 복사해 넣는다.
+
 ```powershell
-git archive --format=tar -o $env:TEMPside-server.tar HEAD server
-ssh.exe myserver-1 "mkdir -p ~/apps/bside && rm -rf ~/apps/bside/server"
-scp.exe $env:TEMPside-server.tar myserver-1:/tmp/
-ssh.exe myserver-1 "cd ~/apps/bside && tar xf /tmp/bside-server.tar && rm /tmp/bside-server.tar && git -C . rev-parse --short HEAD > DEPLOYED_COMMIT"
+$commit = git rev-parse --short origin/main
+git archive --format=tar -o $env:TEMP\bside-server.tar origin/main server
+scp.exe $env:TEMP\bside-server.tar myserver-1:/tmp/
+ssh.exe myserver-1 "rm -rf ~/apps/bside/server && cd ~/apps/bside && tar xf /tmp/bside-server.tar && rm /tmp/bside-server.tar && cp ~/apps/bside/server.env ~/apps/bside/server/.env && echo $commit > DEPLOYED_COMMIT"
 ssh.exe myserver-1 "cd ~/apps/bside/server && sudo docker compose -p bside up -d --build --wait"
 ```
 
-서버의 `server/.env`에는 `API_PORT=8100`과 운영 `CORS_ORIGINS`를 둔다. 이 파일은 서버에만
-있고 저장소에 넣지 않는다.
-
-AI 추천을 켜려면 같은 파일에 `AI_API_KEY`·`AI_BASE_URL`·`AI_MODEL`을 추가한다. compose가
-이 값을 읽어 컨테이너에 넘긴다(`.dockerignore`가 `.env`를 이미지에서 제외하므로 환경 변수로만
-들어간다). 셋 중 하나라도 비면 서버는 정상 기동하되 추천을 `unavailable`로 보고하므로,
-배포 후 관측 응답의 `recommendation.status`로 실제 적용 여부를 확인한다.
+`server.env`에는 `API_PORT=8100`, 운영 `CORS_ORIGINS`, 그리고 AI 추천을 켤 때 필요한
+`AI_API_KEY`·`AI_BASE_URL`·`AI_MODEL`을 둔다. 이 파일은 서버에만 있고 저장소에 넣지 않는다.
+`.dockerignore`가 `.env`를 이미지에서 제외하므로 이 값들은 compose 환경 변수로만 들어간다.
+셋 중 하나라도 비면 서버는 정상 기동하되 추천을 `unavailable`로 보고한다.
 
 ```bash
 ssh.exe myserver-1 "cd ~/apps/bside/server && sudo docker compose -p bside exec -T api printenv AI_MODEL"
@@ -78,9 +78,16 @@ ssh.exe myserver-1 "cd ~/apps/bside/server && sudo docker compose -p bside exec 
 - 설치 등록 → `/me` → 프로필 저장 → 발견 ON → BLE 식별자 발급까지 공개 주소로 성공
 - 운영 주소로 빌드한 APK(`-Pbside.apiBaseUrl=https://bside-api.sungblab.com`)를 올린
   실기기 두 대가 `adb reverse` 없이 서로를 BLE로 발견하고 메시지를 주고받음
+- **AI 추천이 운영에서 동작.** 실기기 두 대에서 상대가 처음 보일 때 `pending`으로 왔다가
+  다음 폴링에 `ready`가 되고, 상세 화면에 두 프로필에 근거한 이유가 표시됐다. 평가는
+  방향별이라 양쪽 모두 상대에 대한 추천을 받았다. 응답에 점수·근거 인용·내부 버전은 없었다.
+- 포그라운드 서비스 알림("주변 발견이 켜져 있어요")이 Android 16 실기기(Galaxy S25 계열) 알림 그늘에 실제로 뜬다.
+  `POST_NOTIFICATIONS`를 요청하도록 고친 뒤의 상태다.
 
 ### 아직 안 된 것
 
-- **운영 서버에 AI 설정 적용.** `server/.env`에 `AI_*` 세 값을 넣고 다시 올려야 추천이
-  `unavailable`에서 벗어난다. 코드는 들어갔지만 배포된 인스턴스에서 확인한 적은 없다.
+- **알림다운 알림이 없다.** 구현된 알림은 발견이 켜져 있다는 포그라운드 서비스 알림
+  하나뿐이다(`DiscoveryService.kt`의 `discovery` 채널). 앱을 백그라운드에 둔 단말에 메시지를
+  보내고 `dumpsys notification`을 확인했지만 새 알림은 없었다 — 메시지는 앱을 다시 열었을 때
+  보인다. 추천 알림도 마찬가지로 없다. 둘 다 FCM 또는 백그라운드 수신 경로가 필요하다.
 - 모니터링 연결(Uptime Kuma에 이 주소 등록), 로그 보존 정책
