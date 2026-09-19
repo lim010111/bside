@@ -29,10 +29,11 @@ input,textarea{font-family:inherit;letter-spacing:inherit}
 .screen.on{display:flex}
 
 /* ── type: 4 sizes only ── */
-.t-xl{font-size:24px;font-weight:600;line-height:1.25}
-.t-lg{font-size:17px;font-weight:500;line-height:1.4}
+.t-xl{font-size:19px;font-weight:600;line-height:1.3}
+.t-lg{font-size:14px;font-weight:500;line-height:1.4}
 .t-md{font-size:14px;font-weight:400;line-height:1.5}
 .t-sm{font-size:12px;font-weight:400;line-height:1.4}
+.t-num{font-size:22px;font-weight:600;line-height:1.2}
 .dim{color:var(--text-dim)} .faint{color:var(--text-faint)}
 
 /* ── controls ── */
@@ -42,8 +43,8 @@ input,textarea{font-family:inherit;letter-spacing:inherit}
 .field:focus{border-color:var(--border-strong)}
 .field::placeholder{color:var(--text-faint)}
 textarea.field{height:88px;padding:12px 14px;resize:none;line-height:1.5}
-.btn{width:100%;height:50px;border-radius:var(--r-ctrl);background:var(--text);color:var(--bg);
-  font-size:15px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px;
+.btn{width:100%;height:48px;border-radius:var(--r-ctrl);background:var(--text);color:var(--bg);
+  font-size:14px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px;
   transition:opacity .15s ease-out}
 .btn:active{opacity:.75}
 .btn[disabled]{background:var(--surface-hi);color:var(--text-faint)}
@@ -53,13 +54,13 @@ textarea.field{height:88px;padding:12px 14px;resize:none;line-height:1.5}
 /* ── status colors ── */
 .s-LOOKING_FOR{--c:var(--looking)} .s-CAN_SHARE{--c:var(--sharing)}
 .s-FIRST_TIME{--c:var(--first)} .s-OPEN{--c:var(--open)}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--c);flex:none}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--text-faint);flex:none}
 
-.chip{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 11px;
-  border-radius:var(--r-pill);font-size:12px;background:color-mix(in srgb,var(--c) 14%,transparent);
+.chip{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;
+  border-radius:var(--r-pill);font-size:12px;background:color-mix(in srgb,var(--c) 13%,transparent);
   color:var(--c);white-space:nowrap}
 .badge{font-size:11px;padding:3px 8px;border-radius:var(--r-pill);
-  background:var(--c);color:var(--on-color);font-weight:500;white-space:nowrap}
+  background:var(--surface-hi);color:var(--text-dim);white-space:nowrap}
 
 .card{background:var(--surface);border-radius:var(--r-card);padding:13px 14px}
 .row{display:flex;align-items:center;gap:8px}
@@ -72,7 +73,7 @@ svg.ic{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.75;
 svg.ic.lg{width:22px;height:22px}
 
 /* ── S1 ── */
-.brand{font-size:32px;font-weight:600;letter-spacing:-.03em}
+.brand{font-size:26px;font-weight:600;letter-spacing:-.03em}
 .tag{color:var(--text-dim);font-size:13px;margin-top:6px}
 
 /* ── S2 status picker ── */
@@ -84,8 +85,7 @@ svg.ic.lg{width:22px;height:22px}
 .pick b{display:block;font-size:13px;font-weight:500}
 
 /* ── S3 list ── */
-.stats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
-.stats::-webkit-scrollbar{display:none}
+.stats{font-size:12px;color:var(--text-dim);line-height:1.5}
 .mine{border:1px solid var(--c);background:color-mix(in srgb,var(--c) 7%,var(--surface))}
 .person{width:100%;text-align:left;background:var(--surface);border-radius:var(--r-card);
   padding:13px 14px;display:block;transition:background .15s ease-out}
@@ -95,7 +95,7 @@ svg.ic.lg{width:22px;height:22px}
 .fade{transition:opacity 1.2s linear}
 
 #joinBar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:420px;
-  padding:14px 16px 20px;background:linear-gradient(to top,var(--bg) 64%,transparent);z-index:10}
+  padding:16px 16px 20px;background:linear-gradient(to top,var(--bg) 66%,transparent);z-index:10}
 .empty{text-align:center;padding:52px 20px}
 .empty .ic{width:30px;height:30px;color:var(--text-faint);margin-bottom:14px}
 
@@ -121,11 +121,11 @@ svg.ic.lg{width:22px;height:22px}
 .meter-bar{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
 .meter-bar i{display:block;height:100%;background:var(--text-dim);border-radius:2px}
 .quote{background:var(--bg);border-left:2px solid var(--text-dim);border-radius:0 8px 8px 0;
-  padding:13px 15px;font-size:14px;line-height:1.6;color:var(--text)}
+  padding:12px 14px;font-size:13px;line-height:1.6;color:var(--text)}
 
 /* ── S5 chat ── */
 .bubbles{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding:14px 0}
-.b{max-width:76%;padding:10px 13px;border-radius:16px;font-size:14px;line-height:1.45}
+.b{max-width:76%;padding:9px 12px;border-radius:15px;font-size:13px;line-height:1.45}
 .b.me{align-self:flex-end;background:var(--text);color:var(--bg);border-bottom-right-radius:5px}
 .b.you{align-self:flex-start;background:var(--surface);border-bottom-left-radius:5px}
 .sysline{text-align:center;font-size:12px;color:var(--text-faint);padding:10px 24px;line-height:1.5}
@@ -186,10 +186,9 @@ svg.ic.lg{width:22px;height:22px}
   </header>
   <div class="stats" id="pvStats" style="margin-bottom:14px"></div>
   <div id="pvList" style="display:flex;flex-direction:column;gap:8px"></div>
-  <div style="height:106px"></div>
+  <div style="height:84px"></div>
   <div id="joinBar">
     <button class="btn" onclick="openJoin()">나도 상태 달기</button>
-    <p class="t-sm faint" style="text-align:center;margin:9px 0 0">30초면 됩니다</p>
   </div>
 </section>
 
@@ -256,7 +255,7 @@ svg.ic.lg{width:22px;height:22px}
       <div class="t-lg" id="chatName">민서</div>
       <div class="t-sm faint" id="chatSub">순천향대</div>
     </div>
-    <span class="badge" id="btBadge" style="--c:var(--sharing)">
+    <span class="badge" id="btBadge">
       <svg class="ic" style="width:12px;height:12px;vertical-align:-2px"><use href="#i-bt"/></svg> 직접 연결</span>
   </header>
   <div id="btOff" style="display:none">
@@ -297,13 +296,13 @@ svg.ic.lg{width:22px;height:22px}
   </header>
   <div class="metrics">
     <div class="metric"><div class="t-sm dim">입장</div>
-      <div class="t-xl" style="margin-top:3px">47<span class="t-sm faint"> / 90</span></div></div>
+      <div class="t-num" style="margin-top:3px">47<span class="t-sm faint"> / 90</span></div></div>
     <div class="metric"><div class="t-sm dim">상태 설정</div>
-      <div class="t-xl" style="margin-top:3px">41</div></div>
+      <div class="t-num" style="margin-top:3px">41</div></div>
     <div class="metric"><div class="t-sm dim">접점 발견</div>
-      <div class="t-xl" style="margin-top:3px">37</div></div>
+      <div class="t-num" style="margin-top:3px">37</div></div>
     <div class="metric key"><div class="t-sm dim">대화 시작</div>
-      <div class="t-xl" style="margin-top:3px">24</div></div>
+      <div class="t-num" style="margin-top:3px">24</div></div>
   </div>
   <p class="t-sm dim" style="margin:22px 0 2px">많이 나온 주제</p>
   <div>
@@ -402,23 +401,25 @@ function go(id){
 
 /* 미리보기 */
 let PREVIEW = [];
-const SHORT = {LOOKING_FOR:'찾아요', CAN_SHARE:'얘기', FIRST_TIME:'처음', OPEN:'대화'};
+const SHORT = {LOOKING_FOR:'찾는 중', CAN_SHARE:'나눌 수 있음', FIRST_TIME:'처음', OPEN:'대화 가능'};
+function tally(list){
+  const c = {}; list.forEach(p => c[p.st] = (c[p.st]||0) + 1);
+  return STATUSES.filter(s=>c[s.k]).map(s=>`${SHORT[s.k]} ${c[s.k]}`).join('  ·  ');
+}
 
 function renderPreview(){
   document.getElementById('pvTitle').textContent = ROOM.title;
   document.getElementById('pvWhen').textContent  = ROOM.when.split(' \u00b7 ').pop();
   document.getElementById('pvCount').textContent =
     PREVIEW.length ? `지금 ${PREVIEW.length + 42}명이 상태를 올려뒀어요` : '아직 아무도 없어요';
-  const counts = {}; PREVIEW.forEach(p => counts[p.st] = (counts[p.st]||0) + 1);
-  document.getElementById('pvStats').innerHTML = STATUSES.filter(s=>counts[s.k])
-    .map(s=>`<span class="chip s-${s.k}"><i class="dot"></i>${SHORT[s.k]} ${counts[s.k]}</span>`).join('');
+  document.getElementById('pvStats').textContent = tally(PREVIEW);
   document.getElementById('pvList').innerHTML = PREVIEW.slice(0,4).map(p=>`
-    <div class="person s-${p.st}">
+    <div class="person">
       <div class="row" style="gap:7px">
-        <i class="dot"></i><span class="t-lg grow trunc">${esc(p.name)}</span>
+        <span class="t-lg grow trunc">${esc(p.name)}</span>
         ${p.near ? '<span class="badge">닿는 거리</span>' : ''}
       </div>
-      <div class="t-sm dim" style="margin:2px 0 6px">${esc(p.school)} \u00b7 ${SL[p.st]}</div>
+      <div class="t-sm faint" style="margin:1px 0 6px">${esc(p.school)} \u00b7 ${SL[p.st]}</div>
       <div class="t-md wrap">${esc(p.note)}</div>
     </div>`).join('') || `<div class="empty">
       <svg class="ic"><use href="#i-inbox"/></svg>
@@ -501,12 +502,7 @@ function renderRoom(){
   const ppl = S.people.filter(p=>lifeOf(p)>0);
   document.getElementById('headcount').textContent = (ppl.length+1)+'명';
 
-  const counts = {};
-  ppl.forEach(p=>counts[p.st]=(counts[p.st]||0)+1);
-  document.getElementById('stats').innerHTML = STATUSES
-    .filter(s=>counts[s.k]).map(s=>
-      `<span class="chip s-${s.k}"><i class="dot"></i>${s.label.replace(' 할 수 있어요','').replace('이런 분 ','').replace('이런 얘기','얘기')} ${counts[s.k]}</span>`
-    ).join('') || '<span class="t-sm faint">아직 아무도 상태를 달지 않았어요</span>';
+  document.getElementById('stats').textContent = tally(ppl) || '아직 아무도 상태를 달지 않았어요';
 
   const life = lifeOf(S.me), left = Math.ceil(life*TTL/60);
   document.getElementById('mineWrap').innerHTML = `
@@ -534,13 +530,12 @@ function renderRoom(){
   document.getElementById('listLabel').textContent = '같은 공간';
   box.innerHTML = ppl.map(p=>{
     const l=lifeOf(p), o=fadeOf(l).toFixed(2);
-    return `<button class="person s-${p.st} fade" style="opacity:${o}" onclick="openSheet('${p.id}')">
+    return `<button class="person fade" style="opacity:${o}" onclick="openSheet('${p.id}')">
       <div class="row" style="gap:7px">
-        <i class="dot"></i>
         <span class="t-lg grow trunc">${esc(p.name)}</span>
         ${p.near?'<span class="badge">닿는 거리</span>':''}
       </div>
-      <div class="t-sm dim" style="margin:2px 0 6px">${esc(p.school)} · ${SL[p.st]}</div>
+      <div class="t-sm faint" style="margin:1px 0 6px">${esc(p.school)} · ${SL[p.st]}</div>
       <div class="t-md wrap">${esc(p.note)}</div>
     </button>`;
   }).join('');
@@ -583,8 +578,8 @@ function openSheet(pid){
     box.innerHTML = `<div class="grip"></div>
       <div style="padding:2px 2px 4px">
         <div class="row" style="gap:7px;margin-bottom:9px">
-          <span class="chip s-${p.st}"><i class="dot"></i>${SL[p.st]}</span>
-          ${p.near?'<span class="badge s-'+p.st+'">닿는 거리</span>':''}
+          <span class="chip s-${p.st}">${SL[p.st]}</span>
+          ${p.near?'<span class="badge">닿는 거리</span>':''}
         </div>
         <h2 class="t-xl" style="margin:0 0 7px">${esc(p.name)}님이 계세요</h2>
         <p class="t-md dim" style="margin:0;line-height:1.65">
