@@ -25,6 +25,7 @@ from app.ai import (
     InMemoryRecommendationCache,
     ParticipantProfile,
     RecommendationService,
+    SYSTEM_INSTRUCTIONS,
     build_cache_key,
 )
 from app.config import Settings
@@ -372,6 +373,19 @@ def test_the_job_key_is_the_same_in_every_worker():
         return result.stdout.strip()
 
     assert key_with("0") == key_with("1")
+
+
+def test_the_prompt_knows_the_reason_is_shown_to_the_viewer():
+    """`reason` goes straight onto a screen, unedited.
+
+    Detail.jsx renders it under '왜 추천했나요?' with no rewriting, so the model
+    has to be told who reads it. Without that the live model wrote analyst prose
+    naming its own internal roles: '조회자는 ... 후보는 ...'. Only the instruction
+    is checkable here; the wording it produces is a live-model question
+    (server/docs/ai-validation.md).
+    """
+    assert "조회자에게 그대로 보여주는 문장" in SYSTEM_INSTRUCTIONS
+    assert "내부 호칭" in SYSTEM_INSTRUCTIONS
 
 
 def test_without_configuration_the_field_says_unavailable(client, install):
