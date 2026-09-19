@@ -15,6 +15,9 @@ Key shapes, all flat and none of them room- or event-scoped:
     conv:{id}:seq                 string  sequence counter
     user:{user_id}:convs          zset    conversation -> last message time (ms)
     idem:{sender}:{client_msg_id} string  -> the message that key produced
+    push:tokens:{user_id}         zset    FCM token -> last check-in (ms), expiring
+    push:owner:{token}            string  -> user_id, expiring
+    push:token:{token}            hash    platform, user_id, seen_at, expiring
 
 Identifier overlap needs no bookkeeping: rotation writes a new `ident:map` key and
 the replaced one expires on its own clock, which is exactly the contract's "the
@@ -48,6 +51,7 @@ _INSTALL_SCRIPT = (_SCRIPTS / "register_installation.lua").read_text(encoding="u
 _IDENTIFIER_SCRIPT = (_SCRIPTS / "issue_identifier.lua").read_text(encoding="utf-8")
 _PROFILE_SCRIPT = (_SCRIPTS / "put_profile.lua").read_text(encoding="utf-8")
 _PUSH_TOKEN_SCRIPT = (_SCRIPTS / "put_push_token.lua").read_text(encoding="utf-8")
+_PUSH_TOKENS_SCRIPT = (_SCRIPTS / "read_push_tokens.lua").read_text(encoding="utf-8")
 
 PROFILE_FIELDS = ("nickname", "self_description", "connection_intent")
 
@@ -248,28 +252,49 @@ class Store:
 
     # --- push tokens ---------------------------------------------------------
 
+    def _push_token_ttl(self) -> int:
+        return self.settings.push_token_ttl_days * 24 * 60 * 60
+
     async def put_push_token(self, user_id: str, token: str, platform: str) -> bool:
-        """Register one device for this user. True when it changed hands."""
+        """Register one device for this user. True when it changed hands.
+
+        Also the liveness check-in: the app calls this on every launch, which is
+        what keeps a live device from expiring out.
+        """
         moved = await self.redis.eval(
-            _PUSH_TOKEN_SCRIPT, 0, user_id, token, platform, str(now_ms())
+            _PUSH_TOKEN_SCRIPT,
+            0,
+            user_id,
+            token,
+            platform,
+            str(now_ms()),
+            str(self._push_token_ttl()),
         )
         return bool(moved)
 
     async def push_tokens(self, user_id: str) -> list[str]:
-        return sorted(await self.redis.smembers(f"push:tokens:{user_id}"))
+        """Live tokens for this user. Stale ones are dropped as they are read."""
+        cutoff = now_ms() - self._push_token_ttl() * 1000
+        tokens = await self.redis.eval(_PUSH_TOKENS_SCRIPT, 0, user_id, str(cutoff))
+        return sorted(tokens)
 
     async def drop_push_token(self, token: str) -> None:
         """Forget a token FCM told us is dead, or that a device unregistered.
 
         The owner is read first so a token already handed to someone else is not
-        removed from the new owner's set by a late failure report about the old.
+        removed from the new owner's list by a late failure report about the old.
         """
         owner = await self.redis.get(f"push:owner:{token}")
-        pipe = self.redis.pipeline()
         if owner:
-            pipe.srem(f"push:tokens:{owner}", token)
-        pipe.delete(f"push:owner:{token}", f"push:token:{token}")
-        await pipe.execute()
+            key = f"push:tokens:{owner}"
+            # The list may still be in the pre-expiry set shape, and the wrong
+            # removal command on it is an error rather than a no-op.
+            shape = await self.redis.type(key)
+            if shape == "set":
+                await self.redis.srem(key, token)
+            else:
+                await self.redis.zrem(key, token)
+        await self.redis.delete(f"push:owner:{token}", f"push:token:{token}")
 
     # --- chat ----------------------------------------------------------------
 

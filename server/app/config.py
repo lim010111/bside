@@ -45,6 +45,15 @@ class Settings(BaseSettings):
     fcm_project_id: str | None = None
     """Overrides the project in the key file. Normally left unset."""
 
+    push_token_ttl_days: int = 60
+    """How long a registration token survives without its device checking in.
+
+    The app re-registers on every launch, so this expires devices that stopped
+    existing. Without it the only way a token is ever dropped is FCM answering
+    UNREGISTERED to a send, which never happens for a user nobody messages
+    again. The cost of it being too short is a missed notification for someone
+    who has not opened the app in that long, and their next launch fixes it."""
+
     recommendation_notice_ttl_seconds: int = 21600
     """How long one viewer-candidate pair stays notified-about. Six hours: an
     event runs a day, and being told about the same person twice in it is
