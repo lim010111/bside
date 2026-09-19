@@ -130,6 +130,8 @@ def test_observations_return_public_profiles_and_an_eligibility_window(client, i
     assert len(observed) == 1
     assert observed[0]["user_id"] == bob.user_id
     assert observed[0]["profile"]["nickname"] == "밥"
+    # No AI configured in the test environment, so the server says so rather than
+    # inventing a status. rank/reason are omitted, not null.
     assert observed[0]["recommendation"] == {"status": "unavailable"}
     assert observed[0]["conversation_eligibility_expires_at"] > observed[0]["last_seen_at"]
     # The public profile is exactly three fields; no internal revision leaks out.

@@ -1,6 +1,8 @@
 """The API v0.1 endpoints from docs/openapi.yaml, mounted under /api/v1."""
 
-from fastapi import APIRouter, Query, Response, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 
 from app.deps import CurrentUser, StoreDep
 from app.errors import ApiError
@@ -17,8 +19,10 @@ from app.models import (
     MessagePage,
     ObservationRequest,
     ObservationResponse,
+    ObservedUser,
     PublicProfile,
 )
+from app.recommendations import Recommendations
 
 router = APIRouter(prefix="/api/v1")
 
@@ -80,16 +84,54 @@ async def issue_identifier(user_id: CurrentUser, store: StoreDep):
     return DiscoveryIdentifierResponse(**await store.issue_identifier(user_id))
 
 
-@router.post("/discovery/observations", response_model=ObservationResponse, tags=["Discovery"])
-async def report_observations(body: ObservationRequest, user_id: CurrentUser, store: StoreDep):
+def get_recommendations(request: Request) -> Recommendations:
+    return request.app.state.recommendations
+
+
+RecommendationsDep = Annotated[Recommendations, Depends(get_recommendations)]
+
+
+# `rank` and `reason` are absent, not null, when there is nothing to say. A null
+# reason would read like an evaluation that produced an empty sentence.
+@router.post(
+    "/discovery/observations",
+    response_model=ObservationResponse,
+    response_model_exclude_none=True,
+    tags=["Discovery"],
+)
+async def report_observations(
+    body: ObservationRequest,
+    user_id: CurrentUser,
+    store: StoreDep,
+    recommendations: RecommendationsDep,
+):
     user = await store.get_user(user_id)
-    if store.profile_of(user) is None:
+    profile = store.profile_of(user)
+    if profile is None:
         raise ApiError(status.HTTP_409_CONFLICT, "PROFILE_REQUIRED", "A complete profile is required.")
     if user.get("discovery_enabled") != "1":
         # Not advertising means not collecting either. An empty result, not an error:
         # the client may still have a scan in flight while the user turns discovery off.
         return ObservationResponse(observed_users=[])
-    return ObservationResponse(observed_users=await store.report_observations(user_id, body.identifiers))
+
+    observed = await store.report_observations(user_id, body.identifiers)
+    # Cache reads only. Anything not evaluated yet comes back 'pending' and is
+    # worked on in the background, so the list is never held up by the gateway.
+    annotations = await recommendations.annotate(
+        user_id, profile, store.revision_of(user), observed
+    )
+    return ObservationResponse(
+        observed_users=[
+            ObservedUser(
+                user_id=row["user_id"],
+                profile=row["profile"],
+                recommendation=annotations[row["user_id"]],
+                last_seen_at=row["last_seen_at"],
+                conversation_eligibility_expires_at=row["conversation_eligibility_expires_at"],
+            )
+            for row in observed
+        ]
+    )
 
 
 @router.get("/conversations", response_model=ConversationListResponse, tags=["Chat"])

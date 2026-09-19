@@ -55,6 +55,15 @@ ssh.exe myserver-1 "cd ~/apps/bside/server && sudo docker compose -p bside up -d
 서버의 `server/.env`에는 `API_PORT=8100`과 운영 `CORS_ORIGINS`를 둔다. 이 파일은 서버에만
 있고 저장소에 넣지 않는다.
 
+AI 추천을 켜려면 같은 파일에 `AI_API_KEY`·`AI_BASE_URL`·`AI_MODEL`을 추가한다. compose가
+이 값을 읽어 컨테이너에 넘긴다(`.dockerignore`가 `.env`를 이미지에서 제외하므로 환경 변수로만
+들어간다). 셋 중 하나라도 비면 서버는 정상 기동하되 추천을 `unavailable`로 보고하므로,
+배포 후 관측 응답의 `recommendation.status`로 실제 적용 여부를 확인한다.
+
+```bash
+ssh.exe myserver-1 "cd ~/apps/bside/server && sudo docker compose -p bside exec -T api printenv AI_MODEL"
+```
+
 ### 운영 시 주의
 
 - 이 호스트에는 다른 서비스(기복이네, golden-casino, Coolify, Uptime Kuma)가 함께 돈다.
@@ -67,11 +76,11 @@ ssh.exe myserver-1 "cd ~/apps/bside/server && sudo docker compose -p bside up -d
 - `GET /health`, `GET /ready` 공개 HTTPS에서 200
 - `https://localhost` 출처의 CORS preflight 200 (Capacitor WebView가 붙을 수 있다)
 - 설치 등록 → `/me` → 프로필 저장 → 발견 ON → BLE 식별자 발급까지 공개 주소로 성공
+- 운영 주소로 빌드한 APK(`-Pbside.apiBaseUrl=https://bside-api.sungblab.com`)를 올린
+  실기기 두 대가 `adb reverse` 없이 서로를 BLE로 발견하고 메시지를 주고받음
 
 ### 아직 안 된 것
 
-- **APK가 이 주소를 가리키게 빌드하기.** `VITE_API_BASE`와 `android/app/src/main/res/values/api.xml`의
-  `api_base_url`을 `https://bside-api.sungblab.com`으로 맞춰 다시 빌드해야 한다.
-  지금 설치된 APK는 `adb reverse` 기준의 개발 빌드다.
-- 실기기 두 대가 이 운영 서버를 통해 주고받는 왕복
+- **운영 서버에 AI 설정 적용.** `server/.env`에 `AI_*` 세 값을 넣고 다시 올려야 추천이
+  `unavailable`에서 벗어난다. 코드는 들어갔지만 배포된 인스턴스에서 확인한 적은 없다.
 - 모니터링 연결(Uptime Kuma에 이 주소 등록), 로그 보존 정책

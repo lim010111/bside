@@ -3,7 +3,9 @@
 /**
  * @typedef {{nickname:string, self_description:string, connection_intent:string}} PublicProfile
  * @typedef {{user_id:string, profile:PublicProfile|null, discovery_enabled:boolean}} Me
- * @typedef {{status:'unavailable'}} Recommendation  // v0.1 always 'unavailable'
+ * // rank orders this response only; reason is present only when status is 'ready'.
+ * @typedef {{status:'ready'|'pending'|'unscored'|'failed'|'unavailable',
+ * rank?:number, reason?:string}} Recommendation
  * @typedef {{user_id:string, profile:PublicProfile, recommendation:Recommendation,
  * last_seen_at:string, conversation_eligibility_expires_at:string}} ObservedUser
  * @typedef {{message_id:string, conversation_id:string, sender_id:string, recipient_id:string,

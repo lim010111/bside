@@ -21,11 +21,18 @@ export function validateProfile(values) {
 // keeps the list stable when two observations share a timestamp.
 export const baseOrder = (a, b) => b.last_seen_at.localeCompare(a.last_seen_at) || a.user_id.localeCompare(b.user_id);
 
-// Recommendations never decide who is nearby. v0.1 always reports 'unavailable',
-// so every observed user stays listed, ordered by the latest observation.
+// Recommendations never decide who is nearby: everyone observed stays listed,
+// whatever their status. The server ranks a whole response together, so a rank
+// is only comparable with ranks from that same response — and `people` is
+// replaced by one response rather than merged across polls. When the server
+// sends no ranks at all (AI unconfigured), recency decides as before.
 export function orderNearby(items) {
-  const rank = (person) => (person.recommendation?.status === 'ready' ? 0 : 1);
-  return [...items].sort((a, b) => rank(a) - rank(b) || baseOrder(a, b));
+  const ranked = items.every((person) => Number.isInteger(person.recommendation?.rank));
+  const fallback = (person) => (person.recommendation?.status === 'ready' ? 0 : 1);
+  const by = ranked
+    ? (a, b) => a.recommendation.rank - b.recommendation.rank
+    : (a, b) => fallback(a) - fallback(b);
+  return [...items].sort((a, b) => by(a, b) || baseOrder(a, b));
 }
 
 export function mergeMessages(current, incoming) {
@@ -43,7 +50,8 @@ export function eligibleForFirstMessage(person, now = Date.now()) {
 }
 
 // AI-D2: ambiguous input is 'insufficient evidence', never a low score or an error,
-// and never a gate. v0.1 evaluates nobody, so this stays silent instead of nagging.
+// and never a gate. Only an actual evaluation can say the intent was thin, so a
+// list that is still 'pending' or 'unavailable' stays silent instead of nagging.
 export function needsRicherIntent(items) {
   const evaluated = items.filter((person) => ['ready', 'unscored'].includes(person.recommendation?.status));
   return evaluated.length >= 3 && evaluated.every((person) => person.recommendation.status === 'unscored');

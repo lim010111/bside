@@ -11,6 +11,13 @@ services:
     environment:
       REDIS_URL: redis://redis:6379/0
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5173","http://127.0.0.1:5173","https://localhost"]}
+      # .dockerignore keeps server/.env out of the image, so the AI settings have
+      # to arrive here. Compose reads them from server/.env on the host. Leaving
+      # them empty is supported: the API then reports 'unavailable' recommendations
+      # rather than refusing to start.
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_MODEL: ${AI_MODEL:-}
     depends_on:
       redis:
         condition: service_started

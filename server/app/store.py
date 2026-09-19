@@ -37,7 +37,8 @@ from redis.asyncio import Redis
 
 from app.config import Settings
 
-_SCRIPT = (Path(__file__).parent / "scripts" / "send_message.lua").read_text(encoding="utf-8")
+_SEND_SCRIPT = (Path(__file__).parent / "scripts" / "send_message.lua").read_text(encoding="utf-8")
+_PROFILE_SCRIPT = (Path(__file__).parent / "scripts" / "put_profile.lua").read_text(encoding="utf-8")
 
 PROFILE_FIELDS = ("nickname", "self_description", "connection_intent")
 
@@ -130,8 +131,24 @@ class Store:
         return {field: user[field] for field in PROFILE_FIELDS}
 
     async def put_profile(self, user_id: str, profile: dict[str, str]) -> dict[str, str]:
-        await self.redis.hset(f"user:{user_id}", mapping=dict(profile))
+        """Replace the profile and return it. The revision bump happens in Lua."""
+        await self.redis.eval(
+            _PROFILE_SCRIPT,
+            0,
+            user_id,
+            profile["nickname"],
+            profile["self_description"],
+            profile["connection_intent"],
+        )
         return profile
+
+    @staticmethod
+    def revision_of(user: dict[str, str]) -> int:
+        """Internal input version for the AI cache. Never in a public response."""
+        try:
+            return int(user.get("profile_revision", 0))
+        except (TypeError, ValueError):
+            return 0
 
     async def set_discovery(self, user_id: str, enabled: bool) -> bool:
         await self.redis.hset(f"user:{user_id}", "discovery_enabled", "1" if enabled else "0")
@@ -211,7 +228,9 @@ class Store:
                 {
                     "user_id": user_id,
                     "profile": profile,
-                    "recommendation": {"status": "unavailable"},
+                    # Internal, stripped before the response. The router needs it to
+                    # key the recommendation cache.
+                    "profile_revision": self.revision_of(user),
                     "last_seen_at": to_rfc3339(moment),
                     "conversation_eligibility_expires_at": to_rfc3339(
                         moment + self.settings.observation_eligibility_seconds * 1000
@@ -227,7 +246,7 @@ class Store:
     async def send_message(self, sender: str, recipient: str, client_message_id: str, text: str) -> SendResult:
         moment = now_ms()
         raw = await self.redis.eval(
-            _SCRIPT,
+            _SEND_SCRIPT,
             0,
             sender,
             recipient,

@@ -437,10 +437,34 @@ components:
       type: object
       additionalProperties: false
       required: [status]
+      description: >
+        추천은 누가 근처에 있는지를 바꾸지 않는다. 평가가 없거나 실패해도 관측된
+        사용자는 그대로 목록에 남으며, 이 객체는 그 사람을 어떻게 보여줄지만 정한다.
+        점수·근거 인용·내부 버전·모델 정보는 공개하지 않는다.
       properties:
         status:
           type: string
-          const: unavailable
+          description: >
+            `ready`는 평가가 끝나 이유가 있다는 뜻이고, `unscored`는 평가는 했지만
+            특정할 만한 접점을 찾지 못했다는 뜻이다. 낮은 점수도 실패도 아니다.
+            `pending`은 아직 평가 전이라 다음 관측에서 채워진다는 뜻이며,
+            `failed`는 평가가 실패했다는 뜻이다. `unavailable`은 서버에 AI가
+            설정되지 않은 상태다.
+          enum: [ready, pending, unscored, failed, unavailable]
+        rank:
+          type: integer
+          minimum: 0
+          description: >
+            이 응답에 담긴 사람들 사이의 표시 순서로, 0이 가장 위다. 응답마다 다시
+            계산되므로 요청 사이에 안정적이지 않고, 다른 응답의 rank와 비교할 수
+            없다. `unavailable`일 때는 정할 순서가 없으므로 생략된다.
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 400
+          description: >
+            왜 이 사람인지 한두 문장. `status`가 `ready`일 때만 있고, 그 외에는
+            생략된다(`null`이 아니다).
     CreateMessageRequest:
       type: object
       additionalProperties: false

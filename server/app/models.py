@@ -63,8 +63,20 @@ class ObservationRequest(Strict):
 
 
 class Recommendation(Strict):
-    # v0.1 evaluates nobody. The field exists so the client can already branch on it.
-    status: Literal["unavailable"] = "unavailable"
+    """What the viewer is told about one candidate.
+
+    The four evaluated states are not interchangeable. 'unscored' means the
+    evaluation ran and found no specific connection worth naming, which is
+    neither a failure nor a low score; 'pending' means it has not run yet;
+    'unavailable' means the server has no AI configured at all.
+
+    `rank` orders the list and is not a score. Numeric scores, the excerpts the
+    reason was grounded in, and the model identity stay server-side.
+    """
+
+    status: Literal["ready", "pending", "unscored", "failed", "unavailable"]
+    rank: Annotated[int, Field(ge=0)] | None = None
+    reason: Annotated[str, Field(min_length=1, max_length=400)] | None = None
 
 
 class ObservedUser(Strict):
