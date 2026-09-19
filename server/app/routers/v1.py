@@ -74,12 +74,12 @@ async def set_discovery(body: DiscoveryStateRequest, user_id: CurrentUser, store
 
 @router.post("/discovery/identifiers", response_model=DiscoveryIdentifierResponse, tags=["Discovery"])
 async def issue_identifier(user_id: CurrentUser, store: StoreDep):
-    user = await store.get_user(user_id)
-    if store.profile_of(user) is None:
+    outcome, identifier = await store.issue_identifier(user_id)
+    if outcome == "PROFILE_REQUIRED":
         raise ApiError(status.HTTP_409_CONFLICT, "PROFILE_REQUIRED", "A complete profile is required.")
-    if user.get("discovery_enabled") != "1":
+    if outcome == "DISCOVERY_DISABLED":
         raise ApiError(status.HTTP_409_CONFLICT, "DISCOVERY_DISABLED", "Discovery is turned off.")
-    return DiscoveryIdentifierResponse(**await store.issue_identifier(user_id))
+    return DiscoveryIdentifierResponse(**identifier)
 
 
 @router.post("/discovery/observations", response_model=ObservationResponse, tags=["Discovery"])

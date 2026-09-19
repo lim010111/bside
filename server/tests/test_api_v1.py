@@ -207,6 +207,76 @@ def test_the_identifier_is_stable_until_its_rotation_time(client, install):
     assert alice.identifier() == alice.identifier()
 
 
+@pytest.mark.asyncio
+async def test_identifier_rejects_an_empty_profile_field(settings, flush):
+    from redis.asyncio import Redis
+
+    from app.store import Store
+
+    redis = Redis.from_url(settings.redis_url, decode_responses=True)
+    user_id = str(uuid4())
+    await redis.hset(
+        f"user:{user_id}",
+        mapping={
+            "nickname": "",
+            "self_description": "소개",
+            "connection_intent": "대화",
+            "discovery_enabled": "1",
+        },
+    )
+    outcome, identifier = await Store(redis, settings).issue_identifier(user_id)
+    assert (outcome, identifier) == ("PROFILE_REQUIRED", None)
+    assert await redis.exists(f"ident:current:{user_id}") == 0
+    await redis.aclose()
+
+
+@pytest.mark.asyncio
+async def test_identifier_rotation_is_atomic_and_keeps_the_old_mapping_until_ttl(settings, flush):
+    from redis.asyncio import Redis
+
+    from app.store import Store, now_ms
+
+    redis = Redis.from_url(settings.redis_url, decode_responses=True)
+    store = Store(redis, settings)
+    user_id = str(uuid4())
+    await redis.hset(
+        f"user:{user_id}",
+        mapping={
+            "nickname": "동시성",
+            "self_description": "소개",
+            "connection_intent": "대화",
+            "discovery_enabled": "1",
+        },
+    )
+    outcome, first = await store.issue_identifier(user_id)
+    assert outcome == "ok"
+    current_key = f"ident:current:{user_id}"
+    record = json.loads(await redis.get(current_key))
+    moment = now_ms()
+    record["issued_at_ms"] = moment - 240_000
+    record["refresh_after_ms"] = moment - 1
+    record["expires_at_ms"] = moment + 60_000
+    await redis.set(current_key, json.dumps(record), px=60_000)
+    await redis.pexpire(f"ident:map:{first['identifier']}", 60_000)
+
+    start = asyncio.Event()
+
+    async def rotate():
+        await start.wait()
+        return await store.issue_identifier(user_id)
+
+    tasks = [asyncio.create_task(rotate()) for _ in range(20)]
+    await asyncio.sleep(0)
+    start.set()
+    results = await asyncio.gather(*tasks)
+    identifiers = {value[1]["identifier"] for value in results}
+    assert len(identifiers) == 1
+    assert first["identifier"] not in identifiers
+    assert await redis.get(f"ident:map:{first['identifier']}") == user_id
+    assert 0 < await redis.pttl(f"ident:map:{first['identifier']}") <= 60_000
+    await redis.aclose()
+
+
 # --- observations -----------------------------------------------------------
 
 

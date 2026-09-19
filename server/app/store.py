@@ -45,6 +45,7 @@ from app.security import (
 _SCRIPTS = Path(__file__).parent / "scripts"
 _SEND_SCRIPT = (_SCRIPTS / "send_message.lua").read_text(encoding="utf-8")
 _INSTALL_SCRIPT = (_SCRIPTS / "register_installation.lua").read_text(encoding="utf-8")
+_IDENTIFIER_SCRIPT = (_SCRIPTS / "issue_identifier.lua").read_text(encoding="utf-8")
 
 PROFILE_FIELDS = ("nickname", "self_description", "connection_intent")
 
@@ -152,27 +153,24 @@ class Store:
 
     # --- identifiers ---------------------------------------------------------
 
-    async def issue_identifier(self, user_id: str) -> dict[str, str]:
+    async def issue_identifier(self, user_id: str) -> tuple[str, dict[str, str] | None]:
         moment = now_ms()
-        current = await self.redis.get(f"ident:current:{user_id}")
-        if current:
-            record = json.loads(current)
-            if moment < record["refresh_after_ms"]:
-                return self._identifier_view(record)
-
         identifier = new_identifier()
-        record = {
-            "identifier": identifier,
-            "issued_at_ms": moment,
-            "refresh_after_ms": moment + self.settings.identifier_refresh_after_seconds * 1000,
-            "expires_at_ms": moment + self.settings.identifier_ttl_seconds * 1000,
-        }
-        pipe = self.redis.pipeline()
-        # The replaced identifier keeps its own TTL, which is the overlap window.
-        pipe.set(f"ident:map:{identifier}", user_id, ex=self.settings.identifier_ttl_seconds)
-        pipe.set(f"ident:current:{user_id}", json.dumps(record), ex=self.settings.identifier_ttl_seconds)
-        await pipe.execute()
-        return self._identifier_view(record)
+        result = await self.redis.eval(
+            _IDENTIFIER_SCRIPT,
+            3,
+            f"user:{user_id}",
+            f"ident:current:{user_id}",
+            f"ident:map:{identifier}",
+            user_id,
+            identifier,
+            str(moment),
+            str(self.settings.identifier_refresh_after_seconds * 1000),
+            str(self.settings.identifier_ttl_seconds * 1000),
+        )
+        if result[0] != "ok":
+            return result[0], None
+        return "ok", self._identifier_view(json.loads(result[1]))
 
     @staticmethod
     def _identifier_view(record: dict[str, Any]) -> dict[str, str]:
