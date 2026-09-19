@@ -8,6 +8,7 @@ from redis.retry import Retry
 
 from app.config import Settings
 from app.errors import register_error_handlers
+from app.push import build_push
 from app.recommendations import build_recommendations
 from app.routers import health, v1
 
@@ -28,11 +29,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # The AI module shares the application's Redis for its evaluation cache.
         # Unconfigured is a supported state: the API then reports 'unavailable'
         # instead of refusing to start.
-        app.state.recommendations = build_recommendations(client)
+        # Push is wired before recommendations because a finished background
+        # evaluation is one of the two things that notifies.
+        app.state.push = build_push(settings, client)
+        app.state.recommendations = build_recommendations(
+            client, push=app.state.push, settings_for_push=settings
+        )
         try:
             yield
         finally:
             await app.state.recommendations.aclose()
+            await app.state.push.aclose()
             await client.aclose()
 
     app = FastAPI(title="Bside API", version="0.1.0", lifespan=lifespan)

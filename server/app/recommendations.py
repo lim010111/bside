@@ -142,11 +142,17 @@ class Recommendations:
         *,
         settings: AISettings | None = None,
         redis=None,
+        push=None,
+        store=None,
+        notice_ttl: int = 21600,
     ) -> None:
         self._service = service
         self._cache = cache
         self._settings = settings or (service.settings if service else AISettings())
         self._redis = redis
+        self._push = push
+        self._store = store
+        self._notice_ttl = notice_ttl
         self._tasks: set[asyncio.Task[None]] = set()
 
     @property
@@ -241,13 +247,43 @@ class Recommendations:
         if not await self._claim(viewer, candidates):
             return
         try:
-            await self._service.recommend(
+            result = await self._service.recommend(
                 RecommendationRequest(viewer=viewer, candidates=candidates)
             )
         except asyncio.CancelledError:
             raise
         except Exception as error:  # noqa: BLE001 - a failed evaluation is not a failed request
             logger.warning("background recommendation failed: %s", error)
+            return
+        await self._notify(viewer, result)
+
+    async def _notify(self, viewer: ParticipantProfile, result) -> None:
+        """Push about the candidates the policy judged worth interrupting for.
+
+        The module decides *whether* a candidate clears the bar; this decides
+        whether the person should be interrupted about them right now. Both
+        users must still be participating, and one pair notifies once.
+        """
+        if self._push is None or not self._push.enabled or self._store is None:
+            return
+        for candidate_id in result.notification_candidate_ids:
+            try:
+                user = await self._store.get_user(candidate_id)
+                profile = self._store.profile_of(user)
+                if profile is None or user.get("discovery_enabled") != "1":
+                    # They turned discovery off, or cleared their profile, between
+                    # the evaluation starting and it finishing.
+                    continue
+                key = f"push:told:{viewer.user_id}:{candidate_id}"
+                if not await self._push.claim_once(key, self._notice_ttl):
+                    continue
+                self._push.recommendation(
+                    self._store, viewer.user_id, candidate_id, profile["nickname"]
+                )
+            except asyncio.CancelledError:
+                raise
+            except Exception as error:  # noqa: BLE001
+                logger.warning("recommendation notice failed: %s", error)
 
     async def _claim(self, viewer: ParticipantProfile, candidates: tuple[ParticipantProfile, ...]) -> bool:
         """Take a short lock so repeated polls do not pay for the same batch twice.
@@ -270,7 +306,9 @@ class Recommendations:
             return True
 
 
-def build_recommendations(redis, *, settings: AISettings | None = None) -> Recommendations:
+def build_recommendations(
+    redis, *, settings: AISettings | None = None, push=None, settings_for_push=None
+) -> Recommendations:
     """Wire the module against the application's Redis, or disable it cleanly."""
     settings = settings or AISettings()
     if settings.missing_configuration():
@@ -281,12 +319,24 @@ def build_recommendations(redis, *, settings: AISettings | None = None) -> Recom
         return Recommendations(None, None, settings=settings)
 
     from app.ai import RedisRecommendationCache
+    from app.store import Store
 
     cache = RedisRecommendationCache(
         redis, on_error=lambda error: logger.warning("recommendation cache: %s", error)
     )
     service = RecommendationService(settings, cache=cache)
-    return Recommendations(service, cache, settings=settings, redis=redis)
+    # A background evaluation has no request and so no Store from the usual
+    # dependency; it reads the same Redis through its own.
+    store = Store(redis, settings_for_push) if settings_for_push is not None else None
+    return Recommendations(
+        service,
+        cache,
+        settings=settings,
+        redis=redis,
+        push=push,
+        store=store,
+        notice_ttl=getattr(settings_for_push, "recommendation_notice_ttl_seconds", 21600),
+    )
 
 
 @contextlib.asynccontextmanager

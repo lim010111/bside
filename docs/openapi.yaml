@@ -118,6 +118,39 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+  /me/push-token:
+    post:
+      tags: [Me]
+      summary: Register this device for push notifications
+      operationId: putPushToken
+      description: >
+        토큰은 기기가 아니라 **사용자** 단위로 보관된다. 같은 기기가 다른 사용자로
+        다시 등록하면 토큰은 새 사용자에게 넘어가고 이전 사용자에게서는 사라진다.
+        재설치나 기기 양도 뒤에 이전 사용자의 메시지가 계속 그 기기로 가는 일을
+        막기 위한 것이다. 같은 값을 다시 보내는 것은 성공하는 no-op다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushTokenRequest'
+      responses:
+        '200':
+          description: >
+            등록됨. `push_enabled`가 false면 서버에 FCM이 설정되지 않은 상태이며,
+            토큰은 그대로 보관되고 서버가 설정되면 발송이 시작된다.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushTokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
   /discovery/identifiers:
     post:
       tags: [Discovery]
@@ -433,6 +466,27 @@ components:
           $ref: '#/components/schemas/ServerTime'
         conversation_eligibility_expires_at:
           $ref: '#/components/schemas/ServerTime'
+    PushTokenRequest:
+      type: object
+      additionalProperties: false
+      required: [token, platform]
+      properties:
+        token:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: FCM 등록 토큰. 형식은 Google 소유이므로 길이만 검사한다.
+        platform:
+          type: string
+          enum: [android]
+    PushTokenResponse:
+      type: object
+      additionalProperties: false
+      required: [push_enabled]
+      properties:
+        push_enabled:
+          type: boolean
+          description: 서버가 실제로 푸시를 보낼 수 있는 상태인지. 등록 성공 여부와 별개다.
     Recommendation:
       type: object
       additionalProperties: false

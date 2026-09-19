@@ -51,6 +51,19 @@ class DiscoveryStateResponse(Strict):
     discovery_enabled: bool
 
 
+class PushTokenRequest(Strict):
+    # An FCM registration token. Bounded rather than pattern-matched: the format
+    # is Google's and has changed before, so a length cap is the honest check.
+    token: Annotated[str, Field(min_length=1, max_length=4096)]
+    platform: Literal["android"]
+
+
+class PushTokenResponse(Strict):
+    push_enabled: bool
+    """False when the server has no FCM configured. Registering still succeeds:
+    the token is kept, and pushes start working once the server is configured."""
+
+
 class DiscoveryIdentifierResponse(Strict):
     identifier: Identifier
     issued_at: str

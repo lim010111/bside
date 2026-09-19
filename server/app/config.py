@@ -32,3 +32,21 @@ class Settings(BaseSettings):
 
     max_observation_identifiers: int = 50
     """Identifiers accepted in one observation report."""
+
+    # Push notifications. Absent configuration is a supported state: the server
+    # runs unchanged and simply never pushes, which is what a local or a
+    # test deployment wants.
+    fcm_credentials_file: str | None = None
+    """Path to the Firebase service account JSON. Never inside the image."""
+
+    fcm_project_id: str | None = None
+    """Overrides the project in the key file. Normally left unset."""
+
+    recommendation_notice_ttl_seconds: int = 21600
+    """How long one viewer-candidate pair stays notified-about. Six hours: an
+    event runs a day, and being told about the same person twice in it is
+    worse than being told once."""
+
+    def fcm_missing_configuration(self) -> tuple[str, ...]:
+        """What is needed before any push is possible."""
+        return () if self.fcm_credentials_file else ("FCM_CREDENTIALS_FILE",)

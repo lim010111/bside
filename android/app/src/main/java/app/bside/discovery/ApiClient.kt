@@ -34,6 +34,18 @@ class ApiClient(private val baseUrl: String, private val credentials: Credential
         return post("/api/v1/discovery/observations", body)
     }
 
+    /**
+     * POST /api/v1/me/push-token — file this device's FCM token under this user.
+     *
+     * Sent with the credential like everything else, because the server files a
+     * token per user rather than per device: a phone that is re-registered by
+     * somebody else must stop receiving the previous user's messages.
+     */
+    fun registerPushToken(token: String): JSONObject {
+        val body = JSONObject().put("token", token).put("platform", "android")
+        return post("/api/v1/me/push-token", body)
+    }
+
     private fun post(path: String, body: JSONObject?): JSONObject {
         val credential = credentials.credential
             ?: throw ApiException(401, "UNAUTHORIZED", "No installation credential is stored yet.")

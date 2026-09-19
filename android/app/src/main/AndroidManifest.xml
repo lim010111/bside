@@ -35,6 +35,20 @@
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
 
+        <!--
+            The server sends data-only messages, so this runs for every push
+            rather than only in the foreground, and one place decides how a
+            notification looks. Without google-services.json there is no
+            FirebaseApp and this service is simply never invoked.
+        -->
+        <service
+            android:name="app.bside.discovery.PushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

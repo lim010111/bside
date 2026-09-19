@@ -21,7 +21,10 @@ from app.models import (
     ObservationResponse,
     ObservedUser,
     PublicProfile,
+    PushTokenRequest,
+    PushTokenResponse,
 )
+from app.push import Push
 from app.recommendations import Recommendations
 
 router = APIRouter(prefix="/api/v1")
@@ -72,6 +75,22 @@ async def put_profile(body: PublicProfile, user_id: CurrentUser, store: StoreDep
 async def set_discovery(body: DiscoveryStateRequest, user_id: CurrentUser, store: StoreDep):
     enabled = await store.set_discovery(user_id, body.enabled)
     return DiscoveryStateResponse(discovery_enabled=enabled)
+
+
+def get_push(request: Request) -> Push:
+    return request.app.state.push
+
+
+PushDep = Annotated[Push, Depends(get_push)]
+
+
+@router.post("/me/push-token", response_model=PushTokenResponse, tags=["Me"])
+async def put_push_token(body: PushTokenRequest, user_id: CurrentUser, store: StoreDep, push: PushDep):
+    # A device that re-registers under a different user takes the token with it,
+    # so the previous owner's messages stop going to a phone that is no longer
+    # theirs. That handover is atomic in put_push_token.lua.
+    await store.put_push_token(user_id, body.token, body.platform)
+    return PushTokenResponse(push_enabled=push.enabled)
 
 
 @router.post("/discovery/identifiers", response_model=DiscoveryIdentifierResponse, tags=["Discovery"])
@@ -152,7 +171,13 @@ _SEND_FAILURES = {
 
 
 @router.post("/messages", response_model=Message, status_code=status.HTTP_201_CREATED, tags=["Chat"])
-async def create_message(body: CreateMessageRequest, user_id: CurrentUser, store: StoreDep, response: Response):
+async def create_message(
+    body: CreateMessageRequest,
+    user_id: CurrentUser,
+    store: StoreDep,
+    push: PushDep,
+    response: Response,
+):
     if str(body.recipient_id) == user_id:
         raise ApiError(
             status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -165,7 +190,18 @@ async def create_message(body: CreateMessageRequest, user_id: CurrentUser, store
         code, message = _SEND_FAILURES[result.status]
         raise ApiError(code, result.status, message)
     if result.status == "REPLAYED":
+        # A retry of a message already stored. Notifying again would buzz the
+        # recipient a second time for one message the sender sent once.
         response.status_code = status.HTTP_200_OK
+    else:
+        sender = await store.get_user(user_id)
+        push.message(
+            store,
+            recipient_id=str(body.recipient_id),
+            sender_nickname=sender.get("nickname") or "새 메시지",
+            text=body.text,
+            conversation_id=result.message["conversation_id"],
+        )
     return Message(**result.message)
 
 
