@@ -68,3 +68,22 @@ def test_startup_without_redis():
             response = client.get("/ready")
             assert response.status_code == 503
             assert response.json() == {"status": "unavailable"}
+
+
+def test_capacitor_webview_origin_is_allowed_by_default():
+    """The Android app's origin is https://localhost, not the API's own host.
+
+    A real device found this: the APK failed CORS preflight because the deployed
+    config listed only the Vite dev origins. Both the app default and compose.yaml
+    have to carry it, so assert the default rather than trusting the comment.
+    """
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        response = client.options(
+            "/api/v1/me",
+            headers={
+                "Origin": "https://localhost",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        assert response.status_code == 200
+        assert response.headers.get("access-control-allow-origin") == "https://localhost"
