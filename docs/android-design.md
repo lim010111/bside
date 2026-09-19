@@ -23,7 +23,7 @@ BLE는 발견과 최소 신원 연결에 쓰고, 추천·채팅은 인터넷 서
 
 ## Android 구현 출발점
 
-사용자가 앱을 열고 발견 참여를 켤 때 네이티브 작업을 시작한다. 공통 서비스 UUID 필터로 스캔하며 광고용 임시 식별자와 프로필/새 대화 권한은 서버에서 연결한다. 식별자·UUID의 광고 바이트 예산, 회전과 관측 유예는 기술 계약에서 정하며 미검증 포맷을 확정하지 않는다. [광고 API](https://developer.android.com/reference/android/bluetooth/le/BluetoothLeAdvertiser)
+사용자가 앱을 열고 발견 참여를 켤 때 네이티브 작업을 시작한다. 공통 서비스 UUID 필터로 스캔하며 광고용 임시 식별자와 프로필/새 대화 권한은 서버에서 연결한다. 임시 ID 형식·회전·관측 유예와 보고 API는 [API v0.1](api-contract.md)로 확정했으며 구현 예정이다. 서비스 UUID와 실제 광고 바이트 배치는 실기기 검증 뒤 고정한다. [광고 API](https://developer.android.com/reference/android/bluetooth/le/BluetoothLeAdvertiser)
 
 React 타이머나 WebView가 계속 실행된다는 가정에 BLE를 맡기지 않는다. 화면이 중단되어도 필요한 작업은 네이티브가 맡고, 복귀한 UI는 네이티브와 서버 상태를 다시 조회한다. Android의 필터 기반 `PendingIntent` 스캔을 검토하며, 광고·탐지 수명주기에 지속적인 서비스가 필요하면 전경에서 시작하는 `connectedDevice` foreground service를 검증한다. 서비스 알림·시작 제한을 지키며 FGS만으로 영구 동작이 보장된다고 하지 않는다. [백그라운드 BLE](https://developer.android.com/develop/connectivity/bluetooth/ble/background), [Foreground service 유형](https://developer.android.com/develop/background-work/services/fgs/service-types)
 
@@ -33,7 +33,7 @@ React 타이머나 WebView가 계속 실행된다는 가정에 BLE를 맡기지 
 
 이번 앱은 설치가 필요하다. 기존 ‘QR 링크만 열면 설치 없이 사용’ 설명을 폐기한다. 개발 빌드는 실제 Android 단말에 설치하여 검증하고, 사용자 설치 시 배포용 APK와 안내가 필요하다. 앱스토어 공개 출시는 자동 포함하지 않는다. 최소 OS와 SDK·라이브러리 버전은 단말·의존성 확인 후 고정하며 현재 환경의 설치 여부를 제품 선택 근거로 쓰지 않는다. [실기기 실행](https://developer.android.com/studio/run/device), [ADB 설치](https://developer.android.com/tools/adb)
 
-앱 안에 묶인 웹 자산과 서버가 기존 웹 배포처럼 같은 출처라는 전제는 더 이상 성립하지 않는다. HTTPS API 주소, origin/CORS 또는 네이티브 HTTP 경계, 인증 정보 보관 방식을 새 API 계약에 명시한다. B11에 따라 설치 단위 식별을 사용하고 앱 재실행 시 같은 사용자·소개·대화를 복원한다. 앱 재설치·기기 변경 복원은 제외한다. 인증 정보 저장·백업 제외 등 구체 계약은 후속 설계에서 정한다. 기존 브라우저 쿠키 계약을 그대로 옮기지 않는다.
+앱 안에 묶인 웹 자산과 서버가 기존 웹 배포처럼 같은 출처라는 전제는 더 이상 성립하지 않는다. [API v0.1](api-contract.md)은 설치 등록과 Bearer 자격 계약을 확정했으며 구현 예정이다. Android 보호 저장소 선택, 백업 제외, HTTPS 주소와 origin/CORS 또는 네이티브 HTTP 경계는 앱 구현에서 확정한다. B11에 따라 앱 재실행 시 같은 사용자·소개·대화를 복원하고 앱 재설치·기기 변경 복원은 제외한다. 기존 브라우저 쿠키 계약을 그대로 옮기지 않는다.
 
 기존 FastAPI·Redis 기반은 재사용한다. 행사별 키·행사 종료 후 삭제는 새 모델에서 사용하지 않으며, 시연 데이터도 일반 데이터와 같은 보관 정책을 적용하며 이번 MVP에 시간 기반 자동 삭제·시연 종료 특별 삭제를 추가하지 않는다. 장기 보관 정책은 별도 후속 범위다. 앱을 닫은 동안의 수신과 관계 보관은 연결 소켓 자체가 아니라 서버 저장으로 처리한다. B12는 자동 추천 알림 포함으로 확정했다. 원격 갱신·알림의 세부 구현을 구체화하고 실제 문제가 발생하면 범위를 재검토한다.
 
