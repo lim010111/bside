@@ -17,7 +17,7 @@ uv run fastapi dev --port 8000
 
 진입점은 `app.main:app`이며 `create_app()`으로 앱을 생성합니다. 설정과 라우터는
 [FastAPI 공식 구조 안내](https://fastapi.tiangolo.com/tutorial/bigger-applications/)에 따라 분리했습니다.
-현재 구현은 health/ready·Redis 연결·기본 OpenAPI까지입니다. 설치 인증·프로필·BLE 관측·추천·바로 채팅·클라이언트 연결은 후속 작업입니다. [현재 API 계약](../docs/api-contract.md)과 [팀 작업 T00~T08](../docs/team-plan.md)을 따르며, 과거 상태 한 줄·5분 만료·행사 방·요청/수락 계약을 구현하지 않습니다. BLE 발견은 Android가 담당하고 서버는 관측·추천·채팅을 처리합니다. 프론트는 아직 mock입니다.
+현재 HTTP 구현은 health/ready·Redis 연결·기본 OpenAPI까지입니다. 설치 인증·프로필·BLE 관측·바로 채팅·클라이언트 연결은 후속 작업입니다. **AI 추천은 `app/ai/`에 독립 모듈로 구현했고 HTTP 엔드포인트 연결은 아직 후속 작업입니다.** 모듈 인터페이스·설정·한계는 [AI 추천 모듈](docs/ai.md), 실모델 실행 결과는 [AI 추천 검증 기록](docs/ai-validation.md)을 참고하세요. [현재 API 계약](../docs/api-contract.md)과 [팀 작업 T00~T08](../docs/team-plan.md)을 따르며, 과거 상태 한 줄·5분 만료·행사 방·요청/수락 계약을 구현하지 않습니다. BLE 발견은 Android가 담당하고 서버는 관측·추천·채팅을 처리합니다. 프론트는 아직 mock입니다.
 
 ## Docker로 함께 실행
 
