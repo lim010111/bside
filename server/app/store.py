@@ -39,6 +39,7 @@ from app.config import Settings
 
 _SEND_SCRIPT = (Path(__file__).parent / "scripts" / "send_message.lua").read_text(encoding="utf-8")
 _PROFILE_SCRIPT = (Path(__file__).parent / "scripts" / "put_profile.lua").read_text(encoding="utf-8")
+_PUSH_TOKEN_SCRIPT = (Path(__file__).parent / "scripts" / "put_push_token.lua").read_text(encoding="utf-8")
 
 PROFILE_FIELDS = ("nickname", "self_description", "connection_intent")
 
@@ -240,6 +241,31 @@ class Store:
         if observed:
             await writes.execute()
         return observed
+
+    # --- push tokens ---------------------------------------------------------
+
+    async def put_push_token(self, user_id: str, token: str, platform: str) -> bool:
+        """Register one device for this user. True when it changed hands."""
+        moved = await self.redis.eval(
+            _PUSH_TOKEN_SCRIPT, 0, user_id, token, platform, str(now_ms())
+        )
+        return bool(moved)
+
+    async def push_tokens(self, user_id: str) -> list[str]:
+        return sorted(await self.redis.smembers(f"push:tokens:{user_id}"))
+
+    async def drop_push_token(self, token: str) -> None:
+        """Forget a token FCM told us is dead, or that a device unregistered.
+
+        The owner is read first so a token already handed to someone else is not
+        removed from the new owner's set by a late failure report about the old.
+        """
+        owner = await self.redis.get(f"push:owner:{token}")
+        pipe = self.redis.pipeline()
+        if owner:
+            pipe.srem(f"push:tokens:{owner}", token)
+        pipe.delete(f"push:owner:{token}", f"push:token:{token}")
+        await pipe.execute()
 
     # --- chat ----------------------------------------------------------------
 

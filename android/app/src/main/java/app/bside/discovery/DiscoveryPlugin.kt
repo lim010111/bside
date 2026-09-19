@@ -68,6 +68,10 @@ class DiscoveryPlugin : Plugin() {
         DiscoveryHolder.apiBaseUrl = apiBaseUrl()
         DiscoveryHolder.onObservations = { response -> deliverObservations(response) }
         DiscoveryHolder.onStatusChanged = { deliverStatus() }
+        // A returning install already has both halves. Re-sending a token the
+        // server knows is a no-op there, and it is the only thing that repairs
+        // a registration lost to a failed request on a previous run.
+        PushService.registerIfPossible(context)
     }
 
     /**
@@ -95,6 +99,10 @@ class DiscoveryPlugin : Plugin() {
             return
         }
         credentials.credential = value
+        // The FCM token exists from install, but the server files it under a
+        // user, so this is the first moment it can be sent. onNewToken may well
+        // have fired before there was any credential to send it with.
+        PushService.registerIfPossible(context)
         call.resolve()
     }
 

@@ -18,6 +18,13 @@ services:
       AI_API_KEY: ${AI_API_KEY:-}
       AI_BASE_URL: ${AI_BASE_URL:-}
       AI_MODEL: ${AI_MODEL:-}
+      # The Firebase service account, mounted rather than baked in: it is a
+      # private key and .dockerignore keeps it out of the image. Unset means
+      # the server runs and never pushes.
+      FCM_CREDENTIALS_FILE: ${FCM_CREDENTIALS_FILE:-}
+    volumes:
+      # Read-only, and outside server/ on the host so a deploy cannot delete it.
+      - ${FCM_CREDENTIALS_HOST_FILE:-/dev/null}:/run/secrets/fcm.json:ro
     depends_on:
       redis:
         condition: service_started

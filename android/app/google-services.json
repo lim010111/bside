@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1077291345246",
+    "project_id": "bside-5a002",
+    "storage_bucket": "bside-5a002.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1077291345246:android:03e6afde37f60f35615bcf",
+        "android_client_info": {
+          "package_name": "app.bside"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFFXDun6kwB4wDkdd7xwhaTVPTJ2CSwgU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

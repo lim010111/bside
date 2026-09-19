@@ -65,6 +65,12 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
+    // Firebase Cloud Messaging. The dependency is unconditional but the
+    // google-services plugin below is not, so a checkout without
+    // google-services.json still builds; PushService then reports no
+    // FirebaseApp and simply never registers a token.
+    implementation platform("com.google.firebase:firebase-bom:$firebaseBomVersion")
+    implementation "com.google.firebase:firebase-messaging"
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
