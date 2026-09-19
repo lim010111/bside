@@ -1,0 +1,80 @@
+[
+  {
+    "id": "jiwon",
+    "name": "지원",
+    "school": "국민대",
+    "major": "소프트웨어학부",
+    "can_help": [
+      { "topic": "React 상태관리", "evidence": "동아리 프로젝트 3회", "confidence": "high" },
+      { "topic": "서비스 기획", "evidence": "교내 공모전 기획 2회", "confidence": "mid" },
+      { "topic": "발표", "evidence": "발표 5회 이상, 수상 경험", "confidence": "high" }
+    ],
+    "stuck_on": [
+      {
+        "topic": "배포 설정",
+        "detail": "GitHub Actions에서 빌드는 통과하는데 배포 단계에서 권한 오류가 남",
+        "urgency": "today"
+      }
+    ],
+    "done_before": ["서비스 기획 2회", "발표 5회 이상", "프론트엔드 3개 프로젝트"],
+    "role_pref": { "want": ["프론트엔드"], "avoid": [] },
+    "context": ["2025-2 오픈소스SW 수강", "서울 거주"],
+    "availability": ["2026-09-19T21:00+09:00/2026-09-20T01:00+09:00"],
+    "disclosure": {
+      "share": ["can_help.topic", "stuck_on.topic", "done_before", "role_pref", "availability", "context"],
+      "never": ["major", "stuck_on.detail", "contact", "grades"]
+    }
+  },
+  {
+    "id": "minseo",
+    "name": "민서",
+    "school": "순천향대",
+    "major": "정보보호학과",
+    "can_help": [
+      { "topic": "도커 배포", "evidence": "작년 개인 프로젝트에서 CI 파이프라인 구축", "confidence": "high" },
+      { "topic": "서버 운영", "evidence": "학과 서버 관리 1년", "confidence": "high" },
+      { "topic": "백엔드 API", "evidence": "FastAPI로 2개 서비스", "confidence": "mid" }
+    ],
+    "stuck_on": [
+      {
+        "topic": "서비스 기획",
+        "detail": "기능은 만들 수 있는데 뭘 만들지 정하는 단계가 늘 막힘. 이번이 첫 기획",
+        "urgency": "today"
+      }
+    ],
+    "done_before": ["서버 운영", "CI/CD 구축", "백엔드 2개 프로젝트"],
+    "role_pref": { "want": ["백엔드"], "avoid": ["발표"] },
+    "context": ["2025-2 오픈소스SW 수강", "아산에서 서울로 이동"],
+    "availability": ["2026-09-19T21:00+09:00/2026-09-20T02:00+09:00"],
+    "disclosure": {
+      "share": ["can_help.topic", "stuck_on.topic", "done_before", "role_pref", "availability", "context"],
+      "never": ["major", "stuck_on.detail", "contact", "grades"]
+    }
+  },
+  {
+    "id": "taehyun",
+    "name": "태현",
+    "school": "숭실대",
+    "major": "글로벌미디어학부",
+    "can_help": [
+      { "topic": "서비스 기획", "evidence": "창업동아리에서 기획 5회", "confidence": "high" },
+      { "topic": "UI 디자인", "evidence": "Figma로 프로토타입 다수", "confidence": "mid" },
+      { "topic": "발표 자료 구성", "evidence": "피칭 2회", "confidence": "mid" }
+    ],
+    "stuck_on": [
+      {
+        "topic": "백엔드",
+        "detail": "API가 어떻게 동작하는지 개념이 안 잡혀서 개발자와 대화가 안 됨",
+        "urgency": "this_week"
+      }
+    ],
+    "done_before": ["기획 5회", "발표 2회", "Figma 프로토타입"],
+    "role_pref": { "want": ["기획", "발표"], "avoid": ["백엔드"] },
+    "context": ["교내 창업동아리", "서울 거주"],
+    "availability": ["2026-09-19T22:00+09:00/2026-09-20T02:00+09:00"],
+    "disclosure": {
+      "share": ["can_help.topic", "stuck_on.topic", "done_before", "role_pref", "availability", "context"],
+      "never": ["major", "stuck_on.detail", "contact", "grades"]
+    }
+  }
+]
