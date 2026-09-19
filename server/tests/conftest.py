@@ -9,6 +9,7 @@ flushed before each test, never against database 0.
 """
 
 import os
+from functools import partial
 from uuid import uuid4
 
 import pytest
@@ -22,8 +23,10 @@ from fastapi.testclient import TestClient
 # own server/.env, which is what it was quietly doing.
 os.environ.setdefault("CREDENTIAL_REPLAY_SECRET", "test-only-credential-replay-secret")
 
+from app.ai import AISettings  # noqa: E402
 from app.config import Settings  # noqa: E402
 from app.main import create_app  # noqa: E402
+from app.recommendations import build_recommendations  # noqa: E402
 
 SCRATCH_URL = os.environ.get("TEST_REDIS_URL", "redis://127.0.0.1:6379/15")
 
@@ -47,7 +50,16 @@ def flush(settings: Settings):
 
 
 @pytest.fixture
-def client(settings: Settings, flush):
+def client(settings: Settings, flush, monkeypatch):
+    # API Settings(_env_file=None) does not disable the independent AISettings.
+    # A developer's server/.env must never enable paid background jobs here.
+    # Recommendation boundary tests inject their own offline bridge afterwards.
+    monkeypatch.setattr(
+        "app.main.build_recommendations",
+        partial(build_recommendations, settings=AISettings(
+            _env_file=None, api_key=None, base_url=None, model=None,
+        )),
+    )
     with TestClient(create_app(settings)) as test_client:
         yield test_client
 

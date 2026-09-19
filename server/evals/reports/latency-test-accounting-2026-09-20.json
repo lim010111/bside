@@ -1,0 +1,78 @@
+{
+  "kind": "offline replay of scheduling, all real gateway calls intercepted; original actual calls unknown",
+  "scheduled": [
+    {
+      "candidates": 1,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 1,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 1,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 1,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 1,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 2,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 1,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 1,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 1,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 2,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 1,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 1,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 1,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 1,
+      "call_upper_bound": 1
+    },
+    {
+      "candidates": 1,
+      "call_upper_bound": 1
+    }
+  ],
+  "call_upper_bound": 15,
+  "actual_calls": null,
+  "reserved_calls": 15,
+  "ledger_total_including_reservations": 241,
+  "ledger_cap": 240,
+  "further_live_calls": 0,
+  "post_fix_verification": {
+    "server_tests_passed": 276,
+    "skipped": 0,
+    "web_tests_passed": 46,
+    "real_gateway_scheduled": 0,
+    "network_guard": "temporary pytest plugin intercepted real configured gateway before transport"
+  }
+}

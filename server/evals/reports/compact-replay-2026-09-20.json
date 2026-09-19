@@ -1,0 +1,150 @@
+{
+  "mode": "offline saved-response replay",
+  "live_generation_calls": 0,
+  "source_prompt_digest": "32db67109c375cf1",
+  "current_prompt_digest": "ff85b83b0d8db46e",
+  "note": "Reconstructed model fields, compact JSON including batch envelopes. Text, scores and quotes unchanged. Not raw original bytes, tokenizer counts, generation latency, or new-prompt quality.",
+  "totals": {
+    "legacy": {
+      "chars": 11168,
+      "utf8_bytes": 17142
+    },
+    "compact": {
+      "chars": 7047,
+      "utf8_bytes": 13021
+    }
+  },
+  "reduction_percent": {
+    "chars": 36.9,
+    "utf8_bytes": 24.04
+  },
+  "cases": [
+    {
+      "file": "live-targeted-prompt2.json",
+      "case_id": "E01",
+      "candidates": 6,
+      "identical_recommendations": true,
+      "identical_anomalies": true,
+      "legacy": {
+        "chars": 2728,
+        "utf8_bytes": 4252
+      },
+      "compact": {
+        "chars": 1770,
+        "utf8_bytes": 3294
+      }
+    },
+    {
+      "file": "live-targeted-prompt2.json",
+      "case_id": "E02",
+      "candidates": 6,
+      "identical_recommendations": true,
+      "identical_anomalies": true,
+      "legacy": {
+        "chars": 2740,
+        "utf8_bytes": 4436
+      },
+      "compact": {
+        "chars": 1742,
+        "utf8_bytes": 3438
+      }
+    },
+    {
+      "file": "live-targeted-prompt2.json",
+      "case_id": "E03",
+      "candidates": 5,
+      "identical_recommendations": true,
+      "identical_anomalies": true,
+      "legacy": {
+        "chars": 1921,
+        "utf8_bytes": 3017
+      },
+      "compact": {
+        "chars": 1175,
+        "utf8_bytes": 2271
+      }
+    },
+    {
+      "file": "live-targeted-fresh.json",
+      "case_id": "E05",
+      "candidates": 4,
+      "identical_recommendations": true,
+      "identical_anomalies": true,
+      "legacy": {
+        "chars": 517,
+        "utf8_bytes": 517
+      },
+      "compact": {
+        "chars": 301,
+        "utf8_bytes": 301
+      }
+    },
+    {
+      "file": "live-targeted-fresh.json",
+      "case_id": "N01",
+      "candidates": 4,
+      "identical_recommendations": true,
+      "identical_anomalies": true,
+      "legacy": {
+        "chars": 631,
+        "utf8_bytes": 749
+      },
+      "compact": {
+        "chars": 375,
+        "utf8_bytes": 493
+      }
+    },
+    {
+      "file": "live-targeted-fresh.json",
+      "case_id": "N02",
+      "candidates": 4,
+      "identical_recommendations": true,
+      "identical_anomalies": true,
+      "legacy": {
+        "chars": 1391,
+        "utf8_bytes": 2231
+      },
+      "compact": {
+        "chars": 899,
+        "utf8_bytes": 1739
+      }
+    },
+    {
+      "file": "live-targeted-fresh.json",
+      "case_id": "N03",
+      "candidates": 4,
+      "identical_recommendations": true,
+      "identical_anomalies": true,
+      "legacy": {
+        "chars": 1240,
+        "utf8_bytes": 1940
+      },
+      "compact": {
+        "chars": 785,
+        "utf8_bytes": 1485
+      }
+    }
+  ],
+  "omitted": [
+    {
+      "file": "live-targeted-prompt2.json",
+      "case_id": "E05",
+      "reason": "no stored output"
+    },
+    {
+      "file": "live-targeted-prompt2.json",
+      "case_id": "N01",
+      "reason": "no stored output"
+    },
+    {
+      "file": "live-targeted-prompt2.json",
+      "case_id": "N02",
+      "reason": "no stored output"
+    },
+    {
+      "file": "live-targeted-prompt2.json",
+      "case_id": "N03",
+      "reason": "no stored output"
+    }
+  ]
+}

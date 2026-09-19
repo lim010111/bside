@@ -3,6 +3,17 @@
 검증 담당 소유. 운영 모듈 `server/app/ai` 를 **그대로** 호출해 평가한다. 평가용 프롬프트를
 따로 두지 않는다. 결과 해석과 한계는 [`server/docs/ai-validation.md`](../docs/ai-validation.md).
 
+변경 전 프롬프트의 1·5·20명 지연과 API·Android 전달 경로 검토는
+[지연·일상 사용 검증](../docs/ai-latency-review.md)에 있다. `bench/latency.py`는 로컬 Redis와
+현재 추천 어댑터를 측정하며, `latency_probes.py`·`latency_ui_probe.mjs`는 실제 모델 없이
+지연 결함을 재현한다. 기존 live-call 장부의 보수적 예약까지 포함하면 현재 cap을 소진했으므로
+저장 결과 재분석과 오프라인 재현을 사용한다.
+
+후속 사용자 요청으로 [변경 전후 실측](../docs/ai-latency-ab.md)을 104회 추가 호출해 완료했다.
+`bench/latency_ab.py`는 같은 입력·설정으로 기존/압축 프롬프트를 교차 비교하며,
+`bench/analyze_latency_ab.mjs`는 저장 결과를 추가 호출 없이 분석한다. 기존 예약을 보존한
+장부는 현재 345/345이고, 새 재측정에는 추가 가용 예산이 필요하다.
+
 ## 이 하네스가 주장하는 것과 아닌 것
 
 - 여기의 '통과'는 **사례 파일에 적힌 기대값과 일치**했다는 뜻이다. 기대값은 대부분 검증

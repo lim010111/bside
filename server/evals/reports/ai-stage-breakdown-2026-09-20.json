@@ -1,0 +1,118 @@
+{
+  "mode": "offline: saved-output analysis and no-network replay",
+  "live_generation_calls": 0,
+  "current_prompt_digest": "042d9e7cf2358995",
+  "character_analysis": {
+    "source_prompt_digest": "32db67109c375cf1",
+    "cases": [
+      {
+        "file": "live-targeted-prompt2.json",
+        "case_id": "E01"
+      },
+      {
+        "file": "live-targeted-prompt2.json",
+        "case_id": "E02"
+      },
+      {
+        "file": "live-targeted-prompt2.json",
+        "case_id": "E03"
+      },
+      {
+        "file": "live-targeted-fresh.json",
+        "case_id": "E05"
+      },
+      {
+        "file": "live-targeted-fresh.json",
+        "case_id": "N01"
+      },
+      {
+        "file": "live-targeted-fresh.json",
+        "case_id": "N02"
+      },
+      {
+        "file": "live-targeted-fresh.json",
+        "case_id": "N03"
+      }
+    ],
+    "omitted": [
+      {
+        "file": "live-targeted-prompt2.json",
+        "case_id": "E05",
+        "reason": "no stored output"
+      },
+      {
+        "file": "live-targeted-prompt2.json",
+        "case_id": "N01",
+        "reason": "no stored output"
+      },
+      {
+        "file": "live-targeted-prompt2.json",
+        "case_id": "N02",
+        "reason": "no stored output"
+      },
+      {
+        "file": "live-targeted-prompt2.json",
+        "case_id": "N03",
+        "reason": "no stored output"
+      }
+    ],
+    "statuses": {
+      "EVALUATED": 24,
+      "INSUFFICIENT_EVIDENCE": 9
+    },
+    "method": "Sum compact JSON key:value character lengths. Excludes outer braces, commas, array/envelope. Not token or time shares; model fields reconstructed from normalized results.",
+    "fields": {
+      "candidate_id": {
+        "chars": 749,
+        "percent": 6.99
+      },
+      "status": {
+        "chars": 768,
+        "percent": 7.17
+      },
+      "score": {
+        "chars": 391,
+        "percent": 3.65
+      },
+      "reason": {
+        "chars": 2734,
+        "percent": 25.52
+      },
+      "intent_conflict": {
+        "chars": 746,
+        "percent": 6.96
+      },
+      "evidence": {
+        "chars": 5327,
+        "percent": 49.72
+      }
+    },
+    "reason_chars_median": 99.5,
+    "quote_chars_median": 30,
+    "evidence_per_candidate_median": 2
+  },
+  "replay": {
+    "candidates": 20,
+    "batches": 4,
+    "repeats": 300,
+    "warmup": 20,
+    "fixture": "E01 first 5 candidates cloned four times; prior real Haiku scores/reasons/evidence, current service code",
+    "cache": "fresh InMemoryRecommendationCache each repeat; Redis/network/gateway queue/generation excluded",
+    "response_sha256": "271cbd1a0686bf7db76a0f6485768d3410cb6365fafb54c86c8f02e7c4ab2fee",
+    "note": "Instrumented local control, not an estimate obtained by subtracting live durations. Nested grounding is included in build; schema validation and cache/scheduling are in remaining wall time.",
+    "median_ms": {
+      "wall_ms": 1.3238,
+      "prompt_render_ms": 0.0518,
+      "json_parse_ms": 0.044,
+      "build_and_grounding_ms": 0.5388,
+      "ranking_policy_result_ms": 0.15
+    },
+    "wall_min_ms": 1.1121,
+    "wall_max_ms": 4.3612,
+    "all_evaluated": true,
+    "anomalies": 0
+  },
+  "code_commit": "7e7f5c7",
+  "latest_live_reference": "latency-live-2026-09-20.json",
+  "measurement_date_kst": "2026-09-20"
+}

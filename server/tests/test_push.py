@@ -6,6 +6,7 @@ messages. Most of these tests are about that.
 """
 
 import asyncio
+import os
 
 import httpx
 import pytest
@@ -253,14 +254,14 @@ def test_registering_needs_a_credential(client, install):
     ).status_code == 401
 
 
-def test_the_dedupe_claim_lets_one_event_through_once(client: TestClient):
+def test_the_dedupe_claim_lets_one_event_through_once(client: TestClient, settings: Settings):
     push = Push(RecordingSender(), redis=client.app.state.redis)
 
     async def claim_twice() -> tuple[bool, bool]:
         from redis.asyncio import Redis
 
         redis = Redis.from_url(
-            Settings(_env_file=None, redis_url="redis://127.0.0.1:6379/15").redis_url,
+            settings.redis_url,
             decode_responses=True,
         )
         local = Push(RecordingSender(), redis=redis)
@@ -338,7 +339,9 @@ def _store(days: int = 60) -> tuple:
     from redis.asyncio import Redis
 
     settings = Settings(
-        _env_file=None, redis_url="redis://127.0.0.1:6379/15", push_token_ttl_days=days
+        _env_file=None,
+        redis_url=os.environ.get("TEST_REDIS_URL", "redis://127.0.0.1:6379/15"),
+        push_token_ttl_days=days,
     )
     return Redis.from_url(settings.redis_url, decode_responses=True), settings
 
@@ -459,14 +462,14 @@ def test_a_dead_token_is_dropped_from_an_old_shape_list_too(client: TestClient):
     assert asyncio.run(run()) == []
 
 
-def test_the_store_hands_a_token_over_rather_than_sharing_it(client: TestClient):
+def test_the_store_hands_a_token_over_rather_than_sharing_it(client: TestClient, settings: Settings):
     """The Lua script's own contract, checked without going through HTTP."""
 
     async def handover() -> tuple[list[str], list[str], bool, bool]:
         from redis.asyncio import Redis
 
-        redis = Redis.from_url("redis://127.0.0.1:6379/15", decode_responses=True)
-        store = Store(redis, Settings(_env_file=None, redis_url="redis://127.0.0.1:6379/15"))
+        redis = Redis.from_url(settings.redis_url, decode_responses=True)
+        store = Store(redis, settings)
         try:
             first = await store.put_push_token("user-a", "device", "android")
             again = await store.put_push_token("user-a", "device", "android")

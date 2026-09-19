@@ -250,6 +250,31 @@ class Store:
             await writes.execute()
         return observed
 
+    async def observed_snapshots(self, observer: str, user_ids: list[str]) -> list[dict[str, Any]]:
+        """Read authorized recent observations without renewing proximity."""
+        moment = now_ms()
+        window = self.settings.observation_eligibility_seconds * 1000
+        unique = list(dict.fromkeys(user_ids))
+        pipe = self.redis.pipeline()
+        for user_id in unique:
+            pipe.zscore(f"obs:{observer}", user_id)
+            pipe.hgetall(f"user:{user_id}")
+        rows = await pipe.execute()
+        observed = []
+        for index, user_id in enumerate(unique):
+            seen, user = rows[2 * index:2 * index + 2]
+            profile = self.profile_of(user)
+            if (user_id == observer or seen is None or seen + window <= moment
+                    or not profile or user.get("discovery_enabled") != "1"):
+                continue
+            observed.append({
+                "user_id": user_id, "profile": profile,
+                "profile_revision": self.revision_of(user),
+                "last_seen_at": to_rfc3339(int(seen)),
+                "conversation_eligibility_expires_at": to_rfc3339(int(seen) + window),
+            })
+        return observed
+
     # --- push tokens ---------------------------------------------------------
 
     def _push_token_ttl(self) -> int:

@@ -50,7 +50,7 @@ from app.ai.models import (
 )
 from app.ai.policy import NotificationPolicy
 from app.ai.prompt import DefaultPromptProvider, PromptProvider
-from app.ai.schema import RawEvaluation
+from app.ai.schema import RawEvaluation, parse_evaluation
 from app.ai.settings import AISettings
 
 logger = logging.getLogger("app.ai")
@@ -508,8 +508,17 @@ class RecommendationService:
         async def run(batch: tuple[ParticipantProfile, ...]):
             # The semaphore is taken inside the task so the overall deadline
             # also bounds batches still queued behind the concurrency limit.
+            queued_at = time.perf_counter()
             async with self._semaphore:
-                return await self._evaluate_batch(request, batch, digest, anomalies)
+                started_at = time.perf_counter()
+                try:
+                    return await self._evaluate_batch(request, batch, digest, anomalies)
+                finally:
+                    logger.info(
+                        "ai batch candidates=%d queue_ms=%.1f processing_ms=%.1f",
+                        len(batch), (started_at - queued_at) * 1000,
+                        (time.perf_counter() - started_at) * 1000,
+                    )
 
         tasks = [asyncio.create_task(run(batch)) for batch in batches]
         timed_out = False
@@ -598,12 +607,12 @@ class RecommendationService:
         duplicated: set[str] = set()
         for raw in entries:
             try:
-                evaluation = RawEvaluation.model_validate(raw)
+                evaluation = parse_evaluation(raw)
             except pydantic.ValidationError:
                 # The entry is unusable, but its id usually still is, and the
                 # candidate deserves "the model answered badly" rather than
                 # "the model never mentioned you".
-                raw_id = raw.get("candidate_id") if isinstance(raw, dict) else None
+                raw_id = raw.get("id", raw.get("candidate_id")) if isinstance(raw, dict) else None
                 if isinstance(raw_id, str) and raw_id in expected:
                     if raw_id in results:
                         duplicated.add(raw_id)

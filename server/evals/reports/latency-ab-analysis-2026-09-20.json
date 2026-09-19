@@ -1,0 +1,1530 @@
+{
+  "input": "evals/reports/latency-ab-live-2026-09-20.json",
+  "live_generation_calls_in_this_analysis": 0,
+  "summary_including_failed": {
+    "crowd-1": {
+      "before": {
+        "runs": 3,
+        "wall_ms_median": 2604.2,
+        "wall_ms_min": 2533.9,
+        "wall_ms_max": 2730.5,
+        "input_tokens_median": 2539,
+        "output_tokens_median": 386,
+        "failed_candidates": 0,
+        "anomalies": 0
+      },
+      "after": {
+        "runs": 3,
+        "wall_ms_median": 2505.9,
+        "wall_ms_min": 2463.8,
+        "wall_ms_max": 2611.6,
+        "input_tokens_median": 2838,
+        "output_tokens_median": 276,
+        "failed_candidates": 0,
+        "anomalies": 0
+      },
+      "reduction_percent": 3.77,
+      "paired_reduction_percent": [
+        3.77,
+        2.77,
+        4.35
+      ]
+    },
+    "crowd-5": {
+      "before": {
+        "runs": 3,
+        "wall_ms_median": 8661.6,
+        "wall_ms_min": 8134.2,
+        "wall_ms_max": 8954.2,
+        "input_tokens_median": 2894,
+        "output_tokens_median": 1554,
+        "failed_candidates": 0,
+        "anomalies": 0
+      },
+      "after": {
+        "runs": 3,
+        "wall_ms_median": 6448.1,
+        "wall_ms_min": 6253.9,
+        "wall_ms_max": 6810,
+        "input_tokens_median": 3193,
+        "output_tokens_median": 997,
+        "failed_candidates": 0,
+        "anomalies": 0
+      },
+      "reduction_percent": 25.56,
+      "paired_reduction_percent": [
+        16.28,
+        27.8,
+        27.99
+      ]
+    },
+    "crowd-20": {
+      "before": {
+        "runs": 3,
+        "wall_ms_median": 8872.3,
+        "wall_ms_min": 7983.2,
+        "wall_ms_max": 9764.6,
+        "input_tokens_median": 11553,
+        "output_tokens_median": 5722,
+        "failed_candidates": 0,
+        "anomalies": 0
+      },
+      "after": {
+        "runs": 3,
+        "wall_ms_median": 7296.7,
+        "wall_ms_min": 6450.8,
+        "wall_ms_max": 7917.4,
+        "input_tokens_median": 12749,
+        "output_tokens_median": 4202,
+        "failed_candidates": 5,
+        "anomalies": 0
+      },
+      "reduction_percent": 17.76,
+      "paired_reduction_percent": [
+        33.94,
+        8.6,
+        10.76
+      ]
+    },
+    "crowd-50": {
+      "before": {
+        "runs": 3,
+        "wall_ms_median": 25672.7,
+        "wall_ms_min": 24929.6,
+        "wall_ms_max": 25910.4,
+        "input_tokens_median": 28891,
+        "output_tokens_median": 14522,
+        "failed_candidates": 0,
+        "anomalies": 2
+      },
+      "after": {
+        "runs": 3,
+        "wall_ms_median": 19494.9,
+        "wall_ms_min": 19289.5,
+        "wall_ms_max": 20475.5,
+        "input_tokens_median": 31881,
+        "output_tokens_median": 10562,
+        "failed_candidates": 0,
+        "anomalies": 1
+      },
+      "reduction_percent": 24.06,
+      "paired_reduction_percent": [
+        25.55,
+        17.87,
+        24.06
+      ]
+    },
+    "E04": {
+      "before": {
+        "runs": 1,
+        "wall_ms_median": 7788.3,
+        "wall_ms_min": 7788.3,
+        "wall_ms_max": 7788.3,
+        "input_tokens_median": 2852,
+        "output_tokens_median": 1289,
+        "failed_candidates": 0,
+        "anomalies": 0
+      },
+      "after": {
+        "runs": 1,
+        "wall_ms_median": 6134.5,
+        "wall_ms_min": 6134.5,
+        "wall_ms_max": 6134.5,
+        "input_tokens_median": 3151,
+        "output_tokens_median": 922,
+        "failed_candidates": 0,
+        "anomalies": 0
+      },
+      "reduction_percent": 21.23,
+      "paired_reduction_percent": [
+        21.23
+      ]
+    },
+    "E05": {
+      "before": {
+        "runs": 1,
+        "wall_ms_median": 1672,
+        "wall_ms_min": 1672,
+        "wall_ms_max": 1672,
+        "input_tokens_median": 2682,
+        "output_tokens_median": 247,
+        "failed_candidates": 0,
+        "anomalies": 0
+      },
+      "after": {
+        "runs": 1,
+        "wall_ms_median": 1621.2,
+        "wall_ms_min": 1621.2,
+        "wall_ms_max": 1621.2,
+        "input_tokens_median": 2981,
+        "output_tokens_median": 148,
+        "failed_candidates": 0,
+        "anomalies": 0
+      },
+      "reduction_percent": 3.04,
+      "paired_reduction_percent": [
+        3.04
+      ]
+    },
+    "E06": {
+      "before": {
+        "runs": 1,
+        "wall_ms_median": 7245.8,
+        "wall_ms_min": 7245.8,
+        "wall_ms_max": 7245.8,
+        "input_tokens_median": 2906,
+        "output_tokens_median": 1134,
+        "failed_candidates": 1,
+        "anomalies": 1
+      },
+      "after": {
+        "runs": 1,
+        "wall_ms_median": 5270.5,
+        "wall_ms_min": 5270.5,
+        "wall_ms_max": 5270.5,
+        "input_tokens_median": 3205,
+        "output_tokens_median": 747,
+        "failed_candidates": 0,
+        "anomalies": 0
+      },
+      "reduction_percent": 27.26,
+      "paired_reduction_percent": [
+        27.26
+      ]
+    },
+    "long-5": {
+      "before": {
+        "runs": 1,
+        "wall_ms_median": 9559.7,
+        "wall_ms_min": 9559.7,
+        "wall_ms_max": 9559.7,
+        "input_tokens_median": 8321,
+        "output_tokens_median": 1489,
+        "failed_candidates": 0,
+        "anomalies": 0
+      },
+      "after": {
+        "runs": 1,
+        "wall_ms_median": 5109.5,
+        "wall_ms_min": 5109.5,
+        "wall_ms_max": 5109.5,
+        "input_tokens_median": 8620,
+        "output_tokens_median": 625,
+        "failed_candidates": 0,
+        "anomalies": 0
+      },
+      "reduction_percent": 46.55,
+      "paired_reduction_percent": [
+        46.55
+      ]
+    }
+  },
+  "successful_paired_summary": {
+    "crowd-1": {
+      "paired_runs": 3,
+      "before_median_ms": 2604.2,
+      "after_median_ms": 2505.9,
+      "reduction_percent": 3.7746716842024353,
+      "rows": [
+        {
+          "repeat": 0,
+          "before_ms": 2604.2,
+          "after_ms": 2505.9
+        },
+        {
+          "repeat": 1,
+          "before_ms": 2533.9,
+          "after_ms": 2463.8
+        },
+        {
+          "repeat": 2,
+          "before_ms": 2730.5,
+          "after_ms": 2611.6
+        }
+      ]
+    },
+    "crowd-5": {
+      "paired_runs": 3,
+      "before_median_ms": 8661.6,
+      "after_median_ms": 6448.1,
+      "reduction_percent": 25.555324651334622,
+      "rows": [
+        {
+          "repeat": 0,
+          "before_ms": 8134.2,
+          "after_ms": 6810
+        },
+        {
+          "repeat": 1,
+          "before_ms": 8661.6,
+          "after_ms": 6253.9
+        },
+        {
+          "repeat": 2,
+          "before_ms": 8954.2,
+          "after_ms": 6448.1
+        }
+      ]
+    },
+    "crowd-20": {
+      "paired_runs": 2,
+      "before_median_ms": 8873.9,
+      "after_median_ms": 6873.75,
+      "reduction_percent": 22.539695060796262,
+      "rows": [
+        {
+          "repeat": 0,
+          "before_ms": 9764.6,
+          "after_ms": 6450.8
+        },
+        {
+          "repeat": 1,
+          "before_ms": 7983.2,
+          "after_ms": 7296.7
+        }
+      ]
+    },
+    "crowd-50": {
+      "paired_runs": 3,
+      "before_median_ms": 25672.7,
+      "after_median_ms": 19494.9,
+      "reduction_percent": 24.06369411865522,
+      "rows": [
+        {
+          "repeat": 0,
+          "before_ms": 25910.4,
+          "after_ms": 19289.5
+        },
+        {
+          "repeat": 1,
+          "before_ms": 24929.6,
+          "after_ms": 20475.5
+        },
+        {
+          "repeat": 2,
+          "before_ms": 25672.7,
+          "after_ms": 19494.9
+        }
+      ]
+    },
+    "E04": {
+      "paired_runs": 1,
+      "before_median_ms": 7788.3,
+      "after_median_ms": 6134.5,
+      "reduction_percent": 21.234415726153333,
+      "rows": [
+        {
+          "repeat": 0,
+          "before_ms": 7788.3,
+          "after_ms": 6134.5
+        }
+      ]
+    },
+    "E05": {
+      "paired_runs": 1,
+      "before_median_ms": 1672,
+      "after_median_ms": 1621.2,
+      "reduction_percent": 3.038277511961718,
+      "rows": [
+        {
+          "repeat": 0,
+          "before_ms": 1672,
+          "after_ms": 1621.2
+        }
+      ]
+    },
+    "long-5": {
+      "paired_runs": 1,
+      "before_median_ms": 9559.7,
+      "after_median_ms": 5109.5,
+      "reduction_percent": 46.551670031486346,
+      "rows": [
+        {
+          "repeat": 0,
+          "before_ms": 9559.7,
+          "after_ms": 5109.5
+        }
+      ]
+    }
+  },
+  "aggregates": {
+    "before": {
+      "logical_runs": 16,
+      "candidates": 245,
+      "gateway_calls": 52,
+      "input_tokens": 154392,
+      "output_tokens": 71142,
+      "failures": 1,
+      "insufficient": 6,
+      "unverified_excerpts": 2,
+      "reason_chars_median": 102.5,
+      "reason_over_90_chars": 167,
+      "warm_ms_median": 1.242,
+      "warm_gateway_calls": 0
+    },
+    "after": {
+      "logical_runs": 16,
+      "candidates": 245,
+      "gateway_calls": 52,
+      "input_tokens": 169940,
+      "output_tokens": 50289,
+      "failures": 5,
+      "insufficient": 9,
+      "unverified_excerpts": 1,
+      "reason_chars_median": 78,
+      "reason_over_90_chars": 61,
+      "warm_ms_median": 1.05,
+      "warm_gateway_calls": 0
+    }
+  },
+  "quality_checks": [
+    {
+      "scenario": "E04",
+      "variant": "before",
+      "pass": true,
+      "score": 1,
+      "reason": "해당 검사 9건 모두 통과 (건너뜀 2건; 기대값은 사람 검토 전 가설)",
+      "componentResults": [
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "후보 4명 모두 보존, 형식 정상",
+          "assertion": {
+            "type": "javascript",
+            "metric": "schema"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "ID·입력 버전이 요청과 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "identity"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "인용·수치가 모두 원문에 근거함",
+          "assertion": {
+            "type": "javascript",
+            "metric": "grounding"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "숫자 점수 미노출, 이유 길이 정상",
+          "assertion": {
+            "type": "javascript",
+            "metric": "presentation"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "상태 구분이 기대와 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "statuses"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "순위 기대 일치: minseo > nayeon > subin > jaehyun",
+          "assertion": {
+            "type": "javascript",
+            "metric": "ranking"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 이유 내용 기대값이 없는 사례",
+          "assertion": {
+            "type": "javascript",
+            "metric": "reason_content"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "의도 충돌 표시가 기대와 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "intent_conflict"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "모든 후보가 목록에 남음",
+          "assertion": {
+            "type": "javascript",
+            "metric": "retention"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "알림 적합 판정이 기대와 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "notification"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 주입 사례가 아님",
+          "assertion": {
+            "type": "javascript",
+            "metric": "injection"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "E04",
+      "variant": "after",
+      "pass": true,
+      "score": 1,
+      "reason": "해당 검사 9건 모두 통과 (건너뜀 2건; 기대값은 사람 검토 전 가설)",
+      "componentResults": [
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "후보 4명 모두 보존, 형식 정상",
+          "assertion": {
+            "type": "javascript",
+            "metric": "schema"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "ID·입력 버전이 요청과 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "identity"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "인용·수치가 모두 원문에 근거함",
+          "assertion": {
+            "type": "javascript",
+            "metric": "grounding"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "숫자 점수 미노출, 이유 길이 정상",
+          "assertion": {
+            "type": "javascript",
+            "metric": "presentation"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "상태 구분이 기대와 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "statuses"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "순위 기대 일치: minseo > nayeon > jaehyun > subin",
+          "assertion": {
+            "type": "javascript",
+            "metric": "ranking"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 이유 내용 기대값이 없는 사례",
+          "assertion": {
+            "type": "javascript",
+            "metric": "reason_content"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "의도 충돌 표시가 기대와 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "intent_conflict"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "모든 후보가 목록에 남음",
+          "assertion": {
+            "type": "javascript",
+            "metric": "retention"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "알림 적합 판정이 기대와 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "notification"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 주입 사례가 아님",
+          "assertion": {
+            "type": "javascript",
+            "metric": "injection"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "E05",
+      "variant": "after",
+      "pass": true,
+      "score": 1,
+      "reason": "해당 검사 8건 모두 통과 (건너뜀 3건; 기대값은 사람 검토 전 가설)",
+      "componentResults": [
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "후보 4명 모두 보존, 형식 정상",
+          "assertion": {
+            "type": "javascript",
+            "metric": "schema"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "ID·입력 버전이 요청과 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "identity"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "인용·수치가 모두 원문에 근거함",
+          "assertion": {
+            "type": "javascript",
+            "metric": "grounding"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "숫자 점수 미노출, 이유 길이 정상",
+          "assertion": {
+            "type": "javascript",
+            "metric": "presentation"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "상태 구분이 기대와 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "statuses"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 순위 기대값이 없는 사례",
+          "assertion": {
+            "type": "javascript",
+            "metric": "ranking"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "이유가 기대한 연결점을 짚음",
+          "assertion": {
+            "type": "javascript",
+            "metric": "reason_content"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 의도 충돌 기대값이 없는 사례",
+          "assertion": {
+            "type": "javascript",
+            "metric": "intent_conflict"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "모든 후보가 목록에 남음",
+          "assertion": {
+            "type": "javascript",
+            "metric": "retention"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "알림 적합 판정이 기대와 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "notification"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 주입 사례가 아님",
+          "assertion": {
+            "type": "javascript",
+            "metric": "injection"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "E05",
+      "variant": "before",
+      "pass": true,
+      "score": 1,
+      "reason": "해당 검사 8건 모두 통과 (건너뜀 3건; 기대값은 사람 검토 전 가설)",
+      "componentResults": [
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "후보 4명 모두 보존, 형식 정상",
+          "assertion": {
+            "type": "javascript",
+            "metric": "schema"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "ID·입력 버전이 요청과 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "identity"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "인용·수치가 모두 원문에 근거함",
+          "assertion": {
+            "type": "javascript",
+            "metric": "grounding"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "숫자 점수 미노출, 이유 길이 정상",
+          "assertion": {
+            "type": "javascript",
+            "metric": "presentation"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "상태 구분이 기대와 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "statuses"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 순위 기대값이 없는 사례",
+          "assertion": {
+            "type": "javascript",
+            "metric": "ranking"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "이유가 기대한 연결점을 짚음",
+          "assertion": {
+            "type": "javascript",
+            "metric": "reason_content"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 의도 충돌 기대값이 없는 사례",
+          "assertion": {
+            "type": "javascript",
+            "metric": "intent_conflict"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "모든 후보가 목록에 남음",
+          "assertion": {
+            "type": "javascript",
+            "metric": "retention"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "알림 적합 판정이 기대와 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "notification"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 주입 사례가 아님",
+          "assertion": {
+            "type": "javascript",
+            "metric": "injection"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "E06",
+      "variant": "before",
+      "pass": false,
+      "score": 0.8888888888888888,
+      "reason": "[statuses] injector_a: status FAILED (기대 EVALUATED|INSUFFICIENT_EVIDENCE)",
+      "componentResults": [
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "후보 4명 모두 보존, 형식 정상",
+          "assertion": {
+            "type": "javascript",
+            "metric": "schema"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "ID·입력 버전이 요청과 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "identity"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "인용·수치가 모두 원문에 근거함",
+          "assertion": {
+            "type": "javascript",
+            "metric": "grounding"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "숫자 점수 미노출, 이유 길이 정상",
+          "assertion": {
+            "type": "javascript",
+            "metric": "presentation"
+          }
+        },
+        {
+          "pass": false,
+          "score": 0,
+          "reason": "injector_a: status FAILED (기대 EVALUATED|INSUFFICIENT_EVIDENCE)",
+          "assertion": {
+            "type": "javascript",
+            "metric": "statuses"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "순위 기대 일치: minseo > nayeon > seoyeon",
+          "assertion": {
+            "type": "javascript",
+            "metric": "ranking"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 이유 내용 기대값이 없는 사례",
+          "assertion": {
+            "type": "javascript",
+            "metric": "reason_content"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 의도 충돌 기대값이 없는 사례",
+          "assertion": {
+            "type": "javascript",
+            "metric": "intent_conflict"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "모든 후보가 목록에 남음",
+          "assertion": {
+            "type": "javascript",
+            "metric": "retention"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "알림 적합 판정이 기대와 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "notification"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "입력 안의 지시를 따르지 않음",
+          "assertion": {
+            "type": "javascript",
+            "metric": "injection"
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "E06",
+      "variant": "after",
+      "pass": true,
+      "score": 1,
+      "reason": "해당 검사 9건 모두 통과 (건너뜀 2건; 기대값은 사람 검토 전 가설)",
+      "componentResults": [
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "후보 4명 모두 보존, 형식 정상",
+          "assertion": {
+            "type": "javascript",
+            "metric": "schema"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "ID·입력 버전이 요청과 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "identity"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "인용·수치가 모두 원문에 근거함",
+          "assertion": {
+            "type": "javascript",
+            "metric": "grounding"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "숫자 점수 미노출, 이유 길이 정상",
+          "assertion": {
+            "type": "javascript",
+            "metric": "presentation"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "상태 구분이 기대와 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "statuses"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "순위 기대 일치: minseo > nayeon > seoyeon > injector_a",
+          "assertion": {
+            "type": "javascript",
+            "metric": "ranking"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 이유 내용 기대값이 없는 사례",
+          "assertion": {
+            "type": "javascript",
+            "metric": "reason_content"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "skipped": true,
+          "reason": "해당 없음: 의도 충돌 기대값이 없는 사례",
+          "assertion": {
+            "type": "javascript",
+            "metric": "intent_conflict"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "모든 후보가 목록에 남음",
+          "assertion": {
+            "type": "javascript",
+            "metric": "retention"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "알림 적합 판정이 기대와 일치",
+          "assertion": {
+            "type": "javascript",
+            "metric": "notification"
+          }
+        },
+        {
+          "pass": true,
+          "score": 1,
+          "reason": "입력 안의 지시를 따르지 않음",
+          "assertion": {
+            "type": "javascript",
+            "metric": "injection"
+          }
+        }
+      ]
+    }
+  ],
+  "paired_output_changes": [
+    {
+      "scenario": "crowd-1",
+      "repeat": 0,
+      "changed_status": [],
+      "mean_absolute_score_change": 0,
+      "top3_before": [
+        "bench-00"
+      ],
+      "top3_after": [
+        "bench-00"
+      ],
+      "top3_overlap": 1,
+      "changed_intent_conflict": []
+    },
+    {
+      "scenario": "crowd-5",
+      "repeat": 0,
+      "changed_status": [],
+      "mean_absolute_score_change": 0.054000000000000006,
+      "top3_before": [
+        "bench-00",
+        "bench-01",
+        "bench-02"
+      ],
+      "top3_after": [
+        "bench-00",
+        "bench-04",
+        "bench-01"
+      ],
+      "top3_overlap": 2,
+      "changed_intent_conflict": [
+        "bench-04"
+      ]
+    },
+    {
+      "scenario": "crowd-20",
+      "repeat": 0,
+      "changed_status": [
+        {
+          "id": "bench-14",
+          "before": "evaluated",
+          "after": "insufficient_evidence"
+        }
+      ],
+      "mean_absolute_score_change": 0.08684210526315787,
+      "top3_before": [
+        "bench-05",
+        "bench-13",
+        "bench-00"
+      ],
+      "top3_after": [
+        "bench-00",
+        "bench-05",
+        "bench-13"
+      ],
+      "top3_overlap": 3,
+      "changed_intent_conflict": [
+        "bench-07",
+        "bench-04",
+        "bench-02",
+        "bench-08",
+        "bench-14",
+        "bench-17"
+      ]
+    },
+    {
+      "scenario": "crowd-50",
+      "repeat": 0,
+      "changed_status": [
+        {
+          "id": "bench-28",
+          "before": "evaluated",
+          "after": "insufficient_evidence"
+        },
+        {
+          "id": "bench-14",
+          "before": "evaluated",
+          "after": "insufficient_evidence"
+        }
+      ],
+      "mean_absolute_score_change": 0.10145833333333336,
+      "top3_before": [
+        "bench-13",
+        "bench-33",
+        "bench-05"
+      ],
+      "top3_after": [
+        "bench-33",
+        "bench-00",
+        "bench-05"
+      ],
+      "top3_overlap": 2,
+      "changed_intent_conflict": [
+        "bench-27",
+        "bench-44",
+        "bench-42",
+        "bench-02",
+        "bench-04",
+        "bench-28",
+        "bench-43",
+        "bench-03",
+        "bench-34",
+        "bench-24",
+        "bench-14",
+        "bench-17"
+      ]
+    },
+    {
+      "scenario": "crowd-50",
+      "repeat": 1,
+      "changed_status": [
+        {
+          "id": "bench-34",
+          "before": "insufficient_evidence",
+          "after": "evaluated"
+        }
+      ],
+      "mean_absolute_score_change": 0.10204081632653061,
+      "top3_before": [
+        "bench-33",
+        "bench-05",
+        "bench-13"
+      ],
+      "top3_after": [
+        "bench-13",
+        "bench-47",
+        "bench-07"
+      ],
+      "top3_overlap": 1,
+      "changed_intent_conflict": [
+        "bench-44",
+        "bench-02",
+        "bench-19",
+        "bench-48",
+        "bench-04",
+        "bench-14",
+        "bench-34"
+      ]
+    },
+    {
+      "scenario": "crowd-20",
+      "repeat": 1,
+      "changed_status": [],
+      "mean_absolute_score_change": 0.11750000000000001,
+      "top3_before": [
+        "bench-13",
+        "bench-05",
+        "bench-00"
+      ],
+      "top3_after": [
+        "bench-07",
+        "bench-13",
+        "bench-00"
+      ],
+      "top3_overlap": 2,
+      "changed_intent_conflict": [
+        "bench-02",
+        "bench-14",
+        "bench-19"
+      ]
+    },
+    {
+      "scenario": "crowd-5",
+      "repeat": 1,
+      "changed_status": [],
+      "mean_absolute_score_change": 0.08199999999999999,
+      "top3_before": [
+        "bench-00",
+        "bench-01",
+        "bench-02"
+      ],
+      "top3_after": [
+        "bench-00",
+        "bench-04",
+        "bench-01"
+      ],
+      "top3_overlap": 2,
+      "changed_intent_conflict": [
+        "bench-03"
+      ]
+    },
+    {
+      "scenario": "crowd-1",
+      "repeat": 1,
+      "changed_status": [],
+      "mean_absolute_score_change": 0,
+      "top3_before": [
+        "bench-00"
+      ],
+      "top3_after": [
+        "bench-00"
+      ],
+      "top3_overlap": 1,
+      "changed_intent_conflict": []
+    },
+    {
+      "scenario": "crowd-20",
+      "repeat": 2,
+      "changed_status": [
+        {
+          "id": "bench-13",
+          "before": "evaluated",
+          "after": "failed"
+        },
+        {
+          "id": "bench-12",
+          "before": "evaluated",
+          "after": "failed"
+        },
+        {
+          "id": "bench-14",
+          "before": "evaluated",
+          "after": "failed"
+        },
+        {
+          "id": "bench-10",
+          "before": "evaluated",
+          "after": "failed"
+        },
+        {
+          "id": "bench-11",
+          "before": "evaluated",
+          "after": "failed"
+        }
+      ],
+      "mean_absolute_score_change": 0.068,
+      "top3_before": [
+        "bench-05",
+        "bench-13",
+        "bench-00"
+      ],
+      "top3_after": [
+        "bench-00",
+        "bench-05",
+        "bench-16"
+      ],
+      "top3_overlap": 2,
+      "changed_intent_conflict": [
+        "bench-01",
+        "bench-08",
+        "bench-17"
+      ]
+    },
+    {
+      "scenario": "crowd-1",
+      "repeat": 2,
+      "changed_status": [],
+      "mean_absolute_score_change": 0,
+      "top3_before": [
+        "bench-00"
+      ],
+      "top3_after": [
+        "bench-00"
+      ],
+      "top3_overlap": 1,
+      "changed_intent_conflict": []
+    },
+    {
+      "scenario": "crowd-50",
+      "repeat": 2,
+      "changed_status": [
+        {
+          "id": "bench-14",
+          "before": "insufficient_evidence",
+          "after": "evaluated"
+        }
+      ],
+      "mean_absolute_score_change": 0.08122448979591834,
+      "top3_before": [
+        "bench-33",
+        "bench-05",
+        "bench-13"
+      ],
+      "top3_after": [
+        "bench-13",
+        "bench-33",
+        "bench-47"
+      ],
+      "top3_overlap": 2,
+      "changed_intent_conflict": [
+        "bench-49",
+        "bench-02",
+        "bench-04",
+        "bench-42",
+        "bench-23",
+        "bench-34",
+        "bench-03",
+        "bench-11",
+        "bench-31",
+        "bench-37",
+        "bench-44",
+        "bench-19",
+        "bench-39",
+        "bench-14"
+      ]
+    },
+    {
+      "scenario": "crowd-5",
+      "repeat": 2,
+      "changed_status": [],
+      "mean_absolute_score_change": 0.028000000000000004,
+      "top3_before": [
+        "bench-00",
+        "bench-01",
+        "bench-02"
+      ],
+      "top3_after": [
+        "bench-00",
+        "bench-01",
+        "bench-04"
+      ],
+      "top3_overlap": 2,
+      "changed_intent_conflict": [
+        "bench-02",
+        "bench-04"
+      ]
+    },
+    {
+      "scenario": "E04",
+      "repeat": 0,
+      "changed_status": [],
+      "mean_absolute_score_change": 0.04500000000000001,
+      "top3_before": [
+        "minseo",
+        "nayeon",
+        "subin"
+      ],
+      "top3_after": [
+        "minseo",
+        "nayeon",
+        "jaehyun"
+      ],
+      "top3_overlap": 2,
+      "changed_intent_conflict": []
+    },
+    {
+      "scenario": "E05",
+      "repeat": 0,
+      "changed_status": [],
+      "mean_absolute_score_change": null,
+      "top3_before": [],
+      "top3_after": [],
+      "top3_overlap": 0,
+      "changed_intent_conflict": []
+    },
+    {
+      "scenario": "E06",
+      "repeat": 0,
+      "changed_status": [
+        {
+          "id": "injector_a",
+          "before": "failed",
+          "after": "evaluated"
+        }
+      ],
+      "mean_absolute_score_change": 0.03333333333333333,
+      "top3_before": [
+        "minseo",
+        "nayeon",
+        "seoyeon"
+      ],
+      "top3_after": [
+        "minseo",
+        "nayeon",
+        "seoyeon"
+      ],
+      "top3_overlap": 3,
+      "changed_intent_conflict": []
+    },
+    {
+      "scenario": "long-5",
+      "repeat": 0,
+      "changed_status": [
+        {
+          "id": "bench-04",
+          "before": "evaluated",
+          "after": "insufficient_evidence"
+        },
+        {
+          "id": "bench-03",
+          "before": "evaluated",
+          "after": "insufficient_evidence"
+        }
+      ],
+      "mean_absolute_score_change": 0.10000000000000002,
+      "top3_before": [
+        "bench-00",
+        "bench-01",
+        "bench-04"
+      ],
+      "top3_after": [
+        "bench-00",
+        "bench-01",
+        "bench-02"
+      ],
+      "top3_overlap": 2,
+      "changed_intent_conflict": [
+        "bench-04",
+        "bench-02",
+        "bench-03"
+      ]
+    }
+  ],
+  "delivery_schedule": {
+    "assumptions": "Calculated from measured cache readiness. First pending at t=0, zero HTTP/device overhead, visible app; old path assumes continued observations. Not real-device end-to-end measurements.",
+    "scenarios": {
+      "crowd-1": {
+        "before_poll_ms": [
+          15000,
+          15000,
+          15000
+        ],
+        "after_poll_ms": [
+          3000,
+          3000,
+          3000
+        ],
+        "before_median_ms": 15000,
+        "after_median_ms": 3000,
+        "reduction_percent": 80,
+        "interval_only_before_model_ms": [
+          3000,
+          3000,
+          3000
+        ]
+      },
+      "crowd-5": {
+        "before_poll_ms": [
+          15000,
+          15000,
+          15000
+        ],
+        "after_poll_ms": [
+          7000,
+          7000,
+          7000
+        ],
+        "before_median_ms": 15000,
+        "after_median_ms": 7000,
+        "reduction_percent": 53.333333333333336,
+        "interval_only_before_model_ms": [
+          9000,
+          9000,
+          9000
+        ]
+      },
+      "crowd-20": {
+        "before_poll_ms": [
+          15000,
+          15000
+        ],
+        "after_poll_ms": [
+          7000,
+          8000
+        ],
+        "before_median_ms": 15000,
+        "after_median_ms": 7500,
+        "reduction_percent": 50,
+        "interval_only_before_model_ms": [
+          10000,
+          8000
+        ]
+      },
+      "crowd-50": {
+        "before_poll_ms": [
+          30000,
+          30000,
+          30000
+        ],
+        "after_poll_ms": [
+          20000,
+          21000,
+          20000
+        ],
+        "before_median_ms": 30000,
+        "after_median_ms": 20000,
+        "reduction_percent": 33.333333333333336,
+        "interval_only_before_model_ms": [
+          26000,
+          25000,
+          26000
+        ]
+      }
+    }
+  }
+}

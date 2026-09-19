@@ -1,0 +1,151 @@
+{
+  "mode": "offline fault injection; no provider calls",
+  "probes": {
+    "profile_change_after_completed_job": {
+      "calls": 1,
+      "revised_statuses": {
+        "bench_00": {
+          "status": "pending",
+          "rank": 0
+        }
+      },
+      "lock_ttl": 45
+    },
+    "overlapping_candidate_sets": {
+      "calls": 2,
+      "dispatched": [
+        [
+          "bench_00"
+        ],
+        [
+          "bench_00",
+          "bench_01"
+        ]
+      ],
+      "per_candidate_calls": {
+        "bench_00": 2,
+        "bench_01": 1
+      }
+    },
+    "failed_evaluation_next_poll": {
+      "before": {
+        "bench_00": {
+          "status": "pending",
+          "rank": 0
+        }
+      },
+      "after": {
+        "bench_00": {
+          "status": "pending",
+          "rank": 0
+        }
+      },
+      "calls": 1
+    },
+    "slow_cache_on_list_path": {
+      "annotate_ms": 120.295,
+      "configured_ai_deadline_ms": 20
+    },
+    "shared_worker_queue": [
+      {
+        "viewers": 2,
+        "candidates_per_viewer": 19,
+        "assumed_batch_seconds": 9,
+        "deadline_seconds": 45,
+        "concurrency": 4,
+        "time_scale": 0.02,
+        "actual_mock_wall_ms": [
+          182.444,
+          364.89
+        ],
+        "equivalent_seconds": [
+          9.12,
+          18.24
+        ],
+        "dispatched_calls": 8,
+        "failed_candidates": 0,
+        "returned_candidates": 38
+      },
+      {
+        "viewers": 5,
+        "candidates_per_viewer": 19,
+        "assumed_batch_seconds": 9,
+        "deadline_seconds": 45,
+        "concurrency": 4,
+        "time_scale": 0.02,
+        "actual_mock_wall_ms": [
+          184.213,
+          365.844,
+          547.299,
+          728.811,
+          901.236
+        ],
+        "equivalent_seconds": [
+          9.21,
+          18.29,
+          27.36,
+          36.44,
+          45.06
+        ],
+        "dispatched_calls": 20,
+        "failed_candidates": 19,
+        "returned_candidates": 95
+      },
+      {
+        "viewers": 20,
+        "candidates_per_viewer": 19,
+        "assumed_batch_seconds": 9,
+        "deadline_seconds": 45,
+        "concurrency": 4,
+        "time_scale": 0.02,
+        "actual_mock_wall_ms": [
+          186.356,
+          368.196,
+          549.959,
+          732.367,
+          910.616,
+          910.866,
+          911.093,
+          911.152,
+          911.184,
+          911.289,
+          911.354,
+          911.415,
+          911.66,
+          911.642,
+          911.604,
+          911.533,
+          911.461,
+          910.806,
+          910.801,
+          910.832
+        ],
+        "equivalent_seconds": [
+          9.32,
+          18.41,
+          27.5,
+          36.62,
+          45.53,
+          45.54,
+          45.55,
+          45.56,
+          45.56,
+          45.56,
+          45.57,
+          45.57,
+          45.58,
+          45.58,
+          45.58,
+          45.58,
+          45.57,
+          45.54,
+          45.54,
+          45.54
+        ],
+        "dispatched_calls": 24,
+        "failed_candidates": 304,
+        "returned_candidates": 380
+      }
+    ]
+  }
+}

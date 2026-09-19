@@ -37,14 +37,16 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import hashlib
 import logging
 import math
 from typing import Any, NamedTuple
+from uuid import uuid4
 
 from app.ai import (
     AISettings,
+    CandidateRecommendation,
     EvaluationStatus,
+    FailureCode,
     ParticipantProfile,
     RecommendationCache,
     RecommendationRequest,
@@ -60,9 +62,8 @@ UNAVAILABLE: dict[str, Any] = {"status": "unavailable"}
 # interchangeable: 'unscored' means the evaluation ran and found no specific
 # connection, which is not a failure and not a low score.
 #
-# 'failed' is here for completeness rather than because a read produces it: the
-# service does not cache FAILED entries, so a provider error reads back as a
-# miss and is retried on the next poll instead of sticking to the pair.
+# The bridge caches failures briefly to prevent a fast refresh from creating a
+# retry storm. The AI service itself still only caches successful evaluations.
 _PUBLIC_STATUS = {
     EvaluationStatus.EVALUATED: "ready",
     EvaluationStatus.INSUFFICIENT_EVIDENCE: "unscored",
@@ -109,18 +110,20 @@ def _ranked(entries: list[_Entry]) -> dict[str, dict[str, Any]]:
     return public
 
 
-def job_key(
-    viewer_id: str, inference_digest: str, candidates: tuple[ParticipantProfile, ...]
-) -> str:
-    """Identity of one background evaluation batch.
+def job_key(viewer: ParticipantProfile, inference_digest: str, candidate: ParticipantProfile) -> str:
+    """One directed input snapshot, shared by overlapping batches and workers."""
+    return build_cache_key(
+        namespace="ai:job:v2", viewer=viewer, candidate=candidate,
+        inference_digest=inference_digest,
+    )
 
-    hashlib, not ``hash()``: Python salts string hashing per process, so a key
-    built from it would differ in every worker and the lock would only ever
-    deduplicate against itself - which is what a plain local set does.
-    """
-    names = ",".join(sorted(candidate.user_id for candidate in candidates))
-    batch = hashlib.blake2b(names.encode("utf-8"), digest_size=8).hexdigest()
-    return f"ai:job:{viewer_id}:{inference_digest}:{batch}"
+
+_RELEASE_JOB = """
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+    return redis.call('DEL', KEYS[1])
+end
+return 0
+"""
 
 
 def _profile(user_id: str, profile: dict[str, str], revision: int) -> ParticipantProfile:
@@ -154,6 +157,7 @@ class Recommendations:
         self._store = store
         self._notice_ttl = notice_ttl
         self._tasks: set[asyncio.Task[None]] = set()
+        self._inflight: set[str] = set()
 
     @property
     def enabled(self) -> bool:
@@ -244,18 +248,51 @@ class Recommendations:
 
     async def _evaluate(self, viewer: ParticipantProfile, candidates: tuple[ParticipantProfile, ...]) -> None:
         """Populate the cache. Runs off the request path; failures only log."""
-        if not await self._claim(viewer, candidates):
-            return
+        leases: dict[str, str] = {}
         try:
+            claimed = await asyncio.gather(*(
+                self._claim(viewer, candidate, leases) for candidate in candidates
+            ))
+            selected = tuple(candidate for candidate, owned in zip(candidates, claimed, strict=True) if owned)
+            if not selected:
+                return
             result = await self._service.recommend(
-                RecommendationRequest(viewer=viewer, candidates=candidates)
+                RecommendationRequest(viewer=viewer, candidates=selected)
             )
+            # Refreshes may arrive every second. Failures are visible and get a
+            # short cooldown instead of repeatedly spending tokens on the pair.
+            for entry in result.recommendations:
+                if entry.status == EvaluationStatus.FAILED:
+                    await self._cache_failure(viewer, next(c for c in selected if c.user_id == entry.candidate_user_id), entry)
+            try:
+                await self._notify(viewer, result)
+            except Exception as error:  # noqa: BLE001 - notices cannot invalidate results
+                logger.warning("recommendation notice failed: %s", error)
         except asyncio.CancelledError:
             raise
         except Exception as error:  # noqa: BLE001 - a failed evaluation is not a failed request
             logger.warning("background recommendation failed: %s", error)
-            return
-        await self._notify(viewer, result)
+            for candidate in candidates:
+                if job_key(viewer, self._service.inference_digest, candidate) in leases:
+                    await self._cache_failure(viewer, candidate)
+        finally:
+            await self._release(leases)
+
+    async def _cache_failure(self, viewer, candidate, entry=None) -> None:
+        entry = entry or CandidateRecommendation(
+            candidate_user_id=candidate.user_id, status=EvaluationStatus.FAILED,
+            rank=0, failure_code=FailureCode.GATEWAY_NETWORK_ERROR,
+            viewer_profile_revision=viewer.profile_revision,
+            candidate_profile_revision=candidate.profile_revision,
+        )
+        key = build_cache_key(
+            namespace=self._settings.cache_namespace, viewer=viewer, candidate=candidate,
+            inference_digest=self._service.inference_digest,
+        )
+        try:
+            await self._cache.set(key, entry, 15)
+        except Exception as error:  # noqa: BLE001
+            logger.warning("recommendation failure cache unavailable: %s", error)
 
     async def _notify(self, viewer: ParticipantProfile, result) -> None:
         """Push about the candidates the policy judged worth interrupting for.
@@ -266,44 +303,63 @@ class Recommendations:
         """
         if self._push is None or not self._push.enabled or self._store is None:
             return
+        current = await self._store.get_user(viewer.user_id)
+        if (current.get("discovery_enabled") != "1"
+                or self._store.revision_of(current) != viewer.profile_revision):
+            return
+        visible = {
+            row["user_id"]: row for row in await self._store.observed_snapshots(
+                viewer.user_id, list(result.notification_candidate_ids)
+            )
+        }
         for candidate_id in result.notification_candidate_ids:
             try:
-                user = await self._store.get_user(candidate_id)
-                profile = self._store.profile_of(user)
-                if profile is None or user.get("discovery_enabled") != "1":
-                    # They turned discovery off, or cleared their profile, between
-                    # the evaluation starting and it finishing.
+                row = visible.get(candidate_id)
+                entry = result.by_candidate_id(candidate_id)
+                if row is None or row["profile_revision"] != entry.candidate_profile_revision:
                     continue
                 key = f"push:told:{viewer.user_id}:{candidate_id}"
                 if not await self._push.claim_once(key, self._notice_ttl):
                     continue
                 self._push.recommendation(
-                    self._store, viewer.user_id, candidate_id, profile["nickname"]
+                    self._store, viewer.user_id, candidate_id, row["profile"]["nickname"]
                 )
             except asyncio.CancelledError:
                 raise
             except Exception as error:  # noqa: BLE001
                 logger.warning("recommendation notice failed: %s", error)
 
-    async def _claim(self, viewer: ParticipantProfile, candidates: tuple[ParticipantProfile, ...]) -> bool:
-        """Take a short lock so repeated polls do not pay for the same batch twice.
-
-        A client polls every 15s and an evaluation takes seconds, so without this
-        the second poll starts a duplicate of work already in flight. Failing to
-        reach Redis means we evaluate anyway: a duplicate call costs tokens, a
-        skipped one leaves the list stuck on 'pending'.
-        """
+    async def _claim(self, viewer: ParticipantProfile, candidate: ParticipantProfile, leases: dict[str, str]) -> bool:
+        """Claim a pair, including revisions, before waiting for the model."""
+        key = job_key(viewer, self._service.inference_digest, candidate)
+        if key in self._inflight:
+            return False
+        self._inflight.add(key)
+        token = leases[key] = uuid4().hex
         if self._redis is None:
             return True
-        key = job_key(viewer.user_id, self._service.inference_digest, candidates)
-        # ``total_timeout_seconds`` is a float and Redis only accepts whole
-        # seconds; rounded up so the lock outlives the evaluation it guards.
-        ttl = math.ceil(self._settings.total_timeout_seconds)
+        ttl = math.ceil(self._settings.total_timeout_seconds) + 5
         try:
-            return bool(await self._redis.set(key, "1", nx=True, ex=ttl))
+            if await self._redis.set(key, token, nx=True, ex=ttl):
+                return True
+            leases.pop(key, None)
+            self._inflight.discard(key)
+            return False
         except Exception as error:  # noqa: BLE001
             logger.warning("recommendation job lock unavailable: %s", error)
             return True
+
+    async def _release(self, leases: dict[str, str]) -> None:
+        async def release(key, token):
+            try:
+                if self._redis is not None:
+                    # An expired lease may already belong to another worker.
+                    await self._redis.eval(_RELEASE_JOB, 1, key, token)
+            except Exception as error:  # noqa: BLE001
+                logger.warning("recommendation job release unavailable: %s", error)
+            finally:
+                self._inflight.discard(key)
+        await asyncio.gather(*(release(key, token) for key, token in leases.items()))
 
 
 def build_recommendations(
