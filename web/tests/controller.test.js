@@ -162,3 +162,41 @@ test('double joins are locked and manually retrying recommendation respects cool
   assert.equal(refreshCalls, 1);
   assert.ok(controller.getState().retryAt > Date.now());
 });
+
+test('a stale /me response cannot undo a completed participation stop', async (t) => {
+  const slow = deferred();
+  let hold = false, requested = false;
+  const { controller, me } = await setup(t, (api) => ({ ...api,
+    getMe: (...args) => hold ? (requested = true, slow.promise) : api.getMe(...args),
+  }));
+  await until(() => !controller.getState().peopleLoading);
+  hold = true;
+  void controller.refreshAll();
+  await until(() => requested);
+  await controller.mutate('stop');
+  hold = false;
+  slow.resolve(me);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(controller.getState().me.participation_status, 'stopped');
+});
+
+test('send response does not skip an unseen peer message before its sequence', async (t) => {
+  let deliver = true;
+  const { controller, api, me, storage } = await setup(t, (api) => ({ ...api,
+    subscribe: (code, callback, onError) => api.subscribe(code, (event) => { if (deliver) callback(event); }, onError),
+  }));
+  await until(() => !controller.getState().peopleLoading);
+  await api.sendMessage('KOSS26', { recipient_id: 'minseo', client_message_id: 'initial', text: 'first' });
+  controller.navigate('chat', 'minseo');
+  await until(() => controller.getState().historyCursor === 1);
+  deliver = false;
+  const room = JSON.parse(storage.getItem('bside:demo:v2:room:KOSS26'));
+  const conversation = Object.values(room.conversations)[0];
+  conversation.messages.push({ id: 'incoming-2', seq: 2, conversation_id: conversation.id, sender_id: 'minseo', client_message_id: 'peer-request', text: '상대가 보낸 메시지', created_at: new Date().toISOString() });
+  storage.setItem('bside:demo:v2:room:KOSS26', JSON.stringify(room));
+  await controller.send('my third');
+  await until(() => controller.getState().historyCursor === 3);
+  assert.deepEqual(controller.getState().messages.map((m) => m.seq), [1, 2, 3]);
+  assert.equal(controller.getState().messages[1].sender_id, 'minseo');
+  assert.equal(controller.getState().messages[2].sender_id, me.id);
+});

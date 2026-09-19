@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { useRoom } from '../use-room.js';
+import { useCountdown } from '../lib/use-countdown.js';
 
 export function PageHeader({ title, eyebrow, onBack, action }) {
   return <header className="page-header">
@@ -26,12 +26,6 @@ export function Navigation() {
 }
 export function RecommendationRetry() {
   const { state, actions } = useRoom();
-  const [time, setTime] = useState(Date.now);
-  useEffect(() => {
-    if (state.retryAt <= Date.now()) return;
-    const timer = setInterval(() => setTime(Date.now()), 500);
-    return () => clearInterval(timer);
-  }, [state.retryAt]);
-  const remaining = Math.max(0, Math.ceil((state.retryAt - time) / 1000));
+  const remaining = useCountdown(state.retryAt);
   return <button className="text-button" disabled={remaining > 0} onClick={actions.retryRecommendations}>{remaining ? `${remaining}초 후 다시 시도` : '추천 다시 받기'}</button>;
 }

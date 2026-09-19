@@ -44,6 +44,10 @@ export function createRoomController({ api, code, route = () => ({ view: 'people
     for (const request of requests.values()) request.controller.abort();
     requests.clear();
   }
+  function cancelScope(scope) {
+    requests.get(scope)?.controller.abort();
+    requests.delete(scope);
+  }
   function disconnect() {
     unsubscribeEvents?.(); unsubscribeEvents = null;
     clearTimeout(fallbackTimer); clearInterval(refreshTimer);
@@ -264,6 +268,9 @@ export function createRoomController({ api, code, route = () => ({ view: 'people
       if (kind === 'updateMe') return api.updateMe(code, payload, options);
       return api[kind](code, options);
     }, (me) => {
+      // A pre-mutation /me response can have the same profile version but an old
+      // participation status. Do not let it undo a completed stop or resume.
+      cancelScope('me');
       applyMe(me); patch({ busy: null, recommendations: null, recommendationState: 'pending' });
       outcome = { ok: true };
       if (kind === 'join') { navigate('people'); connect(); }
@@ -288,7 +295,7 @@ export function createRoomController({ api, code, route = () => ({ view: 'people
     const peerId = state.targetId;
     if (!peerId || !open() || state.view !== 'chat') return;
     const previous = state.outbox[peerId];
-    if (previous?.status === 'sending') return;
+    if (previous?.status === 'sending' || (previous?.retryAt ?? 0) > now()) return;
     const entry = retry && previous ? { ...previous, status: 'sending', error: null }
       : { client_message_id: globalThis.crypto.randomUUID(), recipient_id: peerId, text: text.trim(), status: 'sending', error: null };
     if (!entry.text) return;
@@ -306,7 +313,7 @@ export function createRoomController({ api, code, route = () => ({ view: 'people
       }
       void refreshAll();
     }, (error) => {
-      patch({ outbox: { ...state.outbox, [peerId]: { ...entry, status: 'failed', error } } });
+      patch({ outbox: { ...state.outbox, [peerId]: { ...entry, status: 'failed', error, retryAt: now() + (error.retryAfter || 0) * 1000 } } });
       if (error.code === 'PARTICIPATION_STOPPED') void refreshAll();
     });
   }
