@@ -5,8 +5,17 @@ import { createCredentialStore } from '../lib/credentials.js';
 export const isDemo = import.meta.env.VITE_USE_MOCK === '1'
   || ((import.meta.env.DEV || import.meta.env.MODE === 'demo') && import.meta.env.VITE_USE_MOCK !== '0');
 
+// Development only: drive the real server from a browser, with two tabs standing in
+// for two phones. Never enabled in a production build.
+const devRadio = import.meta.env.DEV && import.meta.env.VITE_DEV_RADIO === '1' && !isDemo;
+// Each tab needs its own installation, so ?device= picks the credential slot.
+const slot = devRadio ? (new URLSearchParams(globalThis.location?.search).get('device') || 'a') : null;
+
 const capacitor = createNativeBridge();
-export const credentials = createCredentialStore({ native: capacitor });
+export const credentials = createCredentialStore({
+  native: capacitor,
+  ...(slot ? { prefix: `bside:dev:${slot}:` } : {}),
+});
 
 let api, native;
 if (isDemo) {
@@ -16,6 +25,11 @@ if (isDemo) {
 } else {
   const { createClient } = await import('./client.js');
   api = createClient({ base: import.meta.env.VITE_API_BASE ?? '', credentials });
-  native = capacitor;
+  if (devRadio) {
+    const { createDevRadio } = await import('./dev-radio.js');
+    native = createDevRadio({ client: api });
+  } else {
+    native = capacitor;
+  }
 }
 export { api, native };
