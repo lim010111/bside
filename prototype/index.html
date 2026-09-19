@@ -34,6 +34,8 @@ input,textarea{font-family:inherit;letter-spacing:inherit}
 .t-md{font-size:14px;font-weight:400;line-height:1.5}
 .t-sm{font-size:12px;font-weight:400;line-height:1.4}
 .t-num{font-size:22px;font-weight:600;line-height:1.2}
+/* 한 줄이 이 제품의 본문이다. 이름보다 크게 둔다 */
+.t-body{font-size:15px;font-weight:400;line-height:1.55}
 .dim{color:var(--text-dim)} .faint{color:var(--text-faint)}
 
 /* ── controls ── */
@@ -88,14 +90,26 @@ svg.ic.lg{width:22px;height:22px}
 .stats{font-size:12px;color:var(--text-dim);line-height:1.5}
 .mine{border:1px solid var(--c);background:color-mix(in srgb,var(--c) 7%,var(--surface))}
 .person{width:100%;text-align:left;background:var(--surface);border-radius:var(--r-card);
-  padding:13px 14px;display:block;transition:background .15s ease-out}
+  padding:13px 14px;display:block;transition:background .15s ease-out;
+  position:relative;overflow:hidden}
 .person:active{background:var(--surface-hi)}
+/* 가까운 사람이 한 단계 밝다. 색이 아니라 밝기로 가른다 */
+.person.near{background:var(--surface-hi)}
+.person.near:active{background:#34343F}
+/* 남은 시간이 카드 밑 실선 길이로 남는다. 다섯 장이 전부 다른 길이가 된다 */
+.life{position:absolute;left:0;bottom:0;height:2px;opacity:.5;
+  background:var(--c,var(--text-faint))}
+.person.near .life{opacity:.8}
+/* 방 구성을 색 띠 하나로. 목록을 읽기 전에 분위기가 먼저 잡힌다 */
+.compo{display:flex;gap:2px;height:4px;margin-bottom:9px}
+.compo i{background:var(--c);border-radius:2px;opacity:.9}
+.glabel{font-size:12px;color:var(--text-faint);margin:0;padding:7px 2px 0}
+.fresh{display:inline-block;margin-left:8px;color:var(--sharing)}
+.glabel:first-child{padding-top:0}
 
 /* signature: 만료가 가까울수록 바랜다 */
 .fade{transition:opacity 1.2s linear}
 
-#joinBar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:420px;
-  padding:16px 16px 20px;background:linear-gradient(to top,var(--bg) 66%,transparent);z-index:10}
 .empty{text-align:center;padding:52px 20px}
 .empty .ic{width:30px;height:30px;color:var(--text-faint);margin-bottom:14px}
 
@@ -175,30 +189,23 @@ svg.ic.lg{width:22px;height:22px}
 <div id="app">
 
 <!-- S1 방 미리보기 : QR 찍으면 바로 여기 -->
-<section class="screen on" id="s1">
-  <header style="padding:18px 0 12px">
-    <div class="row" style="justify-content:space-between">
-      <span class="t-sm faint" style="font-weight:500;letter-spacing:-.02em">Bside</span>
+<!-- S2 입장 : 한 줄을 올려야 방이 열린다. 미리보기는 없다 -->
+<section class="screen on" id="s2">
+  <header style="padding:16px 0 12px">
+    <div class="row" style="justify-content:space-between;min-height:22px">
+      <button id="s2back" onclick="go('s3')" class="row"
+        style="display:none;gap:4px;font-size:12px;color:var(--text-dim)">
+        <svg class="ic" style="width:14px;height:14px"><use href="#i-back"/></svg>방으로</button>
+      <span class="t-sm faint" id="s2brand"
+        style="font-weight:500;letter-spacing:-.02em">Bside</span>
       <span class="t-sm faint" id="pvWhen"></span>
     </div>
     <h1 class="t-xl" style="margin:10px 0 0" id="pvTitle"></h1>
     <p class="t-sm dim" style="margin:5px 0 0" id="pvCount"></p>
   </header>
-  <div class="stats" id="pvStats" style="margin-bottom:14px"></div>
-  <div id="pvList" style="display:flex;flex-direction:column;gap:8px"></div>
-  <div style="height:84px"></div>
-  <div id="joinBar">
-    <button class="btn" onclick="openJoin()">나도 상태 달기</button>
-  </div>
-</section>
-
-<!-- S2 참여 : 한 화면에서 끝낸다 -->
-<section class="screen" id="s2">
-  <header class="row" style="padding:16px 0 10px;gap:10px">
-    <button onclick="go('s1')" aria-label="뒤로" style="width:32px;height:44px;display:flex;align-items:center">
-      <svg class="ic lg"><use href="#i-back"/></svg></button>
-    <h1 class="t-lg" style="margin:0">상태 달기</h1>
-  </header>
+  <div class="stats" id="pvStats"></div>
+  <p class="t-sm faint" id="gate" style="margin:10px 0 0;line-height:1.55"></p>
+  <div style="border-top:1px solid var(--border);margin:16px 0 2px"></div>
 
   <div class="row" style="gap:8px;align-items:flex-start">
     <div class="grow">
@@ -352,12 +359,12 @@ const ROOMS = {
   KOSS26: {
     title:'코쓱톤 네트워킹', when:'국민대 미래관 4층 · 오늘 18:00까지',
     aff:{ label:'소속', options:['국민대','숭실대','순천향대'], placeholder:'직접 입력' },
-    set:'HACKATHON'
+    set:'HACKATHON', seed:()=>SEED_HACK
   },
   FEMEETUP: {
     title:'서울 프론트엔드 밋업', when:'성수 코워킹 · 오늘 21:00까지',
     aff:{ label:'회사', options:null, placeholder:'예: 토스, 프리랜서, 취준' },
-    set:'MEETUP'
+    set:'MEETUP', seed:()=>SEED_MEET
   }
 };
 let ROOM = ROOMS.KOSS26;
@@ -377,18 +384,156 @@ const SL = Object.fromEntries(STATUSES.map(s=>[s.k,s.label]));
 const SI = Object.fromEntries(STATUSES.map(s=>[s.k,s.icon]));
 
 // 구체적인 한 줄. 뭉뚱그린 말은 가짜처럼 보인다.
-const SEED = [
-  {id:'minseo', name:'민서',  school:'순천향대', st:'CAN_SHARE',
-   note:'작년에 도커로 CI 파이프라인 구축해봤어요', near:true,  age:40},
-  {id:'yerin',  name:'예린',  school:'숭실대',   st:'CAN_SHARE',
-   note:'React 상태관리로 삽질 오래 했어요. 물어보셔도 돼요', near:true, age:95},
-  {id:'taehyun',name:'태현',  school:'숭실대',   st:'FIRST_TIME',
-   note:'혼자 왔어요. 기획하다가 백엔드가 궁금해졌어요', near:false, age:150},
-  {id:'sua',    name:'수아',  school:'국민대',   st:'LOOKING_FOR',
-   note:'디자인 시스템 토큰 잡아보신 분 계실까요', near:false, age:205},
-  {id:'junho',  name:'준호',  school:'순천향대', st:'OPEN',
-   note:'커피 들고 서 있어요. 아무나 오세요', near:false, age:262},
+// 방은 명단이 아니라 군중이다. 한 화면에 다 안 들어와야 AI가 골라줄 이유가 생긴다.
+const SEED_HACK = [
+  {id:'minseo', name:'민서', school:'순천향대', st:'CAN_SHARE',
+   note:'작년에 도커로 CI 파이프라인 구축해봤어요', near:true, age:40},
+  {id:'yerin', name:'예린', school:'숭실대', st:'CAN_SHARE',
+   note:'React 상태관리로 삽질 오래 했어요. 물어보셔도 돼요', near:true, age:56},
+  {id:'taehyun', name:'태현', school:'숭실대', st:'FIRST_TIME',
+   note:'혼자 왔어요. 기획하다가 백엔드가 궁금해졌어요', near:false, age:93},
+  {id:'sua', name:'수아', school:'국민대', st:'LOOKING_FOR',
+   note:'디자인 시스템 토큰 잡아보신 분 계실까요', near:false, age:130},
+  {id:'junho', name:'준호', school:'순천향대', st:'OPEN',
+   note:'커피 들고 서 있어요. 아무나 오세요', near:false, age:167},
+  {id:'p5', name:'지훈', school:'국민대', st:'LOOKING_FOR',
+   note:'백엔드 한 분만 더 필요해요. 팀 아직 3명이에요', near:true, age:204},
+  {id:'p6', name:'하윤', school:'숭실대', st:'CAN_SHARE',
+   note:'작년에 이 대회 나갔어요. 심사 분위기 궁금하면 물어보세요', near:false, age:241},
+  {id:'p7', name:'서연', school:'국민대', st:'FIRST_TIME',
+   note:'해커톤 처음이라 뭐부터 해야 할지 모르겠어요', near:false, age:278},
+  {id:'p8', name:'도윤', school:'순천향대', st:'OPEN',
+   note:'밥 같이 드실 분', near:false, age:33},
+  {id:'p9', name:'지우', school:'숭실대', st:'LOOKING_FOR',
+   note:'피그마 프로토타입까지 해보신 분 있나요', near:false, age:70},
+  {id:'p10', name:'은채', school:'국민대', st:'CAN_SHARE',
+   note:'피그마 오토레이아웃은 좀 합니다', near:true, age:107},
+  {id:'p11', name:'시우', school:'순천향대', st:'FIRST_TIME',
+   note:'1학년이고 아직 할 줄 아는 게 별로 없어요. 구경하러 왔어요', near:false, age:144},
+  {id:'p12', name:'나연', school:'숭실대', st:'CAN_SHARE',
+   note:'AWS 프리티어로 배포까지 해봤어요', near:false, age:181},
+  {id:'p13', name:'건우', school:'국민대', st:'LOOKING_FOR',
+   note:'안드로이드 빌드 에러 같이 봐주실 분', near:false, age:218},
+  {id:'p14', name:'유진', school:'순천향대', st:'OPEN',
+   note:'자판기 앞에 있어요', near:false, age:255},
+  {id:'p15', name:'채원', school:'숭실대', st:'CAN_SHARE',
+   note:'발표 많이 해봤어요. 대본 봐드릴 수 있어요', near:true, age:10},
+  {id:'p16', name:'현우', school:'국민대', st:'LOOKING_FOR',
+   note:'소켓 통신 해보신 분 5분만 시간 내주실 수 있나요', near:false, age:47},
+  {id:'p17', name:'다은', school:'순천향대', st:'FIRST_TIME',
+   note:'팀 없이 왔는데 괜찮을까요', near:false, age:84},
+  {id:'p18', name:'정민', school:'숭실대', st:'CAN_SHARE',
+   note:'타입스크립트 제네릭 헷갈리시면 오세요', near:false, age:121},
+  {id:'p19', name:'소율', school:'국민대', st:'OPEN',
+   note:'아무 얘기나 좋아요. 코딩 얘기 아니어도 됩니다', near:false, age:158},
+  {id:'p20', name:'재현', school:'순천향대', st:'LOOKING_FOR',
+   note:'Firebase 인증 붙이다 막혔어요. 해보신 분', near:true, age:195},
+  {id:'p21', name:'윤서', school:'숭실대', st:'CAN_SHARE',
+   note:'앱 스토어 심사 두 번 통과시켜봤습니다', near:false, age:232},
+  {id:'p22', name:'승현', school:'국민대', st:'FIRST_TIME',
+   note:'학교에서 혼자 와서 아는 사람이 없네요', near:false, age:269},
+  {id:'p23', name:'가은', school:'순천향대', st:'CAN_SHARE',
+   note:'파이썬으로 크롤링 많이 해봤어요', near:false, age:24},
+  {id:'p24', name:'준서', school:'숭실대', st:'LOOKING_FOR',
+   note:'발표 자료 만들어주실 분 급하게 찾습니다', near:false, age:61},
+  {id:'p25', name:'하은', school:'국민대', st:'OPEN',
+   note:'노트북 충전 중이라 30분 묶여 있어요. 심심해요', near:true, age:98},
+  {id:'p26', name:'민재', school:'순천향대', st:'CAN_SHARE',
+   note:'PM 인턴 했었어요. 기획서 봐드릴게요', near:false, age:135},
+  {id:'p27', name:'서윤', school:'숭실대', st:'FIRST_TIME',
+   note:'디자인 전공인데 개발 쪽 어떻게 굴러가는지 보고 싶어요', near:false, age:172},
+  {id:'p28', name:'지호', school:'국민대', st:'LOOKING_FOR',
+   note:'지도 API 써보신 분 계신가요. 카카오든 네이버든', near:false, age:209},
+  {id:'p29', name:'예준', school:'순천향대', st:'CAN_SHARE',
+   note:'웹소켓이랑 SSE 둘 다 써봤어요. 차이 설명해드릴 수 있어요', near:false, age:246},
+  {id:'p30', name:'수빈', school:'숭실대', st:'OPEN',
+   note:'야식 뭐 시킬지 고민 중인데 같이 정하실 분', near:true, age:283},
+  {id:'p31', name:'동현', school:'국민대', st:'LOOKING_FOR',
+   note:'OAuth 리다이렉트에서 계속 막힙니다', near:false, age:38},
+  {id:'p32', name:'아름', school:'순천향대', st:'FIRST_TIME',
+   note:'비전공자예요. 코딩은 부트캠프에서 조금 배웠어요', near:false, age:75},
+  {id:'p33', name:'성민', school:'숭실대', st:'CAN_SHARE',
+   note:'일러스트 그릴 줄 알아요. 아이콘 필요하시면', near:false, age:112},
+  {id:'p34', name:'혜원', school:'국민대', st:'OPEN',
+   note:'4층 창가에 있어요. 조용해요', near:false, age:149},
+  {id:'p35', name:'영진', school:'순천향대', st:'LOOKING_FOR',
+   note:'팀원 구해요. 기획 둘에 개발 하나라 개발자가 급해요', near:true, age:186},
+  {id:'p36', name:'지민', school:'숭실대', st:'CAN_SHARE',
+   note:'깃 충돌 나면 불러주세요. 그건 자신 있어요', near:false, age:223},
+  {id:'p37', name:'우진', school:'국민대', st:'FIRST_TIME',
+   note:'편입생이라 아는 사람이 아예 없어요', near:false, age:260},
+  {id:'p38', name:'보람', school:'순천향대', st:'CAN_SHARE',
+   note:'논문 쪽 관심 있으면 얘기해요. NLP 랩 있었어요', near:false, age:15},
+  {id:'p39', name:'태윤', school:'숭실대', st:'LOOKING_FOR',
+   note:'테스트 코드 어떻게 짜야 할지 감이 안 와요', near:false, age:52},
+  {id:'p40', name:'세연', school:'국민대', st:'OPEN',
+   note:'담배 피우러 나갈 건데 같이 가실 분', near:true, age:89},
+  {id:'p41', name:'규민', school:'순천향대', st:'FIRST_TIME',
+   note:'작년에 신청했다가 못 왔어요. 올해가 처음이에요', near:false, age:126},
+  {id:'p42', name:'하영', school:'숭실대', st:'CAN_SHARE',
+   note:'디자인 툴은 웬만한 거 다 써봤어요', near:false, age:163},
+  {id:'p43', name:'진우', school:'국민대', st:'LOOKING_FOR',
+   note:'발표 대본 같이 봐주실 분 있을까요', near:false, age:200},
+  {id:'p44', name:'예은', school:'순천향대', st:'FIRST_TIME',
+   note:'3학년인데 이런 거 한 번도 안 해봤어요', near:false, age:237},
 ];
+
+// 같은 코드가 다른 행사를 돌린다. 밋업은 소속이 학교가 아니라 회사다.
+const SEED_MEET = [
+  {id:'minseo', name:'민서', school:'4년차', st:'CAN_SHARE',
+   note:'디자인 시스템 2년째 운영 중이에요. 삽질 얘기 해드릴게요', near:true, age:40},
+  {id:'yerin', name:'예린', school:'프리랜서', st:'CAN_SHARE',
+   note:'웹뷰랑 네이티브 브릿지 많이 짜봤어요', near:true, age:56},
+  {id:'taehyun', name:'태현', school:'부트캠프 수료', st:'FIRST_TIME',
+   note:'부트캠프 막 수료했어요. 현업 얘기 듣고 싶어요', near:false, age:93},
+  {id:'sua', name:'수아', school:'3년차', st:'LOOKING_FOR',
+   note:'사내 디자인 시스템 운영하시는 분 얘기 듣고 싶어요', near:false, age:130},
+  {id:'junho', name:'준호', school:'이직 준비', st:'OPEN',
+   note:'맥주 들고 있어요. 편하게 오세요', near:false, age:167},
+  {id:'p5', name:'지훈', school:'스타트업', st:'LOOKING_FOR',
+   note:'Next.js 앱라우터 마이그레이션 해보신 분 계실까요', near:true, age:204},
+  {id:'p6', name:'하윤', school:'6년차', st:'CAN_SHARE',
+   note:'프론트 면접관 해봤어요. 궁금하시면', near:false, age:241},
+  {id:'p7', name:'서연', school:'취준', st:'FIRST_TIME',
+   note:'밋업 처음 와봐요. 어색하네요', near:false, age:278},
+  {id:'p8', name:'도윤', school:'SI 3년차', st:'OPEN',
+   note:'뒤풀이 가실 분 계신가요', near:false, age:33},
+  {id:'p9', name:'지우', school:'2년차', st:'LOOKING_FOR',
+   note:'모노레포 turborepo 쓰시는 분', near:false, age:70},
+  {id:'p10', name:'은채', school:'5년차', st:'CAN_SHARE',
+   note:'성능 최적화로 LCP 절반 줄여본 적 있어요', near:true, age:107},
+  {id:'p11', name:'시우', school:'1년차', st:'FIRST_TIME',
+   note:'백엔드 하다가 프론트로 넘어온 지 두 달 됐어요', near:false, age:144},
+  {id:'p12', name:'나연', school:'프리랜서', st:'CAN_SHARE',
+   note:'주니어 멘토링 하고 있어요. 커리어 얘기 편하게', near:false, age:181},
+  {id:'p13', name:'건우', school:'7년차', st:'LOOKING_FOR',
+   note:'테스트 코드 문화 잡으신 팀 있나요', near:false, age:218},
+  {id:'p14', name:'유진', school:'취준', st:'OPEN',
+   note:'그냥 구경 중이에요. 말 걸어주세요', near:false, age:255},
+  {id:'p15', name:'채원', school:'4년차', st:'CAN_SHARE',
+   note:'사내에서 마이크로 프론트엔드 도입해봤어요', near:true, age:10},
+  {id:'p16', name:'현우', school:'이직 준비', st:'LOOKING_FOR',
+   note:'이직 고민 중인데 프론트 3년차 분들 계신가요', near:false, age:47},
+  {id:'p17', name:'다은', school:'2년차', st:'FIRST_TIME',
+   note:'혼자 와서 구석에 있어요', near:false, age:84},
+  {id:'p18', name:'정민', school:'스타트업', st:'CAN_SHARE',
+   note:'혼자 프론트 다 해요. 1인 개발 궁금하면 물어보세요', near:false, age:121},
+  {id:'p19', name:'소율', school:'3년차', st:'OPEN',
+   note:'입구 쪽에 서 있어요', near:false, age:158},
+  {id:'p20', name:'재현', school:'에이전시', st:'LOOKING_FOR',
+   note:'접근성 제대로 해보신 분 계신가요', near:true, age:195},
+  {id:'p21', name:'윤서', school:'5년차', st:'CAN_SHARE',
+   note:'리액트 네이티브 2년 했어요. 후회담 들려드릴게요', near:false, age:232},
+];
+
+// 뒤늦게 들어오는 사람들. 방이 멈춰 있지 않다는 걸 보여준다.
+const LATE = [
+  {name:'채윤', school:'국민대',   st:'LOOKING_FOR', note:'지금 막 도착했어요. 팀 구하시는 분 계신가요', near:true},
+  {name:'현재', school:'숭실대',   st:'OPEN',        note:'늦게 와서 뒤쪽에 앉았어요', near:false},
+  {name:'서진', school:'순천향대', st:'CAN_SHARE',   note:'방금 발표 끝났어요. 질문 있으면 받을게요', near:true},
+  {name:'민규', school:'국민대',   st:'FIRST_TIME',  note:'친구 따라왔는데 친구가 사라졌어요', near:false},
+];
+
 
 let S = {me:null, st:null, people:[], mode:'room', speed:1, bt:true, t0:Date.now()};
 
@@ -406,29 +551,34 @@ function tally(list){
   const c = {}; list.forEach(p => c[p.st] = (c[p.st]||0) + 1);
   return STATUSES.filter(s=>c[s.k]).map(s=>`${SHORT[s.k]} ${c[s.k]}`).join('  ·  ');
 }
+/* 방 구성 띠. 인원 비율만큼 상태 색이 차지한다 */
+function compo(list){
+  const c = {}; list.forEach(p => c[p.st] = (c[p.st]||0) + 1);
+  const n = list.length || 1;
+  return `<div class="compo">${STATUSES.filter(s=>c[s.k])
+    .map(s=>`<i class="s-${s.k}" style="width:${(c[s.k]/n*100).toFixed(1)}%"></i>`).join('')}</div>`;
+}
 
 function renderPreview(){
   document.getElementById('pvTitle').textContent = ROOM.title;
   document.getElementById('pvWhen').textContent  = ROOM.when.split(' \u00b7 ').pop();
   document.getElementById('pvCount').textContent =
-    PREVIEW.length ? `지금 ${PREVIEW.length + 42}명이 상태를 올려뒀어요` : '아직 아무도 없어요';
-  document.getElementById('pvStats').textContent = tally(PREVIEW);
-  document.getElementById('pvList').innerHTML = PREVIEW.slice(0,4).map(p=>`
-    <div class="person">
-      <div class="row" style="gap:7px">
-        <span class="t-lg grow trunc">${esc(p.name)}</span>
-        ${p.near ? '<span class="badge">닿는 거리</span>' : ''}
-      </div>
-      <div class="t-sm faint" style="margin:1px 0 6px">${esc(p.school)} \u00b7 ${SL[p.st]}</div>
-      <div class="t-md wrap">${esc(p.note)}</div>
-    </div>`).join('') || `<div class="empty">
-      <svg class="ic"><use href="#i-inbox"/></svg>
-      <p class="t-md" style="margin:0">첫 번째로 상태를 올려보세요</p></div>`;
+    PREVIEW.length ? `지금 ${PREVIEW.length}명이 상태를 올려뒀어요` : '아직 아무도 없어요';
+  document.getElementById('pvStats').innerHTML =
+    PREVIEW.length ? compo(PREVIEW) + tally(PREVIEW) : '';
+  // 누가 있는지는 알려주되 무슨 말을 했는지는 올린 뒤에 보여준다
+  document.getElementById('gate').textContent = PREVIEW.length
+    ? `한 줄을 올리면 ${PREVIEW.length}명이 뭘 찾고 있는지 보입니다.`
+    : '아직 아무도 없어요. 첫 번째로 올려보세요.';
+  const back = document.getElementById('s2back');
+  back.style.display = S.me ? 'flex' : 'none';
+  document.getElementById('s2brand').style.display = S.me ? 'none' : '';
 }
+
 
 /* 참여 */
 function openJoin(){
-  renderAff(); renderPicks(); go('s2');
+  renderAff(); renderPicks(); renderPreview(); go('s2');
   setTimeout(()=>document.getElementById('nick').focus(), 80);
 }
 function renderAff(){
@@ -489,20 +639,26 @@ function saveStatus(){
 }
 
 /* ── 만료: 남은 시간에 따라 바랜다 ── */
-function lifeOf(p){
-  const age = p.age + (Date.now()-S.t0)/1000*S.speed;
-  return Math.max(0, 1 - age/TTL);
-}
+function ageOf(p){ return p.age + (Date.now()-S.t0)/1000*S.speed; }
+function lifeOf(p){ return Math.max(0, 1 - ageOf(p)/TTL); }
+/* 지금 들어온 사람의 age. S.t0 기준이라 음수가 된다 */
+function nowAge(){ return -(Date.now()-S.t0)/1000*S.speed; }
 function fadeOf(life){ return life>.45 ? 1 : .34 + (life/.45)*.66; }
 
 /* ── S3 ── */
 function renderRoom(){
   document.getElementById('roomTitle').textContent = ROOM.title;
   document.getElementById('dashTitle').textContent = ROOM.title;
-  const ppl = S.people.filter(p=>lifeOf(p)>0);
+  // 정렬은 AI만 한다. 목록은 올라온 순서 그대로 둔다
+  const ppl = S.people.filter(p=>lifeOf(p)>0).sort((a,b)=>ageOf(a)-ageOf(b));
   document.getElementById('headcount').textContent = (ppl.length+1)+'명';
 
-  document.getElementById('stats').textContent = tally(ppl) || '아직 아무도 상태를 달지 않았어요';
+  const all = S.me ? [S.me].concat(ppl) : ppl;
+  const fresh = ppl.filter(p=>ageOf(p) < 30).length;
+  document.getElementById('stats').innerHTML = ppl.length
+    ? compo(all) + tally(all)
+      + (fresh ? `<span class="fresh">방금 ${fresh}명 들어옴</span>` : '')
+    : '아직 아무도 상태를 달지 않았어요';
 
   const life = lifeOf(S.me), left = Math.ceil(life*TTL/60);
   document.getElementById('mineWrap').innerHTML = `
@@ -511,7 +667,7 @@ function renderRoom(){
         <span class="t-sm" style="color:var(--c)">내 상태 · ${SL[S.me.st]}</span>
         <span class="t-sm faint">${life>0 ? left+'분 뒤 사라짐' : '사라짐'}</span>
       </div>
-      <div class="t-md wrap" style="opacity:${fadeOf(life).toFixed(2)}">${esc(S.me.note)}</div>
+      <div class="t-body wrap" style="opacity:${fadeOf(life).toFixed(2)}">${esc(S.me.note)}</div>
     </button>`;
 
   const box = document.getElementById('people');
@@ -527,23 +683,45 @@ function renderRoom(){
     </div>`;
     return;
   }
-  document.getElementById('listLabel').textContent = '같은 공간';
-  box.innerHTML = ppl.map(p=>{
-    const l=lifeOf(p), o=fadeOf(l).toFixed(2);
-    return `<button class="person fade" style="opacity:${o}" onclick="openSheet('${p.id}')">
-      <div class="row" style="gap:7px">
-        <span class="t-lg grow trunc">${esc(p.name)}</span>
-        ${p.near?'<span class="badge">닿는 거리</span>':''}
-      </div>
-      <div class="t-sm faint" style="margin:1px 0 6px">${esc(p.school)} · ${SL[p.st]}</div>
-      <div class="t-md wrap">${esc(p.note)}</div>
-    </button>`;
-  }).join('');
+  document.getElementById('listLabel').textContent = '';
+  box.innerHTML = grp('닿는 거리', ppl.filter(p=>p.near))
+                + grp('조금 떨어진 곳', ppl.filter(p=>!p.near));
+}
+
+/* 목록 카드 하나. S1 미리보기는 누를 수 없으므로 div로 낸다 */
+function pcard(p, click){
+  const l = lifeOf(p), tag = click ? 'button' : 'div';
+  return `<${tag} class="person s-${p.st}${p.near?' near':''} fade"
+      style="opacity:${fadeOf(l).toFixed(2)}"${click?` onclick="openSheet('${p.id}')"`:''}>
+    <div class="row" style="gap:8px">
+      <span class="t-lg grow trunc">${esc(p.name)}</span>
+      <span class="t-sm" style="color:var(--c)">${SHORT[p.st]}</span>
+    </div>
+    <div class="t-sm faint" style="margin:1px 0 8px">${esc(p.school)}</div>
+    <div class="t-body wrap">${esc(p.note)}</div>
+    <i class="life" style="width:${(l*100).toFixed(1)}%"></i>
+  </${tag}>`;
+}
+function grp(label, list){
+  if(!list.length) return '';
+  return `<p class="glabel">${label} ${list.length}</p>`
+       + list.map(p=>pcard(p,true)).join('');
 }
 function editMine(){
-  renderAff(); S.st = S.me.st; renderPicks(); go('s2');
+  renderAff(); S.st = S.me.st; renderPicks();
+  renderPreview();              // 이게 있어야 '방으로' 버튼이 나온다
+  go('s2');
   document.getElementById('nick').value = S.me.name;
+  restoreAff(S.me.school);      // 안 되돌리면 소속이 첫 항목으로 리셋된다
   document.getElementById('note').value = S.me.note; noteTyped();
+}
+/* 저장해둔 소속을 입력란에 다시 얹는다. 선택지에 없으면 직접 입력으로 편다 */
+function restoreAff(v){
+  const el = document.getElementById('aff');
+  if(!el) return;
+  if(el.tagName === 'INPUT'){ el.value = v; return; }
+  if([...el.options].some(o => o.value === v)) el.value = v;
+  else { el.value = '__other'; affPick(); const o = document.getElementById('affOther'); if(o) o.value = v; }
 }
 
 /* ── 매칭: 스피너 대신 구체적인 문구 ── */
@@ -657,18 +835,21 @@ function send(){
 function dm(m){
   document.getElementById('devmenu').classList.remove('on');
   closeSheet(); clearTimeout(matchTimer); S.speed=1; S.bt=true;
+  // 타이머만 지우면 화면에 남은 "N명 중에서 찾는 중"이 다음 모드로 눌어붙는다
+  document.getElementById('matchState').textContent = '';
   if(m==='room2'){ ROOM = ROOMS.FEMEETUP; m='flow'; }
   else if(m==='flow'){ ROOM = ROOMS.KOSS26; }
   if(m==='flow'){ S={me:null,st:null,people:[],mode:'room',speed:1,bt:true,t0:Date.now()};
-    PREVIEW = SEED.map(p=>({...p})); renderPreview();
+    PREVIEW = ROOM.seed().map(p=>({...p})); renderPreview();
     document.getElementById('nick').value=''; document.getElementById('note').value='';
-    document.getElementById('count').textContent='0 / 140'; go('s1'); return; }
+    document.getElementById('count').textContent='0 / 140';
+    renderAff(); renderPicks(); go('s2'); return; }
   // longtext 모드가 남긴 값이 다음 모드로 새지 않게 매번 초기화한다
   S.me={id:'me',name:'지원',school:ROOM.aff.options?ROOM.aff.options[0]:'토스',st:'LOOKING_FOR',
     note:'배포·CI 경험 있으신 분 찾아요',age:0};
-  S.st = S.me.st; PREVIEW = SEED.map(p=>({...p}));
+  S.st = S.me.st; PREVIEW = ROOM.seed().map(p=>({...p}));
   S.t0 = Date.now(); S.mode = m;
-  S.people = SEED.map(p=>({...p}));
+  S.people = ROOM.seed().map(p=>({...p}));
 
   if(m==='empty')   S.people = [];
   if(m==='longtext'){
@@ -688,10 +869,22 @@ function dm(m){
   if(m==='btoff')   toChat('minseo');
 }
 
+/* 방이 멈춰 있지 않다는 걸 보여준다. 방 화면일 때만 돈다 */
+let lateIdx = 0;
+setInterval(()=>{
+  if(S.mode !== 'room' || !S.me) return;
+  if(!document.getElementById('s3').classList.contains('on')) return;
+  const r = LATE[lateIdx % LATE.length];
+  S.people.push({...r, id:`late${lateIdx}`, age:nowAge()});
+  lateIdx++;
+  renderRoom();
+}, 7000);
+
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-PREVIEW = SEED.map(p=>({...p}));
-renderPreview();
+PREVIEW = ROOM.seed().map(p=>({...p}));
+// 첫 화면이 곧 입력 화면이다. 소속 필드와 상태 버튼을 처음부터 그려둔다
+renderPreview(); renderAff(); renderPicks();
 setInterval(()=>{ if(S.me && document.getElementById('s3').classList.contains('on')) renderRoom(); }, 1000);
 </script>
 </body>
