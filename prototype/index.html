@@ -182,16 +182,14 @@ svg.ic.lg{width:22px;height:22px}
     <div class="card row" style="gap:10px;margin-bottom:22px">
       <svg class="ic dim"><use href="#i-qr"/></svg>
       <div class="grow">
-        <div class="t-md trunc">코쓱톤 네트워킹</div>
-        <div class="t-sm faint">국민대 미래관 4층 · 오늘 18:00까지</div>
+        <div class="t-md trunc" id="evTitle"></div>
+        <div class="t-sm faint" id="evWhen"></div>
       </div>
     </div>
     <label class="t-sm dim" for="nick">닉네임</label>
     <input id="nick" class="field" style="margin-top:6px" maxlength="12" placeholder="지원" autocomplete="off">
-    <label class="t-sm dim" for="school" style="display:block;margin-top:14px">소속</label>
-    <select id="school" class="field" style="margin-top:6px">
-      <option>국민대</option><option>숭실대</option><option>순천향대</option><option>그 외</option>
-    </select>
+    <label class="t-sm dim" for="aff" style="display:block;margin-top:14px" id="affLabel">소속</label>
+    <div id="affWrap" style="margin-top:6px"></div>
     <div class="err" id="e1"></div>
     <button class="btn" style="margin-top:6px" onclick="enter()">들어가기</button>
   </div>
@@ -221,7 +219,7 @@ svg.ic.lg{width:22px;height:22px}
 <section class="screen" id="s3">
   <header style="padding:20px 0 14px">
     <div class="row" style="justify-content:space-between;align-items:baseline">
-      <h1 class="t-lg" style="margin:0">코쓱톤 네트워킹</h1>
+      <h1 class="t-lg" style="margin:0" id="roomTitle">코쓱톤 네트워킹</h1>
       <span class="t-sm dim" id="headcount">47명</span>
     </div>
   </header>
@@ -276,7 +274,7 @@ svg.ic.lg{width:22px;height:22px}
   <header style="padding:20px 0 16px">
     <div class="row" style="justify-content:space-between">
       <div>
-        <h1 class="t-lg" style="margin:0">코쓱톤 네트워킹</h1>
+        <h1 class="t-lg" style="margin:0" id="dashTitle">코쓱톤 네트워킹</h1>
         <p class="t-sm faint" style="margin:3px 0 0">운영진 화면 · 실시간</p>
       </div>
       <button onclick="go('s3')" class="t-sm dim" style="height:44px">참가자 화면</button>
@@ -316,6 +314,7 @@ svg.ic.lg{width:22px;height:22px}
     <svg class="ic"><use href="#i-sliders"/></svg></button>
   <div id="devmenu">
     <button onclick="dm('flow')">처음부터 (S1)</button>
+    <button onclick="dm('room2')">다른 행사로 (밋업)</button>
     <button onclick="dm('room')">방 · 기본</button>
     <button onclick="dm('match')">접점 카드 열기</button>
     <button onclick="dm('none')">접점 없음</button>
@@ -332,6 +331,28 @@ svg.ic.lg{width:22px;height:22px}
 
 <script>
 const TTL = 300;                   // 상태 유효시간(초)
+
+/* 행사마다 다른 것은 전부 여기 있다. 코드에 박지 않는다.
+   주최자가 방을 만들 때 정하고, 참가자 화면은 이 설정을 따라간다. */
+const ROOMS = {
+  KOSS26: {
+    title:'코쓱톤 네트워킹', when:'국민대 미래관 4층 · 오늘 18:00까지',
+    aff:{ label:'소속', options:['국민대','숭실대','순천향대'], placeholder:'직접 입력' },
+    set:'HACKATHON'
+  },
+  FEMEETUP: {
+    title:'서울 프론트엔드 밋업', when:'성수 코워킹 · 오늘 21:00까지',
+    aff:{ label:'회사', options:null, placeholder:'예: 토스, 프리랜서, 취준' },
+    set:'MEETUP'
+  }
+};
+let ROOM = ROOMS.KOSS26;
+
+const SETS = {
+  HACKATHON:['LOOKING_FOR','CAN_SHARE','FIRST_TIME','OPEN'],
+  MEETUP:   ['LOOKING_FOR','CAN_SHARE','FIRST_TIME','OPEN']
+};
+
 const STATUSES = [
   {k:'LOOKING_FOR', label:'이런 분 찾아요',        icon:'i-search', ph:'배포·CI 경험 있으신 분 찾아요',            q:'어떤 분을 찾으세요?'},
   {k:'CAN_SHARE',   label:'이런 얘기 할 수 있어요', icon:'i-msg',    ph:'작년에 도커로 CI 파이프라인 구축해봤어요',  q:'어떤 얘기를 해주실 수 있나요?'},
@@ -365,12 +386,43 @@ function go(id){
 }
 
 /* ── S1 ── */
+function renderEntry(){
+  document.getElementById('evTitle').textContent = ROOM.title;
+  document.getElementById('evWhen').textContent  = ROOM.when;
+  document.getElementById('affLabel').textContent = ROOM.aff.label;
+  const w = document.getElementById('affWrap');
+  if(ROOM.aff.options){
+    w.innerHTML = `<select id="aff" class="field" onchange="affPick()">
+      ${ROOM.aff.options.map(o=>`<option>${esc(o)}</option>`).join('')}
+      <option value="__other">직접 입력</option></select>
+      <input id="affOther" class="field" style="margin-top:8px;display:none"
+        maxlength="20" placeholder="${esc(ROOM.aff.placeholder)}" autocomplete="off">`;
+  } else {
+    w.innerHTML = `<input id="aff" class="field" maxlength="20"
+      placeholder="${esc(ROOM.aff.placeholder)}" autocomplete="off">`;
+  }
+}
+function affPick(){
+  const sel = document.getElementById('aff'), oth = document.getElementById('affOther');
+  if(!oth) return;
+  const other = sel.value === '__other';
+  oth.style.display = other ? '' : 'none';
+  if(other) oth.focus();
+}
+function affValue(){
+  const el = document.getElementById('aff');
+  if(el.tagName === 'INPUT') return el.value.trim();
+  if(el.value === '__other') return document.getElementById('affOther').value.trim();
+  return el.value;
+}
 function enter(){
   const n = document.getElementById('nick').value.trim();
   const e = document.getElementById('e1');
   if(!n){ e.textContent='닉네임을 입력해 주세요'; return; }
+  const a = affValue();
+  if(!a){ e.textContent=ROOM.aff.label+'을 입력해 주세요'; return; }
   e.textContent='';
-  S.me = {id:'me', name:n, school:document.getElementById('school').value, st:null, note:'', age:0};
+  S.me = {id:'me', name:n, school:a, st:null, note:'', age:0};
   renderPicks(); go('s2');
 }
 document.getElementById('nick').addEventListener('input',()=>document.getElementById('e1').textContent='');
@@ -414,6 +466,8 @@ function fadeOf(life){ return life>.45 ? 1 : .34 + (life/.45)*.66; }
 
 /* ── S3 ── */
 function renderRoom(){
+  document.getElementById('roomTitle').textContent = ROOM.title;
+  document.getElementById('dashTitle').textContent = ROOM.title;
   const ppl = S.people.filter(p=>lifeOf(p)>0);
   document.getElementById('headcount').textContent = (ppl.length+1)+'명';
 
@@ -575,7 +629,10 @@ function send(){
 function dm(m){
   document.getElementById('devmenu').classList.remove('on');
   closeSheet(); clearTimeout(matchTimer); S.speed=1; S.bt=true;
+  if(m==='room2'){ ROOM = ROOMS.FEMEETUP; m='flow'; }
+  else if(m==='flow'){ ROOM = ROOMS.KOSS26; }
   if(m==='flow'){ S={me:null,people:[],mode:'room',speed:1,bt:true,t0:Date.now()};
+    renderEntry();
     document.getElementById('nick').value=''; document.getElementById('note').value='';
     document.getElementById('count').textContent='0 / 140'; go('s1'); return; }
   // longtext 모드가 남긴 값이 다음 모드로 새지 않게 매번 초기화한다
@@ -604,6 +661,7 @@ function dm(m){
 
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+renderEntry();
 setInterval(()=>{ if(S.me && document.getElementById('s3').classList.contains('on')) renderRoom(); }, 1000);
 </script>
 </body>
