@@ -7,6 +7,7 @@ messages. Most of these tests are about that.
 
 import asyncio
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -272,6 +273,51 @@ def test_the_dedupe_claim_lets_one_event_through_once(client: TestClient):
 
     assert asyncio.run(claim_twice()) == (True, False)
     assert push.enabled
+
+
+class StubSigner:
+    key_id = "stub"
+
+    def sign(self, message):  # noqa: D102 - google.auth.crypt.Signer protocol
+        return b"signature-bytes"
+
+
+class StubCredentials:
+    signer = StubSigner()
+    service_account_email = "svc@bside-5a002.iam.gserviceaccount.com"
+
+
+def test_the_signed_assertion_is_sent_as_text_not_bytes():
+    """``jwt.encode`` returns bytes, and form-encoding those sends Google a repr.
+
+    It answers `400 invalid_request`, which says nothing about the cause. This
+    cost a deploy to find, so it is pinned here.
+    """
+    seen: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["body"] = request.content.decode()
+        return httpx.Response(200, json={"access_token": "minted", "expires_in": 3600})
+
+    sender = FcmSender(
+        StubCredentials(),
+        "bside-5a002",
+        client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    async def mint() -> tuple[str, str]:
+        try:
+            return await sender._token(), await sender._token()
+        finally:
+            await sender.aclose()
+
+    first, second = asyncio.run(mint())
+
+    assert first == "minted"
+    assert second == "minted", "두 번째 호출은 캐시를 써야 한다"
+    assert "grant_type=urn" in seen["body"]
+    assert "assertion=" in seen["body"]
+    assert "b%27" not in seen["body"] and "b'" not in seen["body"], "bytes의 repr이 실려 나갔다"
 
 
 def test_the_fcm_endpoint_targets_the_configured_project():
