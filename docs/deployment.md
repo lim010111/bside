@@ -110,8 +110,30 @@ ssh.exe myserver-1 "sudo chown 10001:10001 ~/apps/bside/fcm.json && sudo chmod 4
 적용 여부는 토큰을 하나 등록해 보고 응답의 `push_enabled`로 확인한다. 로그의 부재로
 판단하지 않는다 — 껐다 켜기 전의 경고가 그대로 남아 있어 오해하기 쉽다.
 
+### APK를 운영 주소로 빌드하기
+
+`api_base_url`은 체크인된 파일이 아니라 빌드 시점 Gradle 속성이고, WebView 쪽 주소와
+같아야 한다. 둘 중 하나만 바꾸면 반쪽만 운영 서버를 본다.
+
+```sh
+cd web && VITE_API_BASE=https://bside-api.sungblab.com npm run build && npx cap sync android
+cd ../android && ./gradlew :app:assembleDebug -Pbside.apiBaseUrl=https://bside-api.sungblab.com
+```
+
+들어간 주소는 APK에서 직접 확인할 수 있다. 빌드 명령을 믿지 않고 결과물을 본다.
+
+```sh
+aapt2 dump resources app/build/outputs/apk/debug/app-debug.apk | grep -A 1 api_base_url
+```
+
 ### 아직 안 된 것
 
+- **릴리스 서명.** 지금 설치한 APK는 디버그 키로 서명돼 있다. 사이드로딩은 되지만 배포용이
+  아니다.
+- **`bside_redis-data` 백업이 없다.** 이 호스트의 `database-backup.timer`는 기복이네
+  PostgreSQL만 받는다(`gibokine/deploy/backup-databases.sh`에 bside도 redis도 없다).
+  대화와 메시지가 이 volume에만 있다.
 - 푸시를 끄는 사용자 설정이 없다. 지금은 앱을 지우면 FCM이 토큰을 죽었다고 답하고 서버가
   지우는 것이 유일한 해지 경로다.
-- 모니터링 연결(Uptime Kuma에 이 주소 등록), 로그 보존 정책
+- 부하·동시성 규모를 측정하지 않았다. worker는 1개 그대로다.
+- 모니터링 연결(Uptime Kuma에 `https://bside-api.sungblab.com/health` 등록), 로그 보존 정책
