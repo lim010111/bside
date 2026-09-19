@@ -22,6 +22,15 @@
 
 **[spec/MASTER.md](spec/MASTER.md)** — 이 문서 하나면 전체 그림이 잡힌다. 서비스 소개부터 기술 스택, 배포, 협업, 일정까지.
 
+## 프로토타입 실행
+
+```bash
+cd prototype && python -m http.server 8777
+```
+
+`http://localhost:8777` 접속. 화면 6개가 목업 데이터로 전부 동작한다.
+우하단 버튼으로 **빈 방 · 매칭 중 · 접점 없음 · 블루투스 꺼짐 · 긴 텍스트 · 만료 빨리감기**를 바로 볼 수 있다.
+
 ---
 
 ## 문서 지도
@@ -66,6 +75,8 @@
 | | |
 |---|---|
 | [CONTEXT.md](CONTEXT.md) | 공통 용어집. 기획·디자인·개발이 같은 말을 쓰기 위한 것 |
+| [prototype/index.html](prototype/index.html) | **모바일 HTML 프로토타입.** 화면 6개 + 엣지 케이스 |
+| [spec/design.md](spec/design.md) | 디자인 토큰, AI 티 회피 규칙 |
 | [data/profiles.json](data/profiles.json) | 시연용 시드 프로필 |
 | [pitch/script.md](pitch/script.md) | 이전 버전 발표 대본 (**구버전**, [spec/scenario.md](spec/scenario.md) 참조) |
 
