@@ -16,3 +16,10 @@ __pycache__/
 *.py[cod]
 .venv/
 .pytest_cache/
+
+# 발표 자료 빌드 중간물
+pitch/.build/
+
+# Playwright MCP/CLI 산출물 (스냅샷·콘솔 로그)
+.playwright-mcp/
+.playwright-cli/

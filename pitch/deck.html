@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bside 발표</title>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css');
+
+:root {
+  --font: 'Wanted Sans Variable', 'Wanted Sans', 'Pretendard Variable', -apple-system, system-ui, sans-serif;
+
+  --bg: #FFFFFF;
+  --surface: #F6F4F1;
+  --line: #E4E1DC;
+  --line-strong: #CFCBC4;
+
+  --ink: #1F1F24;
+  --ink-mid: #6B6B73;
+  --ink-soft: #9A9AA2;
+
+  --accent: #B45309;
+  --accent-soft: #FDF4E7;
+
+  --looking: #B45309;
+  --sharing: #15803D;
+  --first:   #6D28D9;
+
+  --r: 14px;
+
+  --t-title: 46px;
+  --t-body: 24px;
+  --t-cap: 17px;
+}
+
+* { box-sizing: border-box; }
+p, h2, h3, figure { margin: 0; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #111114;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--t-body);
+  line-height: 1.5;
+  letter-spacing: -0.015em;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 화면 비율과 무관하게 16:9 프레임 하나만 띄운다. 바깥은 검은 레터박스 */
+#stage { position: fixed; inset: 0; display: grid; place-items: center; background: #111114; }
+#frame {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+  background: var(--bg);
+  overflow: hidden;
+  transform: scale(var(--scale, 1));
+  transform-origin: center center;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  padding: 72px 92px 60px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  display: none;
+  grid-template-rows: auto 1fr;
+  background: var(--bg);
+}
+.slide.on { display: grid; }
+
+/* 제목은 항상 같은 자리. 내용은 남은 공간에서 가운데 */
+/* 제목은 위에 고정하고, 본문은 그 아래 남은 높이의 가운데에 둔다 */
+.slide > header { min-height: 125px; padding-bottom: 30px; }  /* border-box라 패딩 포함 */
+.slide > .content { align-self: center; min-height: 0; }
+.slide.center { grid-template-rows: 1fr; }
+.slide.center > .content { align-self: center; }
+
+h2 {
+  font-size: var(--t-title);
+  font-weight: 600;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.sub { font-size: var(--t-cap); color: var(--ink-soft); margin-top: 12px; }
+
+.note {
+  font-size: 26px;
+  line-height: 1.5;
+  color: var(--ink);
+  max-width: 960px;
+  margin-top: 44px;
+}
+.note.dim { color: var(--ink-mid); }
+.note.big { font-size: 32px; margin-top: 60px; }
+
+.num {
+  position: absolute;
+  right: 92px;
+  bottom: 44px;
+  font-size: 15px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 다크 장 — 제품을 보여주는 장. 앱과 같은 바닥색 */
+.slide { --ac: #B45309; --ac-soft: #FDF4E7; --paper: var(--bg); --fg: var(--ink); --fg-mid: var(--ink-mid); --fg-soft: var(--ink-soft); --edge: var(--line); }
+.slide.dark {
+  --ac: #F5B942;
+  --ac-soft: rgba(245, 185, 66, 0.12);
+  --paper: #16161A;
+  --fg: #F5F5F7;
+  --fg-mid: #8E8E9A;
+  --fg-soft: #5C5C68;
+  --edge: #32323C;
+  background: #16161A;
+  color: #F5F5F7;
+}
+.slide.dark h2, .slide.dark .wordmark { color: var(--fg); }
+.slide.dark .sub, .slide.dark .cap-s, .slide.dark .tagline { color: var(--fg-mid); }
+.slide.dark .cap, .slide.dark .num, .slide.dark .cover-meta, .slide.dark .cap-i { color: var(--fg-soft); }
+.slide.dark .phone { border-color: #2A2A33; box-shadow: none; }
+.slide.dark .shot { border-color: var(--edge); box-shadow: none; }
+.slide.dark .pair { border-color: var(--edge); }
+.slide.dark .pair.bad .pair-who { color: var(--fg-soft); }
+.slide.dark .pair.bad .pair-out { color: var(--fg-soft); }
+.slide.dark .pair-out { color: var(--fg-mid); }
+.slide.dark .pair.good { border-color: var(--ac); background: var(--ac-soft); }
+.slide.dark .pair.good .pair-out { color: var(--fg); }
+.slide.dark .video-frame { background: #1C1C21; }
+.slide.dark .video-frame .k { color: var(--fg); }
+.slide.dark .video-frame .s { color: var(--fg-soft); }
+.strip figure.key .cap-t, .pair.good .pair-tag, .fact.zero .fact-n,
+.big-n, .payrow.core .pay-who, .built .done h3, .col.llm h3, .close-mark { color: var(--ac); }
+.fact.zero { border-top-color: var(--ac); }
+.col.llm { background: var(--ac-soft); border-color: var(--ac); }
+
+/* 제품 화면 */
+.phone {
+  border-radius: 22px;
+  border: 4px solid var(--ink);
+  overflow: hidden;
+  background: #16161A;
+  box-shadow: 0 10px 30px rgba(31, 31, 36, 0.16);
+}
+.phone img, .shot img { display: block; width: 100%; height: auto; }
+.shot {
+  border-radius: var(--r);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(31, 31, 36, 0.13);
+}
+.cap { font-size: 15px; color: var(--ink-soft); margin-top: 14px; }
+
+/* 1 표지 */
+.cover-grid { display: grid; grid-template-columns: 1fr 258px; gap: 80px; align-items: center; }
+.wordmark { font-size: 112px; font-weight: 600; line-height: 1; letter-spacing: -0.035em; }
+.tagline { font-size: 28px; color: var(--ink-mid); margin-top: 16px; }
+.oneliner { font-size: 26px; font-weight: 500; margin-top: 52px; max-width: 640px; }
+.cover-meta { font-size: var(--t-cap); color: var(--ink-soft); margin-top: 48px; }
+
+/* 2 문제 */
+.facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+.fact { border-top: 2px solid var(--line-strong); padding-top: 18px; }
+.fact.zero { border-top-color: var(--accent); }
+.fact-n { font-size: 78px; font-weight: 600; line-height: 1; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; }
+.fact.zero .fact-n { color: var(--accent); }
+.fact-l { font-size: 20px; color: var(--ink-mid); margin-top: 14px; }
+
+/* 3 숫자 */
+.stat-split { display: grid; grid-template-columns: 1fr 330px; gap: 64px; align-items: center; }
+.big-n { font-size: 168px; font-weight: 600; line-height: 0.9; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; display: block; }
+.big-l { font-size: var(--t-body); color: var(--ink-mid); line-height: 1.45; margin-top: 20px; max-width: 520px; }
+.two-stat { display: grid; gap: 40px; padding-left: 44px; border-left: 1px solid var(--line); }
+.mini-n { font-size: 58px; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1; }
+.mini-l { font-size: 18px; color: var(--ink-mid); line-height: 1.4; margin-top: 10px; }
+
+/* 4 흐름 — 폰 4대가 좌우 여백까지 꽉 찬다 */
+.strip { display: grid; grid-template-columns: repeat(4, 152px); justify-content: space-between; }
+.strip figcaption { margin-top: 16px; }
+.cap-i { font-size: 14px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.cap-t { font-size: 20px; font-weight: 500; margin-top: 5px; }
+.cap-s { font-size: 15px; color: var(--ink-mid); margin-top: 3px; line-height: 1.4; }
+.strip figure.key .cap-t { color: var(--accent); }
+
+/* 5 영상 */
+.video-slide { grid-template-rows: 1fr; }
+.video-grid { display: grid; grid-template-columns: 1fr 320px; gap: 56px; align-items: center; }
+.video-box {
+  aspect-ratio: 16 / 9;
+  border: 2px solid var(--ac);
+  border-radius: 16px;
+  background: rgba(245, 185, 66, 0.05);
+  display: grid;
+  place-items: center;
+}
+.play {
+  width: 132px; height: 132px; border-radius: 50%;
+  border: 2px solid var(--ac);
+  display: grid; place-items: center;
+}
+.play i {
+  width: 0; height: 0;
+  border-left: 32px solid var(--ac);
+  border-top: 20px solid transparent;
+  border-bottom: 20px solid transparent;
+  margin-left: 9px;
+}
+.video-k { font-size: 38px; font-weight: 600; }
+.video-len { font-size: var(--t-cap); color: var(--ac); margin-top: 12px; letter-spacing: 0.02em; }
+.video-list { margin: 30px 0 0; padding: 0; list-style: none; display: grid; gap: 16px; }
+.video-list li { font-size: 19px; color: var(--fg-mid); display: flex; gap: 16px; align-items: baseline; }
+.video-list b { color: var(--fg-soft); font-weight: 400; font-size: 15px; font-variant-numeric: tabular-nums; }
+
+/* 6 비교 */
+.hero { display: grid; grid-template-columns: 412px 1fr; gap: 56px; align-items: center; }
+.pair { border: 1px solid var(--line); border-radius: var(--r); padding: 22px 26px; }
+.pair + .pair { margin-top: 14px; }
+.pair-tag { font-size: 15px; color: var(--ink-soft); }
+.pair-who { font-size: 26px; margin-top: 8px; }
+.pair-out { font-size: var(--t-cap); color: var(--ink-mid); margin-top: 10px; line-height: 1.45; }
+.pair.bad .pair-who { color: var(--ink-soft); }
+.pair.good { border-color: var(--accent); background: var(--accent-soft); }
+.pair.good .pair-tag { color: var(--accent); font-weight: 500; }
+.pair.good .pair-who { font-weight: 600; }
+.pair.good .pair-out { color: var(--ink); }
+
+/* 7 기술 */
+.split { display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px; }
+.col { border-radius: var(--r); padding: 26px 28px; border: 1px solid var(--line); }
+.col.llm { background: var(--accent-soft); border-color: var(--accent); }
+.col h3 { font-size: 21px; font-weight: 600; margin-bottom: 18px; }
+.col.llm h3 { color: var(--accent); }
+.col ul { padding: 0; list-style: none; display: grid; gap: 12px; margin: 0; }
+.col li { font-size: 19px; color: var(--ink-mid); line-height: 1.45; }
+.tech-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 34px; padding-top: 30px; border-top: 1px solid var(--line); }
+.tnote { font-size: 22px; line-height: 1.5; }
+.tnote b { font-weight: 600; }
+
+/* 8 구현 */
+.built { display: grid; grid-template-columns: 1fr 1fr 168px; gap: 40px; align-items: start; }
+.built > figure { align-self: center; }
+.built h3 { font-size: 21px; font-weight: 600; margin-bottom: 24px; }
+.built .done h3 { color: var(--accent); }
+.built .notyet h3 { color: var(--ink-mid); }
+.built ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 18px; }
+.built li { font-size: 23px; display: flex; gap: 14px; align-items: baseline; line-height: 1.4; }
+.mark { font-size: 13px; width: 14px; flex: none; }
+.done .mark { color: var(--accent); }
+.notyet li { color: var(--ink-mid); }
+
+/* 9 수익 */
+.money { display: grid; grid-template-columns: 1fr 340px; gap: 60px; align-items: stretch; }
+.side { border-left: 1px solid var(--line); padding-left: 40px; display: flex; flex-direction: column; justify-content: center; }
+.side-k { font-size: 15px; color: var(--ink-soft); }
+.side-v { font-size: 20px; color: var(--ink-mid); line-height: 1.5; margin-top: 12px; }
+.side-n { font-size: 38px; font-weight: 600; color: var(--ac); margin-top: 28px; letter-spacing: -0.02em; }
+.side-s { font-size: 15px; color: var(--ink-soft); margin-top: 8px; }
+.payrow {
+  display: grid;
+  grid-template-columns: 120px 1fr 250px;
+  align-items: baseline;
+  gap: 22px;
+  padding: 27px 0;
+  border-bottom: 1px solid var(--line);
+}
+.payrow:last-child { border-bottom: 0; }
+.pay-when { font-size: 15px; color: var(--ink-soft); }
+.pay-who { font-size: 29px; }
+.pay-how { font-size: 19px; color: var(--ink-mid); text-align: right; }
+.payrow.free .pay-who, .payrow.free .pay-how { color: var(--ink-soft); }
+.payrow.core .pay-who { font-weight: 600; color: var(--accent); }
+.payrow.core .pay-how { color: var(--ink); }
+
+/* 10 마무리 */
+.close-grid { display: grid; grid-template-columns: 1fr 224px; gap: 80px; align-items: center; }
+.close-line { font-size: 34px; line-height: 1.5; margin-top: 32px; max-width: 900px; color: var(--fg-mid); }
+.close-thanks { font-size: 24px; color: var(--fg-soft); margin-top: 64px; }
+
+/* 백업 */
+.qa-q { font-size: 34px; font-weight: 600; line-height: 1.3; text-wrap: balance; }
+.qa-a { font-size: 23px; line-height: 1.6; color: var(--ink-mid); max-width: 980px; }
+.qa-a + .qa-a { margin-top: 18px; }
+.qa-a b { color: var(--ink); font-weight: 600; }
+.src { font-size: 15px; color: var(--ink-soft); margin-top: 30px; }
+.badge {
+  position: absolute; left: 92px; bottom: 44px;
+  font-size: 14px; color: var(--ink-soft);
+  border: 1px solid var(--line); border-radius: 20px; padding: 5px 14px;
+}
+
+/* 진행 표시 — 프레임 안에 붙는다 */
+#rail { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; z-index: 10; }
+#rail i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 150ms ease-out; }
+@media (prefers-reduced-motion: reduce) { #rail i { transition: none; } }
+
+/* 인쇄 — ?only= 로 고른 묶음만 한 장씩 */
+@page { size: 1280px 720px; margin: 0; }
+@media print {
+  html, body { overflow: visible; height: auto; background: var(--bg); }
+  #stage { position: static; display: block; background: var(--bg); }
+  #frame { width: 1280px; height: auto; transform: none; overflow: visible; }
+  #rail { display: none; }
+  .slide { display: none !important; }
+  .slide.inplay { display: grid !important; position: relative; height: 720px; }
+  .slide.inplay + .slide.inplay { break-before: page; page-break-before: always; }
+}
+</style>
+</head>
+<body>
+
+<div id="stage">
+<div id="frame">
+
+  <!-- 1 표지 -->
+  <section class="slide center dark on">
+    <div class="content cover-grid">
+      <div>
+        <p class="wordmark">Bside</p>
+        <p class="tagline">Connect with who&#39;s beside you.</p>
+        <p class="oneliner">같은 행사에 온 사람 중 지금 만나고 싶은 사람을 찾아주는 앱</p>
+        <p class="cover-meta">코쓱톤 2026 &nbsp;|&nbsp; TEAM ○</p>
+      </div>
+      <div class="phone"><img src="assets/w2-room.png" alt="Bside 참가자 목록 화면"></div>
+    </div>
+  </section>
+
+  <!-- 2 문제 -->
+  <section class="slide">
+    <header>
+      <h2>혼자 온 참가자, 네트워킹 30분간 대화 상대 없음</h2>
+      <p class="sub">가정한 참가자 한 명의 30분</p>
+    </header>
+    <div class="content">
+      <div class="facts">
+        <div class="fact"><p class="fact-n">30분</p><p class="fact-l">주어진 네트워킹 시간</p></div>
+        <div class="fact"><p class="fact-n">0명</p><p class="fact-l">행사장에서 아는 사람</p></div>
+        <div class="fact"><p class="fact-n">3장</p><p class="fact-l">받은 명함</p></div>
+        <div class="fact zero"><p class="fact-n">0건</p><p class="fact-l">시작한 대화</p></div>
+      </div>
+      <p class="note big">사람이 없어서가 아니라, 누가 어떤 이야기를 원하는지 알 수 없는 점이 원인</p>
+    </div>
+    <p class="num">2</p>
+  </section>
+
+  <!-- 3 기존 앱 -->
+  <section class="slide">
+    <header>
+      <h2>전용 앱을 만들어도 참가자 절반은 쓰지 않음</h2>
+    </header>
+    <div class="content">
+      <div class="stat-split">
+        <div>
+          <span class="big-n">15%</span>
+          <p class="big-l">자기 행사의 네트워킹이 효과적이라고 답한 주최자 비율</p>
+        </div>
+        <div class="two-stat">
+          <div class="mini"><p class="mini-n">58%</p><p class="mini-l">TechBBQ 전용 앱 설치율</p></div>
+          <div class="mini"><p class="mini-n">39%</p><p class="mini-l">앱 설치자 중 미팅 수락률</p></div>
+        </div>
+      </div>
+      <p class="note dim">행사 전에 앱 설치, 프로필 작성, 미팅 예약을 모두 마쳐야 하는 구조</p>
+    </div>
+    <p class="num">3</p>
+  </section>
+
+  <!-- 4 흐름 -->
+  <section class="slide dark">
+    <header>
+      <h2>서비스 흐름</h2>
+    </header>
+    <div class="content">
+      <div class="strip">
+        <figure>
+          <div class="phone"><img src="assets/w1-entry.png" alt="입장 화면"></div>
+          <figcaption>
+            <p class="cap-i">01</p><p class="cap-t">두 줄 입력</p><p class="cap-s">계정 없이 30초</p>
+          </figcaption>
+        </figure>
+        <figure>
+          <div class="phone"><img src="assets/w2-room.png" alt="참가자 목록 화면"></div>
+          <figcaption>
+            <p class="cap-i">02</p><p class="cap-t">같은 방 참가자</p><p class="cap-s">46명 중 16명을 추천으로 추림</p>
+          </figcaption>
+        </figure>
+        <figure class="key">
+          <div class="phone"><img src="assets/w3-detail.png" alt="추천 이유 화면"></div>
+          <figcaption>
+            <p class="cap-i">03</p><p class="cap-t">추천과 이유</p><p class="cap-s">왜 이 사람인지 원문으로 설명</p>
+          </figcaption>
+        </figure>
+        <figure class="key">
+          <div class="phone"><img src="assets/w4-chat.png" alt="1:1 채팅 화면"></div>
+          <figcaption>
+            <p class="cap-i">04</p><p class="cap-t">1:1 채팅</p><p class="cap-s">수락 절차 없이 바로 시작</p>
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+    <p class="num">4</p>
+  </section>
+
+  <!-- 5 시연 영상 -->
+  <section class="slide video-slide dark">
+    <div class="content video-grid">
+      <div class="video-box"><div class="play"><i></i></div></div>
+      <div>
+        <p class="video-k">시연 영상</p>
+        <p class="video-len">80초 · 실기기 2대 촬영</p>
+        <ul class="video-list">
+          <li><b>00:00</b>QR로 들어와 두 줄을 적고 입장</li>
+          <li><b>00:20</b>46명 중 16명이 추천으로 추려짐</li>
+          <li><b>00:45</b>교류 의도만 고치면 추천이 바뀜</li>
+          <li><b>01:05</b>바로 채팅을 열고 답장까지</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 차별점 -->
+  <section class="slide dark">
+    <header>
+      <h2>프로필이 아니라 지금 만나고 싶은 사람을 받음</h2>
+      <p class="sub">자기소개와 교류 의도를 따로 입력받는다</p>
+    </header>
+    <div class="content hero">
+      <div>
+        <div class="shot"><img src="assets/w-detail-top.png" alt="추천 이유가 붙은 상세 화면"></div>
+        <p class="cap">실제 화면. 추천마다 양쪽 원문을 근거로 이유를 붙인다</p>
+      </div>
+      <div>
+        <div class="pair bad">
+          <p class="pair-tag">프로필만 받는 서비스</p>
+          <p class="pair-who">경력과 기술 태그</p>
+          <p class="pair-out">비슷한 사람을 찾아주지만, 오늘 무엇을 원하는지는 모름</p>
+        </div>
+        <div class="pair good">
+          <p class="pair-tag">Bside</p>
+          <p class="pair-who">자기소개 + 교류 의도</p>
+          <p class="pair-out">자기소개가 같아도 교류 의도가 바뀌면 추천이 바뀜</p>
+        </div>
+      </div>
+    </div>
+    <p class="num">6</p>
+  </section>
+
+  <!-- 7 AI 설계 -->
+  <section class="slide">
+    <header>
+      <h2>AI가 실패해도 서비스는 멈추지 않음</h2>
+    </header>
+    <div class="content">
+      <div class="split">
+        <div class="col llm">
+          <h3>LLM이 판단</h3>
+          <ul>
+            <li>양쪽 의도를 읽고 추천 순서 결정</li>
+            <li>원문을 근거로 추천 이유 생성</li>
+          </ul>
+        </div>
+        <div class="col">
+          <h3>코드가 보장</h3>
+          <ul>
+            <li>후보 범위와 참가 상태 결정</li>
+            <li>조회자와 후보의 원문 버전 검증</li>
+            <li>참가자 입력은 데이터로만 취급. 안에 든 지시는 규칙을 못 바꿈</li>
+            <li>숫자 점수는 응답에 넣지 않음</li>
+          </ul>
+        </div>
+      </div>
+      <div class="tech-notes">
+        <p class="tnote"><b>추천 상태 5종.</b> ready, pending, unscored, failed, unavailable을 구분한다. 평가하지 않은 후보를 평가한 것처럼 보이지 않는다</p>
+        <p class="tnote"><b>읽기는 모델을 기다리지 않음.</b> 추천이 늦거나 실패해도 목록과 채팅은 그대로 동작한다</p>
+      </div>
+    </div>
+    <p class="num">7</p>
+  </section>
+
+  <!-- 8 MVP 범위와 프로덕션 -->
+  <section class="slide">
+    <header>
+      <h2>48시간에 남긴 것과 프로덕션에서 더할 것</h2>
+    </header>
+    <div class="content built">
+      <div class="done">
+        <h3>MVP에서 완성</h3>
+        <ul>
+          <li><span class="mark">●</span>계정 없는 입장과 두 줄 입력</li>
+          <li><span class="mark">●</span>같은 방 전원 목록과 추천 순위</li>
+          <li><span class="mark">●</span>원문을 근거로 한 추천 이유</li>
+          <li><span class="mark">●</span>수락 절차 없는 1:1 채팅</li>
+          <li><span class="mark">●</span>원문 수정, 참여 중단과 재개</li>
+        </ul>
+      </div>
+      <div class="notyet">
+        <h3>프로덕션 전환 시</h3>
+        <ul>
+          <li><span class="mark">→</span>계정과 기기 간 동기화</li>
+          <li><span class="mark">→</span>앱을 닫은 뒤의 푸시 알림</li>
+          <li><span class="mark">→</span>주최자 대시보드와 방 관리</li>
+          <li><span class="mark">→</span>사진, 파일, 읽음 표시</li>
+        </ul>
+      </div>
+      <figure>
+        <div class="phone"><img src="assets/w2-room.png" alt="추천이 표시된 참가자 목록"></div>
+        <p class="cap">추천 16명이 표시된 목록</p>
+      </figure>
+    </div>
+    <p class="num">8</p>
+  </section>
+
+  <!-- 9 수익 -->
+  <section class="slide">
+    <header>
+      <h2>행사 주최자 대상 건별 과금</h2>
+    </header>
+    <div class="content money">
+      <div>
+        <div class="pay">
+          <div class="payrow free"><span class="pay-when">지금</span><span class="pay-who">참가자</span><span class="pay-how">무료, 1인당 원가 20~30원</span></div>
+          <div class="payrow core"><span class="pay-when">1차</span><span class="pay-who">행사 주최자</span><span class="pay-how">행사당 30~50만원</span></div>
+          <div class="payrow"><span class="pay-when">2차</span><span class="pay-who">대학 사업단</span><span class="pay-how">연 300~500만원</span></div>
+          <div class="payrow"><span class="pay-when">3차</span><span class="pay-who">기업 HR</span><span class="pay-how">1인당 월 6,000원</span></div>
+        </div>
+        <p class="note dim">핵심 지표는 주최자가 다음 행사에도 쓰는지 여부</p>
+      </div>
+      <div class="side">
+        <p class="side-k">시장 관행</p>
+        <p class="side-v">행사 네트워킹 업체는 모두 주최자에게 과금한다. 참가자에게 받는 곳은 없다</p>
+        <p class="side-n">€700 ~ $18,000</p>
+        <p class="side-s">업체별 연간 또는 행사당 단가</p>
+      </div>
+    </div>
+    <p class="num">9</p>
+  </section>
+
+  <!-- 10 마무리 -->
+  <section class="slide center dark">
+    <div class="content close-grid">
+      <div>
+        <p class="wordmark">Bside</p>
+        <p class="close-line">네트워킹 시간에 누구에게 말을 걸어야 할지 알려주는 앱</p>
+        <p class="close-thanks">감사합니다.</p>
+      </div>
+      <div class="phone"><img src="assets/w4-chat.png" alt="Bside 1:1 채팅 화면"></div>
+    </div>
+  </section>
+
+  <!-- 백업. 질의응답용, 별도 파일로 나간다 -->
+
+  <section class="slide" data-backup>
+    <header><p class="qa-q">Brella, Swapcard가 이미 AI 매칭을 하는데요?</p></header>
+    <div class="content">
+      <p class="qa-a">그 서비스들은 <b>사전 계획형</b>입니다. 행사 전에 앱을 깔고 프로필을 채우고 미팅을 예약합니다. 그래서 대표 사례도 설치율 58%, 수락률 39%입니다.</p>
+      <p class="qa-a">저희는 <b>현장 즉흥형</b>입니다. 두 줄을 적으면 30초 뒤에 같은 방에서 지금 맞는 사람과 그 이유를 받습니다.</p>
+      <p class="src">Brella 벤치마크, TechBBQ 사례</p>
+    </div>
+    <p class="badge">백업</p>
+  </section>
+
+  <section class="slide" data-backup>
+    <header><p class="qa-q">행사 앱은 이미 많은데 왜 또 만드나요?</p></header>
+    <div class="content">
+      <p class="qa-a">기존 서비스는 <b>프로필을 받습니다.</b> 경력과 기술 태그로 비슷한 사람을 찾아주지만, 그 사람이 오늘 무엇을 원하는지는 모릅니다.</p>
+      <p class="qa-a">저희는 <b>자기소개와 교류 의도를 따로 받습니다.</b> 같은 사람이라도 오늘 배포를 물어보고 싶은 날과 팀원을 구하는 날의 추천이 달라집니다.</p>
+      <p class="qa-a">국내 이벤터스, 온오프믹스, 페스타 중 참가자 간 매칭을 제공하는 곳은 없습니다.</p>
+    </div>
+    <p class="badge">백업</p>
+  </section>
+
+  <section class="slide" data-backup>
+    <header><p class="qa-q">추천이 안 맞거나 아예 안 나오면요?</p></header>
+    <div class="content">
+      <p class="qa-a">이유를 지어내지 않습니다. <b>평가하지 못한 후보는 unscored로 남기고 추천 이유를 비웁니다.</b> 근거 없는 설명을 ready로 표시하지 않습니다.</p>
+      <p class="qa-a">추천이 0건이어도 <b>같은 방 전체 목록은 그대로 보이고 채팅도 됩니다.</b> 추천은 순서를 바꿀 뿐 목록을 대체하지 않습니다.</p>
+      <p class="qa-a">원문을 고치면 추천을 다시 계산합니다. 오래된 결과가 새 입력의 추천을 덮어쓰지 않도록 양쪽 원문 버전을 확인합니다.</p>
+    </div>
+    <p class="badge">백업</p>
+  </section>
+
+  <section class="slide" data-backup>
+    <header><p class="qa-q">개인정보와 안전은 어떻게 됩니까?</p></header>
+    <div class="content">
+      <p class="qa-a"><b>계정이 없습니다.</b> 닉네임과 두 줄만 받고 이메일이나 전화번호를 요구하지 않습니다.</p>
+      <p class="qa-a">원문과 대화는 <b>같은 방 참가자에게만</b> 보입니다. 참여를 중단하면 목록과 추천 후보에서 빠지고 새 메시지가 막힙니다.</p>
+      <p class="qa-a"><b>행사 종료 1시간 뒤에 원문, 대화, 추천 캐시를 삭제합니다.</b> 정리 작업은 1분 주기로 돌고, 서버가 내려가 있었다면 재기동 뒤에 밀린 삭제를 실행합니다.</p>
+    </div>
+    <p class="badge">백업</p>
+  </section>
+
+  <section class="slide" data-backup>
+    <header><p class="qa-q">확장은 어디까지 되나요?</p></header>
+    <div class="content">
+      <p class="qa-a">사람이 모여 있고 서로를 모르는 자리면 같은 구조가 그대로 돕니다. 해커톤, 컨퍼런스, 사내 온보딩, 대학 신입생 오리엔테이션입니다.</p>
+      <p class="qa-a"><b>국내 신입 퇴사 사유 1위가 조직·직무 적응 실패로 49.1% (경총).</b> 적응은 첫 관계에서 갈립니다.</p>
+      <p class="src">한국경영자총협회</p>
+    </div>
+    <p class="badge">백업</p>
+  </section>
+
+  <div id="rail"><i></i></div>
+</div>
+</div>
+
+<script>
+(function () {
+  var all = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var frame = document.getElementById('frame');
+  var bar = document.querySelector('#rail i');
+
+  // ?only=main | backup
+  var only = (/[?&]only=(\w+)/.exec(location.search) || [])[1];
+  var slides = all.filter(function (el) {
+    if (only === 'main') return !el.hasAttribute('data-backup');
+    if (only === 'backup') return el.hasAttribute('data-backup');
+    return true;
+  });
+  slides.forEach(function (el) { el.classList.add('inplay'); });
+
+  var i = 0;
+
+  function fit() {
+    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    frame.style.setProperty('--scale', s);
+  }
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    all.forEach(function (el) { el.classList.remove('on'); });
+    slides[i].classList.add('on');
+    bar.style.width = ((i + 1) / slides.length * 100) + '%';
+  }
+
+  window.addEventListener('resize', fit);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+
+  frame.addEventListener('click', function (e) {
+    var r = frame.getBoundingClientRect();
+    show(e.clientX < r.left + r.width * 0.25 ? i - 1 : i + 1);
+  });
+
+  // ?s=N — PNG 추출 시 특정 장만 띄운다
+  var q = parseInt((/[?&]s=(\d+)/.exec(location.search) || [])[1], 10);
+  fit();
+  show(isNaN(q) ? 0 : q - 1);
+})();
+</script>
+
+</body>
+</html>
