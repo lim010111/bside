@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>[이전 행사 MVP 이력] Bside 발표</title>
+<title>Bside 발표</title>
 <style>
 @import url('https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css');
@@ -315,8 +315,6 @@ h2 {
 </style>
 </head>
 <body>
-<aside style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#fff3cd;color:#332701;font:14px sans-serif;padding:8px;text-align:center">이전 행사 MVP 발표 이력 · 현재 BLE 발표 흐름: <a href="script.md">script.md</a> · 현재 제출본 아님</aside>
-
 <div id="stage">
 <div id="frame">
 
@@ -326,7 +324,7 @@ h2 {
       <div>
         <p class="wordmark">Bside</p>
         <p class="tagline">Connect with who&#39;s beside you.</p>
-        <p class="oneliner">같은 행사에 온 사람 중 지금 만나고 싶은 사람을 찾아주는 앱</p>
+        <p class="oneliner">가까이 있는 사람 중 지금 만나고 싶은 사람을 찾아주는 앱</p>
         <p class="cover-meta">코쓱톤 2026 &nbsp;|&nbsp; TEAM ○</p>
       </div>
       <div class="phone"><img src="assets/w2-room.png" alt="Bside 참가자 목록 화면"></div>
@@ -342,7 +340,7 @@ h2 {
     <div class="content">
       <div class="facts">
         <div class="fact"><p class="fact-n">30분</p><p class="fact-l">주어진 네트워킹 시간</p></div>
-        <div class="fact"><p class="fact-n">0명</p><p class="fact-l">행사장에서 아는 사람</p></div>
+        <div class="fact"><p class="fact-n">0명</p><p class="fact-l">그 자리에서 아는 사람</p></div>
         <div class="fact"><p class="fact-n">3장</p><p class="fact-l">받은 명함</p></div>
         <div class="fact zero"><p class="fact-n">0건</p><p class="fact-l">시작한 대화</p></div>
       </div>
@@ -376,6 +374,7 @@ h2 {
   <section class="slide dark">
     <header>
       <h2>서비스 흐름</h2>
+      <p class="sub">발견을 켜면 주변 참여자가 보이고, 이유와 함께 추천됨</p>
     </header>
     <div class="content">
       <div class="strip">
@@ -388,7 +387,7 @@ h2 {
         <figure>
           <div class="phone"><img src="assets/w2-room.png" alt="참가자 목록 화면"></div>
           <figcaption>
-            <p class="cap-i">02</p><p class="cap-t">같은 방 참가자</p><p class="cap-s">45명 중 5명을 추천으로 추림</p>
+            <p class="cap-i">02</p><p class="cap-t">주변 참여자</p><p class="cap-s">45명 중 5명을 추천으로 추림</p>
           </figcaption>
         </figure>
         <figure class="key">
@@ -404,6 +403,7 @@ h2 {
           </figcaption>
         </figure>
       </div>
+      <p class="cap">화면은 현재 구현된 React 층. 발견을 BLE로 교체하는 중</p>
     </div>
     <p class="num">4</p>
   </section>
@@ -416,8 +416,8 @@ h2 {
         <p class="video-k">시연 영상</p>
         <p class="video-len">80초 · 실기기 2대 촬영</p>
         <ul class="video-list">
-          <li><b>00:00</b>QR로 들어와 두 줄을 적고 입장</li>
-          <li><b>00:20</b>45명 중 5명이 추천으로 추려짐</li>
+          <li><b>00:00</b>발견을 켜고 두 줄을 적음</li>
+          <li><b>00:20</b>주변 참여자 중 5명이 추천으로 추려짐</li>
           <li><b>00:45</b>교류 의도만 고치면 추천이 바뀜</li>
           <li><b>01:05</b>바로 채팅을 열고 답장까지</li>
         </ul>
@@ -469,7 +469,7 @@ h2 {
         <div class="col">
           <h3>코드가 보장</h3>
           <ul>
-            <li>후보 범위와 참가 상태 결정</li>
+            <li>후보 범위와 근접 관측 유효성 결정</li>
             <li>조회자와 후보의 원문 버전 검증</li>
             <li>참가자 입력은 데이터로만 취급. 안에 든 지시는 규칙을 못 바꿈</li>
             <li>숫자 점수는 응답에 넣지 않음</li>
@@ -494,7 +494,7 @@ h2 {
         <h3>MVP에서 완성</h3>
         <ul>
           <li><span class="mark">●</span>계정 없는 입장과 두 줄 입력</li>
-          <li><span class="mark">●</span>같은 방 전원 목록과 추천 순위</li>
+          <li><span class="mark">●</span>참여자 전원 목록과 추천 순위</li>
           <li><span class="mark">●</span>원문을 근거로 한 추천 이유</li>
           <li><span class="mark">●</span>수락 절차 없는 1:1 채팅</li>
           <li><span class="mark">●</span>원문 수정, 참여 중단과 재개</li>
@@ -503,9 +503,9 @@ h2 {
       <div class="notyet">
         <h3>프로덕션 전환 시</h3>
         <ul>
-          <li><span class="mark">→</span>계정과 기기 간 동기화</li>
-          <li><span class="mark">→</span>앱을 닫은 뒤의 푸시 알림</li>
-          <li><span class="mark">→</span>주최자 대시보드와 방 관리</li>
+          <li><span class="mark">→</span>BLE 주변 발견과 Android 네이티브 층</li>
+          <li><span class="mark">→</span>앱을 닫은 뒤의 추천 알림</li>
+          <li><span class="mark">→</span>다른 기기에서의 복원</li>
           <li><span class="mark">→</span>사진, 파일, 읽음 표시</li>
         </ul>
       </div>
@@ -520,17 +520,17 @@ h2 {
   <!-- 9 수익 -->
   <section class="slide">
     <header>
-      <h2>행사 주최자 대상 건별 과금</h2>
+      <h2>참가자는 무료, 지불자는 공간을 여는 쪽</h2>
     </header>
     <div class="content money">
       <div>
         <div class="pay">
           <div class="payrow free"><span class="pay-when">지금</span><span class="pay-who">참가자</span><span class="pay-how">무료, 1인당 원가 20~30원</span></div>
           <div class="payrow core"><span class="pay-when">1차</span><span class="pay-who">행사 주최자</span><span class="pay-how">행사당 30~50만원</span></div>
-          <div class="payrow"><span class="pay-when">2차</span><span class="pay-who">대학 사업단</span><span class="pay-how">연 300~500만원</span></div>
-          <div class="payrow"><span class="pay-when">3차</span><span class="pay-who">기업 HR</span><span class="pay-how">1인당 월 6,000원</span></div>
+          <div class="payrow"><span class="pay-when">2차</span><span class="pay-who">대학·기업의 상시 공간</span><span class="pay-how">연 단위</span></div>
+          <div class="payrow"><span class="pay-when">검증</span><span class="pay-who">행사 밖 밀도</span><span class="pay-how">후속 과제</span></div>
         </div>
-        <p class="note dim">핵심 지표는 주최자가 다음 행사에도 쓰는지 여부</p>
+        <p class="note dim">방 준비가 없어지면서 상시 공간이 후보가 됨. 밀도와 반복 사용은 아직 검증 전</p>
       </div>
       <div class="side">
         <p class="side-k">시장 관행</p>
@@ -560,7 +560,7 @@ h2 {
     <header><p class="qa-q">Brella, Swapcard가 이미 AI 매칭을 하는데요?</p></header>
     <div class="content">
       <p class="qa-a">그 서비스들은 <b>사전 계획형</b>입니다. 행사 전에 앱을 깔고 프로필을 채우고 미팅을 예약합니다. 그래서 대표 사례도 설치율 58%, 수락률 39%입니다.</p>
-      <p class="qa-a">저희는 <b>현장 즉흥형</b>입니다. 두 줄을 적으면 30초 뒤에 같은 방에서 지금 맞는 사람과 그 이유를 받습니다.</p>
+      <p class="qa-a">저희는 <b>현장 즉흥형</b>입니다. 두 줄을 적으면 30초 뒤에 주변에서 지금 맞는 사람과 그 이유를 받습니다.</p>
       <p class="src">Brella 벤치마크, TechBBQ 사례</p>
     </div>
     <p class="badge">백업</p>
@@ -580,7 +580,7 @@ h2 {
     <header><p class="qa-q">추천이 안 맞거나 아예 안 나오면요?</p></header>
     <div class="content">
       <p class="qa-a">이유를 지어내지 않습니다. <b>평가하지 못한 후보는 unscored로 남기고 추천 이유를 비웁니다.</b> 근거 없는 설명을 ready로 표시하지 않습니다.</p>
-      <p class="qa-a">추천이 0건이어도 <b>같은 방 전체 목록은 그대로 보이고 채팅도 됩니다.</b> 추천은 순서를 바꿀 뿐 목록을 대체하지 않습니다.</p>
+      <p class="qa-a">추천이 0건이어도 <b>주변 참여자 전체 목록은 그대로 보이고 채팅도 됩니다.</b> 추천은 순서를 바꿀 뿐 목록을 대체하지 않습니다.</p>
       <p class="qa-a">원문을 고치면 추천을 다시 계산합니다. 오래된 결과가 새 입력의 추천을 덮어쓰지 않도록 양쪽 원문 버전을 확인합니다.</p>
     </div>
     <p class="badge">백업</p>
@@ -590,8 +590,8 @@ h2 {
     <header><p class="qa-q">개인정보와 안전은 어떻게 됩니까?</p></header>
     <div class="content">
       <p class="qa-a"><b>계정이 없습니다.</b> 닉네임과 두 줄만 받고 이메일이나 전화번호를 요구하지 않습니다.</p>
-      <p class="qa-a">원문과 대화는 <b>같은 방 참가자에게만</b> 보입니다. 참여를 중단하면 목록과 추천 후보에서 빠지고 새 메시지가 막힙니다.</p>
-      <p class="qa-a"><b>행사 종료 1시간 뒤에 원문, 대화, 추천 캐시를 삭제합니다.</b> 정리 작업은 1분 주기로 돌고, 서버가 내려가 있었다면 재기동 뒤에 밀린 삭제를 실행합니다.</p>
+      <p class="qa-a">원문과 대화는 <b>유효하게 발견된 상대에게만</b> 보입니다. 발견을 끄면 새 발견과 새 대화 시작이 멈추고, <b>이미 시작한 대화는 그대로 유지됩니다.</b></p>
+      <p class="qa-a">이번 MVP는 <b>시간이 지났다는 이유만으로 대화를 지우지 않습니다.</b> 근접 관측과 임시 식별자의 기술적 만료는 대화 삭제와 구분합니다. 보관 정책은 다음 단계에서 정합니다.</p>
     </div>
     <p class="badge">백업</p>
   </section>
@@ -599,7 +599,7 @@ h2 {
   <section class="slide" data-backup>
     <header><p class="qa-q">확장은 어디까지 되나요?</p></header>
     <div class="content">
-      <p class="qa-a">사람이 모여 있고 서로를 모르는 자리면 같은 구조가 그대로 돕니다. 해커톤, 컨퍼런스, 사내 온보딩, 대학 신입생 오리엔테이션입니다.</p>
+      <p class="qa-a">사람이 모여 있고 서로를 모르는 자리면 같은 구조가 그대로 돕니다. <b>방을 미리 열어둘 필요가 없어서</b> 해커톤과 컨퍼런스뿐 아니라 사내 온보딩, 대학 신입생 오리엔테이션, 코워킹 공간까지 이어집니다.</p>
       <p class="qa-a"><b>국내 신입 퇴사 사유 1위가 조직·직무 적응 실패로 49.1% (경총).</b> 적응은 첫 관계에서 갈립니다.</p>
       <p class="src">한국경영자총협회</p>
     </div>
