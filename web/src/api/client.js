@@ -1,27 +1,67 @@
-// 진짜 백엔드. docs/api-contract.md의 /api/* 경로에 맞춘다.
-// T05(첫 실제 통합)에서 채운다. 함수 이름·인자·리턴 모양은 mock.js와 반드시
-// 같아야 한다 — 화면 코드는 이 파일이 채워져도 한 줄도 안 바뀐다.
-//
-// 지금은 전부 미구현이다. VITE_USE_MOCK=0으로 바꾸면 바로 이 에러가 뜬다.
+import { ApiError } from '../lib/contracts.js';
 
-const BASE = import.meta.env.VITE_API_BASE ?? '';
+const EVENTS = ['ready', 'participants.changed', 'recommendation.changed', 'conversation.changed', 'self.changed', 'room.closed'];
 
-function notImplemented(name) {
-  throw new Error(
-    `api/client.js: ${name}() 미구현. T05(첫 실제 통합)에서 채운다. ` +
-    `그 전까지는 .env에서 VITE_USE_MOCK=1을 유지할 것. BASE=${BASE || '(미설정)'}`
-  );
+// Authentication uses the server's HttpOnly cookie, never a public participant ID.
+export function createClient({ base = '', fetcher = globalThis.fetch, EventStream = globalThis.EventSource, timeout = 15000 } = {}) {
+  const roomPath = (code) => '/api/rooms/' + encodeURIComponent(code);
+  async function request(path, { method = 'GET', body, signal } = {}) {
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    signal?.addEventListener('abort', abort, { once: true });
+    if (signal?.aborted) controller.abort();
+    const timer = setTimeout(abort, timeout);
+    try {
+      const response = await fetcher(base.replace(/\/$/, '') + path, {
+        method, credentials: 'include', signal: controller.signal,
+        headers: { Accept: 'application/json', ...(body ? { 'Content-Type': 'application/json' } : {}) },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new ApiError(data?.error?.code || 'REQUEST_FAILED', data?.error?.message || '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.', {
+          status: response.status, fields: data?.error?.fields,
+          retryAfter: Number(response.headers.get('Retry-After')) || 0,
+        });
+      }
+      if (!data || typeof data !== 'object') throw new ApiError('INVALID_RESPONSE', '서버 응답을 확인하지 못했어요. 다시 시도해 주세요.');
+      return data;
+    } catch (error) {
+      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+      if (error instanceof ApiError) throw error;
+      throw new ApiError('CONNECTION_FAILED', '연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.');
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', abort);
+    }
+  }
+  const call = (code, suffix, options) => request(roomPath(code) + suffix, options);
+  const self = (result) => result.participant ?? result;
+  return {
+    ensureSession: (options) => request('/api/session', { ...options, method: 'POST' }),
+    getRoom: async (code, options) => (await call(code, '', options)).room,
+    getMe: async (code, options) => {
+      try { return self(await call(code, '/me', options)); }
+      catch (error) { if (error.code === 'PARTICIPATION_REQUIRED') return null; throw error; }
+    },
+    join: async (code, payload, options) => self(await call(code, '/participants', { ...options, method: 'POST', body: payload })),
+    updateMe: async (code, payload, options) => self(await call(code, '/me', { ...options, method: 'PATCH', body: payload })),
+    stop: async (code, options) => self(await call(code, '/me/stop', { ...options, method: 'POST' })),
+    resume: async (code, options) => self(await call(code, '/me/resume', { ...options, method: 'POST' })),
+    getParticipants: (code, options) => call(code, '/participants', options),
+    getParticipant: (code, id, options) => call(code, '/participants/' + encodeURIComponent(id), options),
+    getRecommendations: (code, options) => call(code, '/recommendations', options),
+    refreshRecommendations: (code, options) => call(code, '/recommendations/refresh', { ...options, method: 'POST' }),
+    getConversations: (code, options) => call(code, '/conversations', options),
+    sendMessage: (code, payload, options) => call(code, '/messages', { ...options, method: 'POST', body: payload }),
+    getMessages: (code, id, query = {}, options) => call(code, '/conversations/' + encodeURIComponent(id) + '/messages?' + new URLSearchParams({ limit: 50, ...query }), options),
+    subscribe(code, onEvent, onError) {
+      const stream = new EventStream(base.replace(/\/$/, '') + roomPath(code) + '/events', { withCredentials: true });
+      for (const type of EVENTS) stream.addEventListener(type, (event) => {
+        try { onEvent({ type, data: JSON.parse(event.data) }); } catch { onError(); }
+      });
+      stream.onerror = onError;
+      return () => stream.close();
+    },
+  };
 }
-
-export async function getRoom(_code) { notImplemented('getRoom'); }
-export async function closeRoom(_code) { notImplemented('closeRoom'); }
-export async function join(_code, _payload) { notImplemented('join'); }
-export async function getMe(_code, _id) { notImplemented('getMe'); }
-export async function updateMe(_code, _id, _payload) { notImplemented('updateMe'); }
-export async function stop(_code, _id) { notImplemented('stop'); }
-export async function resume(_code, _id) { notImplemented('resume'); }
-export async function getParticipants(_code, _viewerId) { notImplemented('getParticipants'); }
-export async function getParticipant(_code, _viewerId, _targetId) { notImplemented('getParticipant'); }
-export async function getRecommendations(_code, _viewerId) { notImplemented('getRecommendations'); }
-export async function heartbeat(_code, _id) { notImplemented('heartbeat'); }
-export async function getDashboard(_code) { notImplemented('getDashboard'); }
