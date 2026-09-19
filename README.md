@@ -23,7 +23,9 @@
 
 ## 구현·검증 상태
 
-최신 main `16349c7`에는 React/Vite 화면, 행사 기반 HTTP/SSE 클라이언트, 브라우저 데모와 회귀 테스트가 있습니다. 개발 실행은 데모, 일반 배포 빌드는 실제 HTTP 연결을 기본으로 합니다. FastAPI·Redis 기반은 있지만 서버 제품 API, Capacitor·Kotlin 계층, BLE·두 사용자 통합은 미구현·미검증입니다. AI 추천은 `server/app/ai/`에 독립 모듈로 구현했으며, HTTP 엔드포인트·Android 연결은 아직 남아 있습니다. 기존 웹 구현과 새 BLE 계약의 차이는 [프론트 README](web/README.md)에 기록했습니다.
+통합 기준 `main`(`a85292f`)에는 API v0.1을 사용하는 React/Capacitor 화면, FastAPI·Redis의 설치 인증·프로필·발견 관측·채팅, Kotlin BLE 네이티브 계층이 구현돼 있습니다. Android 실기기 두 대에서 BLE 발견부터 메시지 왕복까지 확인한 기존 결과는 [실기기 검증 기록](web/VERIFICATION.md)에 있습니다. 공용 HTTPS 배포 환경과 백그라운드·화면 꺼짐 상태의 발견은 별도 검증이 남아 있습니다.
+
+AI 추천은 `server/app/ai/`의 독립 모듈로 구현했고 **Haiku(`claude-haiku-4-5`)로 진행**합니다. [모델 비교 결과](server/docs/ai-model-comparison.md)에 근거해 선택했으며, 20명 첫 평가의 5초 목표는 아직 미달입니다. API v0.1 응답은 계속 `recommendation.status: unavailable`이고 AI 모듈의 HTTP·Android 연결과 실제 추천 알림은 후속 작업입니다.
 
 자동 추천 알림은 일단 포함하고 실제 문제가 확인되면 재검토합니다. 장시간 배터리 최적화·iPhone·교차 OS는 후속 범위입니다. 플랫폼 선택은 현재 개발 환경의 설치 여부가 아니라 제품 요구와 기존 화면 자산을 근거로 했습니다.
 

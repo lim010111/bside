@@ -1,24 +1,17 @@
 import { useEffect, useRef } from 'react';
-import { useRoom } from './use-room.js';
+import { useDiscovery } from './use-discovery.js';
 import { ErrorNotice, Loading } from './components/Feedback.jsx';
 import Entry from './screens/Entry.jsx';
-import Room from './screens/Room.jsx';
+import Nearby from './screens/Nearby.jsx';
 import Detail from './screens/Detail.jsx';
 import Chat from './screens/Chat.jsx';
 import Conversations from './screens/Conversations.jsx';
-import Dashboard from './screens/Dashboard.jsx';
-import Ended from './screens/Ended.jsx';
-
-const dashboard = new URLSearchParams(window.location.search).get('view') === 'dashboard';
 
 export default function App() {
-  const { state, actions } = useRoom();
+  const { state, actions } = useDiscovery();
   const main = useRef(null);
-  const page = state.room?.status === 'closed' ? 'ended' : !state.me ? 'entry' : state.view;
-  const connecting = state.me && !['connected', 'closed'].includes(state.connection);
-  useEffect(() => {
-    document.title = state.room ? state.room.name + ' · Bside' : 'Bside';
-  }, [state.room]);
+  const page = !state.me?.profile ? 'entry' : state.view;
+  const connecting = state.me?.profile && state.connection !== 'connected';
   useEffect(() => {
     if (state.booting) return;
     window.scrollTo(0, 0);
@@ -33,21 +26,19 @@ export default function App() {
   }, []);
 
   let screen;
-  if (state.room?.status === 'closed') screen = <Ended title={state.room.name} />;
-  else if (state.booting) screen = <section className="screen centered"><Loading text="행사 정보를 확인하고 있어요" /></section>;
-  else if (state.bootError) screen = <section className="screen centered"><h1 tabIndex={-1}>행사에 연결하지 못했어요</h1><ErrorNotice error={state.bootError} onRetry={actions.start} /></section>;
-  else if (dashboard) screen = <Dashboard />;
-  else if (!state.me || state.view === 'profile') screen = <Entry key={state.me?.id ?? 'join'} />;
+  if (state.booting) screen = <section className="screen centered"><Loading text="내 정보를 확인하고 있어요" /></section>;
+  else if (state.bootError) screen = <section className="screen centered"><h1 tabIndex={-1}>연결하지 못했어요</h1><ErrorNotice error={state.bootError} onRetry={actions.start} /></section>;
+  else if (!state.me?.profile || state.view === 'profile') screen = <Entry key={state.me?.user_id ?? 'new'} />;
   else if (state.view === 'detail') screen = <Detail />;
   else if (state.view === 'chat') screen = <Chat key={state.targetId} />;
   else if (state.view === 'conversations') screen = <Conversations />;
-  else screen = <Room />;
+  else screen = <Nearby />;
 
   return (
     <div id="app" style={{ '--connection-height': connecting ? '48px' : '0px' }}>
       <main ref={main} id="main-content">
         {state.notice && <div className="notice" role="status">{state.notice}<button className="text-button" onClick={actions.dismissNotice}>닫기</button></div>}
-        {connecting && <p className="connection-status" role="status">{state.connection === 'connecting' ? '연결 중…' : '연결을 다시 확인하고 있어요. 저장된 내용은 유지됩니다.'}</p>}
+        {connecting && <p className="connection-status" role="status">연결을 다시 확인하고 있어요. 저장된 내용은 유지됩니다.</p>}
         {screen}
       </main>
     </div>

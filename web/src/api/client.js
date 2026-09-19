@@ -1,28 +1,50 @@
 import { ApiError } from '../lib/contracts.js';
 
-const EVENTS = ['ready', 'participants.changed', 'recommendation.changed', 'conversation.changed', 'self.changed', 'room.closed'];
+export const BASE_PATH = '/api/v1';
 
-// Authentication uses the server's HttpOnly cookie, never a public participant ID.
-export function createClient({ base = '', fetcher = globalThis.fetch, EventStream = globalThis.EventSource, timeout = 15000 } = {}) {
-  const roomPath = (code) => '/api/rooms/' + encodeURIComponent(code);
-  async function request(path, { method = 'GET', body, signal } = {}) {
+const MESSAGES = {
+  VALIDATION_ERROR: '입력 내용을 확인해 주세요.',
+  IDEMPOTENCY_CONFLICT: '같은 전송 요청의 내용이 달라졌어요.',
+  IDEMPOTENCY_REPLAY_EXPIRED: '등록 요청이 만료됐어요. 앱을 다시 시작해 주세요.',
+  OBSERVATION_REQUIRED: '지금은 주변에 없는 사람이에요.',
+  DISCOVERY_DISABLED: '주변 발견이 꺼져 있어요.',
+  PROFILE_REQUIRED: '먼저 내 소개를 입력해 주세요.',
+  RECIPIENT_NOT_FOUND: '상대를 찾을 수 없어요.',
+  CONVERSATION_NOT_FOUND: '대화를 찾을 수 없어요.',
+};
+
+// Every call but installation registration carries the installation credential as a
+// bearer token. The credential is a secret: it comes from the credential store (the
+// native app's protected storage on Android) and is never a public user_id or BLE token.
+export function createClient({ base = '', credentials, fetcher = globalThis.fetch, timeout = 15000 } = {}) {
+  async function request(path, { method = 'GET', body, signal, anonymous = false } = {}) {
     const controller = new AbortController();
     const abort = () => controller.abort();
     signal?.addEventListener('abort', abort, { once: true });
     if (signal?.aborted) controller.abort();
     const timer = setTimeout(abort, timeout);
     try {
-      const response = await fetcher(base.replace(/\/$/, '') + path, {
-        method, credentials: 'include', signal: controller.signal,
-        headers: { Accept: 'application/json', ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      const token = anonymous ? null : await credentials?.get();
+      if (!anonymous && !token) throw new ApiError('INSTALL_REQUIRED', '설치 정보를 다시 확인해 주세요.');
+      const response = await fetcher(base.replace(/\/$/, '') + BASE_PATH + path, {
+        method, signal: controller.signal,
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: 'Bearer ' + token } : {}),
+          ...(body ? { 'Content-Type': 'application/json' } : {}),
+        },
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new ApiError(data?.error?.code || 'REQUEST_FAILED', data?.error?.message || '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.', {
-          status: response.status, fields: data?.error?.fields,
-          retryAfter: Number(response.headers.get('Retry-After')) || 0,
-        });
+        const error = data?.error ?? {};
+        const field = error.details?.field;
+        throw new ApiError(error.code || 'REQUEST_FAILED',
+          MESSAGES[error.code] || error.message || '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.', {
+            status: response.status,
+            fields: field ? { [field]: MESSAGES[error.code] || error.message } : {},
+            retryAfter: Number(response.headers.get('Retry-After')) || 0,
+          });
       }
       if (!data || typeof data !== 'object') throw new ApiError('INVALID_RESPONSE', '서버 응답을 확인하지 못했어요. 다시 시도해 주세요.');
       return data;
@@ -35,33 +57,17 @@ export function createClient({ base = '', fetcher = globalThis.fetch, EventStrea
       signal?.removeEventListener('abort', abort);
     }
   }
-  const call = (code, suffix, options) => request(roomPath(code) + suffix, options);
-  const self = (result) => result.participant ?? result;
   return {
-    ensureSession: (options) => request('/api/session', { ...options, method: 'POST' }),
-    getRoom: async (code, options) => (await call(code, '', options)).room,
-    getMe: async (code, options) => {
-      try { return self(await call(code, '/me', options)); }
-      catch (error) { if (error.code === 'PARTICIPATION_REQUIRED') return null; throw error; }
-    },
-    join: async (code, payload, options) => self(await call(code, '/participants', { ...options, method: 'POST', body: payload })),
-    updateMe: async (code, payload, options) => self(await call(code, '/me', { ...options, method: 'PATCH', body: payload })),
-    stop: async (code, options) => self(await call(code, '/me/stop', { ...options, method: 'POST' })),
-    resume: async (code, options) => self(await call(code, '/me/resume', { ...options, method: 'POST' })),
-    getParticipants: (code, options) => call(code, '/participants', options),
-    getParticipant: (code, id, options) => call(code, '/participants/' + encodeURIComponent(id), options),
-    getRecommendations: (code, options) => call(code, '/recommendations', options),
-    refreshRecommendations: (code, options) => call(code, '/recommendations/refresh', { ...options, method: 'POST' }),
-    getConversations: (code, options) => call(code, '/conversations', options),
-    sendMessage: (code, payload, options) => call(code, '/messages', { ...options, method: 'POST', body: payload }),
-    getMessages: (code, id, query = {}, options) => call(code, '/conversations/' + encodeURIComponent(id) + '/messages?' + new URLSearchParams({ limit: 50, ...query }), options),
-    subscribe(code, onEvent, onError) {
-      const stream = new EventStream(base.replace(/\/$/, '') + roomPath(code) + '/events', { withCredentials: true });
-      for (const type of EVENTS) stream.addEventListener(type, (event) => {
-        try { onEvent({ type, data: JSON.parse(event.data) }); } catch { onError(); }
-      });
-      stream.onerror = onError;
-      return () => stream.close();
-    },
+    registerInstallation: (payload, options) => request('/installations', { ...options, method: 'POST', body: payload, anonymous: true }),
+    getMe: (options) => request('/me', options),
+    // Full replace. The contract has no partial edit and no expected-revision field.
+    putProfile: (payload, options) => request('/me/profile', { ...options, method: 'POST', body: payload }),
+    setDiscovery: (payload, options) => request('/me/discovery', { ...options, method: 'POST', body: payload }),
+    // Native BLE layer only. Screens never rotate the advertised identifier.
+    issueIdentifier: (options) => request('/discovery/identifiers', { ...options, method: 'POST' }),
+    reportObservations: (payload, options) => request('/discovery/observations', { ...options, method: 'POST', body: payload }),
+    getConversations: (options) => request('/conversations', options),
+    sendMessage: (payload, options) => request('/messages', { ...options, method: 'POST', body: payload }),
+    getMessages: (id, query = {}, options) => request('/conversations/' + encodeURIComponent(id) + '/messages?' + new URLSearchParams({ after_seq: 0, limit: 50, ...query }), options),
   };
 }

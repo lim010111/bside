@@ -12,6 +12,9 @@ output/
 pdfs/
 pdfout/
 
+# 격리 작업용 git worktree. 저장소 안에 생기지만 자체 체크아웃이라 추적 대상이 아니다.
+.claude/worktrees/
+
 # Python
 __pycache__/
 *.py[cod]

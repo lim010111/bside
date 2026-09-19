@@ -1,12 +1,11 @@
 import { useEffect, useReducer, useState } from 'react';
-import { api } from './api/index.js';
-import { createRoomController } from './room-controller.js';
-import { RoomContext } from './use-room.js';
-import { roomCode } from './lib/contracts.js';
+import { api, native, credentials } from './api/index.js';
+import { createDiscoveryController } from './discovery-controller.js';
+import { DiscoveryContext } from './use-discovery.js';
 
-export function RoomProvider({ children }) {
-  const [controller] = useState(() => createRoomController({
-    api, code: roomCode(window.location),
+export function DiscoveryProvider({ children }) {
+  const [controller] = useState(() => createDiscoveryController({
+    api, native, credentials,
     route: readRoute,
     writeRoute: ({ view, id }) => {
       const hash = '#' + view + (id ? '/' + encodeURIComponent(id) : '');
@@ -41,12 +40,12 @@ export function RoomProvider({ children }) {
     };
   }, [controller]);
 
-  return <RoomContext.Provider value={{ state, actions: controller }}>{children}</RoomContext.Provider>;
+  return <DiscoveryContext.Provider value={{ state, actions: controller }}>{children}</DiscoveryContext.Provider>;
 }
 
 function readRoute() {
   const [view, rawId] = window.location.hash.slice(1).split('/');
   let id;
   try { id = rawId ? decodeURIComponent(rawId) : undefined; } catch { id = undefined; }
-  return { view: view || 'people', id };
+  return { view: view || 'nearby', id };
 }

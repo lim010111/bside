@@ -1,32 +1,47 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { lengthOf, validateProfile, orderParticipants, mergeMessages, roomCode, validReason } from '../src/lib/contracts.js';
-import { profile } from './helpers.js';
+import { lengthOf, validateProfile, orderNearby, mergeMessages, eligibleForFirstMessage, needsRicherIntent } from '../src/lib/contracts.js';
+import { nativeBlocker, UNSUPPORTED } from '../src/lib/native.js';
+import { profile, observed } from './helpers.js';
 
 test('Unicode code points and trimmed input match the API limits', () => {
   assert.equal(lengthOf('😀가'), 2);
   assert.deepEqual(validateProfile({ ...profile(), nickname: '😀'.repeat(20) }), {});
   assert.ok(validateProfile({ ...profile(), nickname: '😀'.repeat(21) }).nickname);
   assert.ok(validateProfile({ ...profile(), connection_intent: '  \n ' }).connection_intent);
-  assert.deepEqual(validateProfile({ ...profile(), nickname: '' }, true), {});
+  // The contract replaces the whole profile, so nickname is always required.
+  assert.ok(validateProfile({ ...profile(), nickname: '' }).nickname);
 });
-test('unscored candidates remain visible and stale rankings do not reorder them', () => {
-  const items = ['a', 'b', 'c'].map((id) => ({ id, joined_at: '2026-09-19T00:00:00Z' }));
-  assert.deepEqual(orderParticipants(items, { candidate_version: 4, ordered_evaluated_ids: ['c', 'missing'] }, 4).map((p) => p.id), ['c', 'a', 'b']);
-  assert.deepEqual(orderParticipants(items, { candidate_version: 3, ordered_evaluated_ids: ['c'] }, 4).map((p) => p.id), ['a', 'b', 'c']);
-  assert.equal(orderParticipants(items, null, 4).length, 3);
+test('the most recently observed person comes first and unevaluated people stay listed', () => {
+  const items = [
+    observed('old', '오래', { last_seen_at: '2026-09-20T00:00:00Z' }),
+    observed('fresh', '최근', { last_seen_at: '2026-09-20T00:05:00Z' }),
+  ];
+  assert.deepEqual(orderNearby(items).map((p) => p.user_id), ['fresh', 'old']);
+  assert.equal(orderNearby(items).length, 2, '추천이 없다고 목록에서 빠지지 않는다');
 });
-test('send and SSE history are deduplicated by server ID and ordered by sequence', () => {
-  assert.deepEqual(mergeMessages([{ id: 'b', seq: 2 }], [{ id: 'a', seq: 1 }, { id: 'b', seq: 2 }]).map((m) => m.id), ['a', 'b']);
+test('send and history are deduplicated by server message_id and ordered by seq', () => {
+  assert.deepEqual(mergeMessages([{ message_id: 'b', seq: 2 }], [{ message_id: 'a', seq: 1 }, { message_id: 'b', seq: 2 }]).map((m) => m.message_id), ['a', 'b']);
 });
-test('stale profile reasons and stopped candidates are not shown', () => {
-  const detail = { participant: { profile_version: 2, participation_status: 'active' }, recommendation: { state: 'ready', reason: 'reason', viewer_profile_version: 1, candidate_profile_version: 2 } };
-  assert.ok(validReason(detail, { profile_version: 1 }));
-  assert.equal(validReason(detail, { profile_version: 2 }), false);
-  detail.participant.participation_status = 'stopped';
-  assert.equal(validReason(detail, { profile_version: 1 }), false);
+test('first-message eligibility follows the server window, not the client clock', () => {
+  const now = Date.parse('2026-09-20T00:00:00Z');
+  assert.equal(eligibleForFirstMessage(observed('a', '가', { conversation_eligibility_expires_at: '2026-09-20T00:05:00Z' }), now), true);
+  assert.equal(eligibleForFirstMessage(observed('a', '가', { conversation_eligibility_expires_at: '2026-09-19T23:59:00Z' }), now), false);
+  assert.equal(eligibleForFirstMessage(null, now), false);
 });
-test('supports prepared /r/ links and legacy ?r= links', () => {
-  assert.equal(roomCode({ pathname: '/r/room%20one', search: '?r=ignored' }), 'room one');
-  assert.equal(roomCode({ pathname: '/', search: '?r=FEMEETUP' }), 'FEMEETUP');
+test('the optional intent hint stays silent while v0.1 evaluates nobody', () => {
+  const unavailable = ['a', 'b', 'c'].map((id) => observed(id, id));
+  assert.equal(needsRicherIntent(unavailable), false, 'unavailable은 근거 부족이 아니다');
+  const unscored = unavailable.map((person) => ({ ...person, recommendation: { status: 'unscored' } }));
+  assert.equal(needsRicherIntent(unscored), true);
+  unscored[0].recommendation = { status: 'ready' };
+  assert.equal(needsRicherIntent(unscored), false);
+});
+test('participation intent and the radio state are reported separately', () => {
+  assert.equal(nativeBlocker({ ...UNSUPPORTED, supported: true, bluetooth: 'on', permission: 'granted', os: 'ok' }), null);
+  assert.equal(nativeBlocker(UNSUPPORTED).level, 'info');
+  assert.match(nativeBlocker({ ...UNSUPPORTED, supported: true, simulated: true }).text, /실제 BLE 발견이 아니에요/);
+  assert.equal(nativeBlocker({ ...UNSUPPORTED, supported: true, permission: 'denied' }).action, 'permission');
+  assert.equal(nativeBlocker({ ...UNSUPPORTED, supported: true, permission: 'granted', bluetooth: 'off' }).level, 'blocked');
+  assert.equal(nativeBlocker({ ...UNSUPPORTED, supported: true, permission: 'granted', bluetooth: 'on', os: 'restricted' }).level, 'warn');
 });
