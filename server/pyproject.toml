@@ -1,0 +1,20 @@
+[project]
+name = "bside-server"
+version = "0.1.0"
+description = "Bside FastAPI server"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi[standard]",
+ "pydantic-settings",
+ "redis>=8.1.0",
+]
+
+[dependency-groups]
+dev = ["pytest", "httpx"]
+
+[tool.fastapi]
+entrypoint = "app.main:app"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

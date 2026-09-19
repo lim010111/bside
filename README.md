@@ -23,6 +23,10 @@
 
 **[spec/MASTER.md](spec/MASTER.md)** — 이 문서 하나면 전체 그림이 잡힌다. 서비스 소개부터 기술 스택, 배포, 협업, 일정까지.
 
+## 서버 실행
+
+[server/README.md](server/README.md) — Python 3.12 · uv 기반 FastAPI 실행 및 검증 안내.
+
 ## 프로토타입 실행
 
 ```bash
@@ -93,7 +97,7 @@ cd prototype && python -m http.server 8777
 | 앱 래핑 | Capacitor (안드로이드) |
 | BLE | `@capgo/capacitor-bluetooth-low-energy` |
 | 백엔드 | FastAPI + uvicorn |
-| 상태 | 메모리 dict (**DB 없음**) |
+| 상태 | Redis (AOF + named volume) |
 | 실시간 | SSE |
 | LLM | `ai.cs.kookmin.ac.kr` (OpenAI 호환) |
 | 배포 | OCI + Caddy + nip.io |
