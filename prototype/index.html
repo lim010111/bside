@@ -105,14 +105,11 @@ svg.ic.lg{width:22px;height:22px}
 .compo i{background:var(--c);border-radius:2px;opacity:.9}
 .glabel{font-size:12px;color:var(--text-faint);margin:0;padding:7px 2px 0}
 .fresh{display:inline-block;margin-left:8px;color:var(--sharing)}
-.more{font-size:12px;color:var(--text-faint);margin:0;padding:10px 2px 0;text-align:center}
 .glabel:first-child{padding-top:0}
 
 /* signature: 만료가 가까울수록 바랜다 */
 .fade{transition:opacity 1.2s linear}
 
-#joinBar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:420px;
-  padding:16px 16px 20px;background:linear-gradient(to top,var(--bg) 66%,transparent);z-index:10}
 .empty{text-align:center;padding:52px 20px}
 .empty .ic{width:30px;height:30px;color:var(--text-faint);margin-bottom:14px}
 
@@ -192,30 +189,23 @@ svg.ic.lg{width:22px;height:22px}
 <div id="app">
 
 <!-- S1 방 미리보기 : QR 찍으면 바로 여기 -->
-<section class="screen on" id="s1">
-  <header style="padding:18px 0 12px">
-    <div class="row" style="justify-content:space-between">
-      <span class="t-sm faint" style="font-weight:500;letter-spacing:-.02em">Bside</span>
+<!-- S2 입장 : 한 줄을 올려야 방이 열린다. 미리보기는 없다 -->
+<section class="screen on" id="s2">
+  <header style="padding:16px 0 12px">
+    <div class="row" style="justify-content:space-between;min-height:22px">
+      <button id="s2back" onclick="go('s3')" class="row"
+        style="display:none;gap:4px;font-size:12px;color:var(--text-dim)">
+        <svg class="ic" style="width:14px;height:14px"><use href="#i-back"/></svg>방으로</button>
+      <span class="t-sm faint" id="s2brand"
+        style="font-weight:500;letter-spacing:-.02em">Bside</span>
       <span class="t-sm faint" id="pvWhen"></span>
     </div>
     <h1 class="t-xl" style="margin:10px 0 0" id="pvTitle"></h1>
     <p class="t-sm dim" style="margin:5px 0 0" id="pvCount"></p>
   </header>
-  <div class="stats" id="pvStats" style="margin-bottom:14px"></div>
-  <div id="pvList" style="display:flex;flex-direction:column;gap:8px"></div>
-  <div style="height:84px"></div>
-  <div id="joinBar">
-    <button class="btn" onclick="openJoin()">나도 상태 달기</button>
-  </div>
-</section>
-
-<!-- S2 참여 : 한 화면에서 끝낸다 -->
-<section class="screen" id="s2">
-  <header class="row" style="padding:16px 0 10px;gap:10px">
-    <button onclick="go('s1')" aria-label="뒤로" style="width:32px;height:44px;display:flex;align-items:center">
-      <svg class="ic lg"><use href="#i-back"/></svg></button>
-    <h1 class="t-lg" style="margin:0">상태 달기</h1>
-  </header>
+  <div class="stats" id="pvStats"></div>
+  <p class="t-sm faint" id="gate" style="margin:10px 0 0;line-height:1.55"></p>
+  <div style="border-top:1px solid var(--border);margin:16px 0 2px"></div>
 
   <div class="row" style="gap:8px;align-items:flex-start">
     <div class="grow">
@@ -576,19 +566,19 @@ function renderPreview(){
     PREVIEW.length ? `지금 ${PREVIEW.length}명이 상태를 올려뒀어요` : '아직 아무도 없어요';
   document.getElementById('pvStats').innerHTML =
     PREVIEW.length ? compo(PREVIEW) + tally(PREVIEW) : '';
-  const pv = PREVIEW.slice().sort((a,b)=>ageOf(a)-ageOf(b));
-  document.getElementById('pvList').innerHTML = pv.length
-    ? `<p class="glabel">방금 올라온 4명</p>` + pv.slice(0,4).map(p=>pcard(p,false)).join('')
-      + `<p class="more">들어가면 ${pv.length - 4}명 더 보입니다</p>`
-    : `<div class="empty">
-      <svg class="ic"><use href="#i-inbox"/></svg>
-      <p class="t-md" style="margin:0">첫 번째로 상태를 올려보세요</p></div>`;
+  // 누가 있는지는 알려주되 무슨 말을 했는지는 올린 뒤에 보여준다
+  document.getElementById('gate').textContent = PREVIEW.length
+    ? `한 줄을 올리면 ${PREVIEW.length}명이 뭘 찾고 있는지 보입니다.`
+    : '아직 아무도 없어요. 첫 번째로 올려보세요.';
+  const back = document.getElementById('s2back');
+  back.style.display = S.me ? 'flex' : 'none';
+  document.getElementById('s2brand').style.display = S.me ? 'none' : '';
 }
 
 
 /* 참여 */
 function openJoin(){
-  renderAff(); renderPicks(); go('s2');
+  renderAff(); renderPicks(); renderPreview(); go('s2');
   setTimeout(()=>document.getElementById('nick').focus(), 80);
 }
 function renderAff(){
@@ -718,9 +708,20 @@ function grp(label, list){
        + list.map(p=>pcard(p,true)).join('');
 }
 function editMine(){
-  renderAff(); S.st = S.me.st; renderPicks(); go('s2');
+  renderAff(); S.st = S.me.st; renderPicks();
+  renderPreview();              // 이게 있어야 '방으로' 버튼이 나온다
+  go('s2');
   document.getElementById('nick').value = S.me.name;
+  restoreAff(S.me.school);      // 안 되돌리면 소속이 첫 항목으로 리셋된다
   document.getElementById('note').value = S.me.note; noteTyped();
+}
+/* 저장해둔 소속을 입력란에 다시 얹는다. 선택지에 없으면 직접 입력으로 편다 */
+function restoreAff(v){
+  const el = document.getElementById('aff');
+  if(!el) return;
+  if(el.tagName === 'INPUT'){ el.value = v; return; }
+  if([...el.options].some(o => o.value === v)) el.value = v;
+  else { el.value = '__other'; affPick(); const o = document.getElementById('affOther'); if(o) o.value = v; }
 }
 
 /* ── 매칭: 스피너 대신 구체적인 문구 ── */
@@ -841,7 +842,8 @@ function dm(m){
   if(m==='flow'){ S={me:null,st:null,people:[],mode:'room',speed:1,bt:true,t0:Date.now()};
     PREVIEW = ROOM.seed().map(p=>({...p})); renderPreview();
     document.getElementById('nick').value=''; document.getElementById('note').value='';
-    document.getElementById('count').textContent='0 / 140'; go('s1'); return; }
+    document.getElementById('count').textContent='0 / 140';
+    renderAff(); renderPicks(); go('s2'); return; }
   // longtext 모드가 남긴 값이 다음 모드로 새지 않게 매번 초기화한다
   S.me={id:'me',name:'지원',school:ROOM.aff.options?ROOM.aff.options[0]:'토스',st:'LOOKING_FOR',
     note:'배포·CI 경험 있으신 분 찾아요',age:0};
@@ -881,7 +883,8 @@ setInterval(()=>{
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 PREVIEW = ROOM.seed().map(p=>({...p}));
-renderPreview();
+// 첫 화면이 곧 입력 화면이다. 소속 필드와 상태 버튼을 처음부터 그려둔다
+renderPreview(); renderAff(); renderPicks();
 setInterval(()=>{ if(S.me && document.getElementById('s3').classList.contains('on')) renderRoom(); }, 1000);
 </script>
 </body>
