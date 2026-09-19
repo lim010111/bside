@@ -12,6 +12,10 @@ Compose는 AOF `appendfsync always`와 영속 volume을 사용한다. `docker co
 
 설치 사용자·인증 자격 연결, 프로필/입력 버전, 발견 참여, 임시 식별자 매핑, 근접 관측, 추천 결과, 두 사용자 쌍의 대화, 순번 메시지, 중복 방지 결과를 분리한다. API 필드·제한·수명은 [API v0.1](../../docs/api-contract.md)로 확정했으며 구현 예정이다. 내부 Redis 키 이름은 구현 때 고정하고 room/event/request-acceptance 키는 만들지 않는다.
 
+`install:link:{request_id}`에는 `user_id`, 등록 내용, 생성 시각만 영구 저장한다.
+`install:replay:{request_id}`에는 Fernet 암호문만 10분간 저장한다. 기존 평문 JSON replay나
+변조·시크릿 회전으로 복호화할 수 없는 값은 새 credential을 만들지 않고 재생 만료로 처리한다.
+
 첫 메시지의 자격 검사·사용자 쌍 대화 생성·메시지 저장·순번·중복 방지는 경합에 안전하게 처리한다. 기존 대화의 추가 메시지는 당사자 권한을 검사하며 현재 근접성·발견 ON을 필수로 요구하지 않는다. Redis 스크립트 실행을 임의 실패의 자동 롤백으로 오해하지 않고 쓰기 전에 타입·입력을 확인한다. 외부 LLM은 저장 원자 작업 밖에서 실행한다.
 
 ## 수명

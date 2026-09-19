@@ -1,5 +1,7 @@
 """API v0.1 behaviour: docs/api-contract.md and docs/openapi.yaml."""
 
+import json
+
 from uuid import uuid4
 
 import pytest
@@ -28,6 +30,51 @@ def test_registration_is_idempotent_and_its_replay_window_expires(client, settin
     expired = client.post("/api/v1/installations", json=request)
     assert expired.status_code == 409
     assert expired.json()["error"]["code"] == "IDEMPOTENCY_REPLAY_EXPIRED"
+    store.close()
+
+
+def test_registration_stores_only_an_encrypted_replay(client, settings):
+    import redis as sync_redis
+
+    request_id = str(uuid4())
+    response = client.post(
+        "/api/v1/installations",
+        json={"installation_request_id": request_id, "platform": "android"},
+    )
+    assert response.status_code == 201
+
+    store = sync_redis.from_url(settings.redis_url, decode_responses=True)
+    replay = store.get(f"install:replay:{request_id}")
+    link = store.get(f"install:link:{request_id}")
+    credential = response.json()["installation_credential"]
+    assert replay.startswith("v1:")
+    assert credential not in replay
+    assert credential not in link
+    assert set(json.loads(link)) == {"user_id", "platform", "created_at"}
+    store.close()
+
+
+def test_legacy_plaintext_replay_expires_without_replacing_its_credential(client, settings):
+    import redis as sync_redis
+
+    request_id = str(uuid4())
+    first = client.post(
+        "/api/v1/installations",
+        json={"installation_request_id": request_id, "platform": "android"},
+    )
+    store = sync_redis.from_url(settings.redis_url, decode_responses=True)
+    store.set(
+        f"install:replay:{request_id}",
+        json.dumps({"installation_credential": first.json()["installation_credential"]}),
+    )
+
+    replay = client.post(
+        "/api/v1/installations",
+        json={"installation_request_id": request_id, "platform": "android"},
+    )
+    assert replay.status_code == 409
+    assert replay.json()["error"]["code"] == "IDEMPOTENCY_REPLAY_EXPIRED"
+    assert store.get(f"install:replay:{request_id}").startswith("{")
     store.close()
 
 

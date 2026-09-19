@@ -23,7 +23,6 @@ replaced value overlaps for at most one minute".
 
 from __future__ import annotations
 
-import hashlib
 import json
 import secrets
 from base64 import urlsafe_b64encode
@@ -36,6 +35,12 @@ from uuid import uuid4
 from redis.asyncio import Redis
 
 from app.config import Settings
+from app.security import (
+    derive_credential_key,
+    generate_credential,
+    seal_credential,
+    unseal_credential,
+)
 
 _SCRIPT = (Path(__file__).parent / "scripts" / "send_message.lua").read_text(encoding="utf-8")
 
@@ -56,16 +61,6 @@ def new_identifier() -> str:
     return urlsafe_b64encode(secrets.token_bytes(16)).decode().rstrip("=")
 
 
-def new_credential() -> str:
-    return "ic_" + secrets.token_urlsafe(32)
-
-
-def credential_key(credential: str) -> str:
-    # The raw bearer secret is never stored, so a dump of Redis does not hand out
-    # working credentials.
-    return "cred:" + hashlib.sha256(credential.encode()).hexdigest()
-
-
 @dataclass(frozen=True)
 class SendResult:
     status: str
@@ -81,39 +76,53 @@ class Store:
 
     async def register_installation(self, request_id: str, platform: str) -> tuple[str, dict[str, Any]]:
         """Return (outcome, payload) where outcome is created/replayed/conflict/expired."""
-        replay = await self.redis.get(f"install:replay:{request_id}")
         link = await self.redis.get(f"install:link:{request_id}")
-        if replay:
-            stored = json.loads(replay)
-            if stored["platform"] != platform:
-                return "conflict", {}
-            return "replayed", stored
+        replay = await self.redis.get(f"install:replay:{request_id}")
         if link:
-            stored = json.loads(link)
-            if stored["platform"] != platform:
+            registration = json.loads(link)
+            if registration["platform"] != platform:
                 return "conflict", {}
-            # The key is still known but its credential is past the replay window.
-            return "expired", {}
+            # Unmarked values are legacy JSON containing a plaintext credential.
+            if not replay or not replay.startswith("v1:"):
+                return "expired", {}
+            try:
+                credential = unseal_credential(
+                    replay.removeprefix("v1:"),
+                    self.settings.credential_replay_secret.get_secret_value(),
+                )
+            except ValueError:
+                return "expired", {}
+            return "replayed", {
+                "user_id": registration["user_id"],
+                "installation_credential": credential,
+                "created_at": registration["created_at"],
+            }
 
         user_id = str(uuid4())
-        credential = new_credential()
+        credential = generate_credential()
         created_at = to_rfc3339(now_ms())
         payload = {
             "user_id": user_id,
             "installation_credential": credential,
             "created_at": created_at,
-            "platform": platform,
         }
+        encrypted_replay = "v1:" + seal_credential(
+            credential,
+            self.settings.credential_replay_secret.get_secret_value(),
+        )
         pipe = self.redis.pipeline()
         pipe.hset(f"user:{user_id}", mapping={"discovery_enabled": "0", "created_at": created_at})
-        pipe.set(credential_key(credential), user_id)
-        pipe.set(f"install:replay:{request_id}", json.dumps(payload), ex=self.settings.installation_replay_seconds)
-        pipe.set(f"install:link:{request_id}", json.dumps({"user_id": user_id, "platform": platform}))
+        pipe.set(derive_credential_key(credential), user_id)
+        pipe.set(f"install:replay:{request_id}", encrypted_replay, ex=self.settings.installation_replay_seconds)
+        pipe.set(
+            f"install:link:{request_id}",
+            json.dumps({"user_id": user_id, "platform": platform, "created_at": created_at}),
+        )
         await pipe.execute()
         return "created", payload
 
     async def user_for_credential(self, credential: str) -> str | None:
-        user_id = await self.redis.get(credential_key(credential))
+        user_id = await self.redis.get(derive_credential_key(credential))
         if not user_id or not await self.redis.exists(f"user:{user_id}"):
             return None
         return user_id
