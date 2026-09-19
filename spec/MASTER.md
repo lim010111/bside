@@ -237,6 +237,37 @@ Mentimeter도 참가자 리텐션 없이 2025년 순매출 SEK 598M을 흑자로
 
 # 7. 배포
 
+> **2026-09-19 정정.** 아래 "Caddy + nip.io"는 초기 계획이었고 **폐기했다.**
+> 실제로는 이미 운영 중인 OCI 서버(다른 프로젝트가 Nginx+Coolify로 돌아가는 곳)가
+> 있어서, 새로 인스턴스를 만들지 않고 **그 위에 새 서브도메인으로 얹었다.**
+
+## 실제 배포 (지금 이거)
+
+**주소: `https://bside-api.sungblab.com`** — 이미 Nginx + Let's Encrypt 인증서까지 설정 완료.
+
+**백엔드가 지켜야 할 규칙 딱 하나**: 앱을 **`127.0.0.1:8100`에서만** 리스닝시킬 것.
+외부에 직접 노출하지 않는다 — nginx가 HTTPS를 처리하고 그 포트로 내려보낸다.
+`0.0.0.0:8100`으로 열어도 동작은 하지만, 이미 도는 다른 서비스들과 같은 서버라
+관례상 로컬호스트에만 묶는다.
+
+**SSE는 이미 준비돼 있다.** `proxy_buffering off` · `proxy_read_timeout 24h`를
+nginx 설정에 넣어뒀다 — `GET /room/{code}/stream`을 그대로 열면 된다. (아래 "SSE가
+프록시에서 막힌다"는 옛 Caddy 계획 때 걱정이었고, 지금 nginx 설정으로 이미 해결됨.)
+
+**로컬에서 뜨는지 확인하는 법** (배포 서버에서):
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8100/   # 앱이 응답하는지
+curl -s -o /dev/null -w '%{http_code}\n' https://bside-api.sungblab.com/  # 외부에서 확인
+```
+502가 나오면 앱이 8100번에서 아직 안 뜬 것. 그 외 나머지는 앱 쪽 문제다.
+
+**주의**: 이 서버는 다른 팀원 개인 서버이고 다른 프로젝트도 같이 돈다.
+컨테이너·볼륨은 반드시 `bside` 접두어를 붙여 구분하고, 다른 서비스의
+Nginx 설정·Docker 볼륨·systemd 유닛은 절대 건드리지 않는다.
+
+<details>
+<summary>폐기한 초기 계획 (참고용으로만 남김)</summary>
+
 **OCI + Caddy + nip.io**
 
 ## 함정 3개 (모르면 각각 한 시간씩 날아간다)
@@ -259,6 +290,8 @@ sudo netfilter-persistent save
 
 **3. SSE가 프록시에서 막힌다**
 nginx는 `proxy_buffering off`가 필요하다. **Caddy는 기본으로 정상.** 이게 Caddy를 권하는 이유다.
+
+</details>
 
 ---
 

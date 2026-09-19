@@ -15,6 +15,9 @@ npm run dev
 `?r=KOSS26`(기본값) 또는 `?r=FEMEETUP`으로 방을 바꿔 열 수 있다.
 `.env`에 `VITE_USE_MOCK=0`을 두면 `src/api/client.js`(아직 미구현)로 넘어간다 — 8단계 전까진 건드리지 않는다.
 
+**배포 주소는 이미 준비됨**: `VITE_API_BASE=https://bside-api.sungblab.com` (nginx+HTTPS+SSE 설정
+완료, `spec/MASTER.md` 7번). 백엔드가 서버에서 `127.0.0.1:8100`에 뜨면 바로 붙는다.
+
 ## 뭐가 됐는지
 
 **입장 → 방 → 접점 시트, 전체 경로가 실제로 동작한다.** 목 데이터 기준.
