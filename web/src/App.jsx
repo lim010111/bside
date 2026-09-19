@@ -10,6 +10,7 @@ import Conversations from './screens/Conversations.jsx';
 export default function App() {
   const { state, actions } = useDiscovery();
   const main = useRef(null);
+  const feedback = useRef(null);
   const page = !state.me?.profile ? 'entry' : state.view;
   const connecting = state.me?.profile && state.connection !== 'connected';
   useEffect(() => {
@@ -24,6 +25,14 @@ export default function App() {
     viewport?.addEventListener('resize', update);
     return () => viewport?.removeEventListener('resize', update);
   }, []);
+  useEffect(() => {
+    const node = feedback.current;
+    const update = () => node.parentElement.style.setProperty('--feedback-height', node.getBoundingClientRect().height + 'px');
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    update();
+    return () => observer.disconnect();
+  }, []);
 
   let screen;
   if (state.booting) screen = <section className="screen centered"><Loading text="내 정보를 확인하고 있어요" /></section>;
@@ -35,10 +44,12 @@ export default function App() {
   else screen = <Nearby />;
 
   return (
-    <div id="app" style={{ '--connection-height': connecting ? '48px' : '0px' }}>
+    <div id="app">
       <main ref={main} id="main-content">
+        <div ref={feedback} className="app-feedback">
         {state.notice && <div className="notice" role="status">{state.notice}<button className="text-button" onClick={actions.dismissNotice}>닫기</button></div>}
         {connecting && <p className="connection-status" role="status">연결을 다시 확인하고 있어요. 저장된 내용은 유지됩니다.</p>}
+        </div>
         {screen}
       </main>
     </div>
