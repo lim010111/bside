@@ -94,16 +94,46 @@ cd web && VITE_USE_MOCK=0 VITE_DEV_RADIO=1 npm run dev
   멱등성 키 재생·충돌과 `client_message_id`가 공개 모양에 없는 것, 전진 전용 페이지네이션과
   비당사자 접근 거부, 저장 실패의 명시적 오류
 
+## Android APK와 실제 서버 (2026-09-20)
+
+[네이티브 계층](../android/README.md)을 구현하고 에뮬레이터(API 36)에 설치해 **APK가 실제
+FastAPI 서버와 통신하는 것까지** 확인했다.
+
+- 앱 실행 → `POST /api/v1/installations` 201 → `GET /me` 200
+- 소개 저장 200, 발견 켜기 200
+- **네이티브 스캐너가 `POST /api/v1/discovery/identifiers` 200을 직접 호출**. WebView와 다른
+  소켓에서 나갔으므로 네이티브가 보호 저장소의 자격 증명으로 스스로 인증한 것이 맞다
+- foreground service가 실제로 시작되고, 플러그인 상태
+  (`bluetooth: on`, `permission: granted`, `os: restricted`)가 화면에
+  "배터리 절약 설정 때문에 백그라운드 발견이 제한될 수 있어요."로 표시됨
+
+이 과정에서 두 가지를 발견해 고쳤다. 둘 다 실제로 돌려보지 않으면 나오지 않는 문제다.
+
+1. **서버 CORS에 `https://localhost`가 필요하다.** Capacitor WebView의 출처는 API 호스트가
+   아니라 `androidScheme`이라 preflight가 400으로 막혔다.
+2. **`http://10.0.2.2`는 mixed content로 차단된다.** `https://localhost` 페이지에서 http를
+   부르기 때문이다. `adb reverse` + `http://localhost`는 secure origin 예외라 통과한다.
+
+## 실기기 두 대 (2026-09-20) — T07
+
+SM-S937N과 SM-S931N(둘 다 Android 16)에 APK를 설치하고 실제 서버에 붙여 확인했다.
+
+- 두 폰이 **BLE로 서로를 발견**했다. 양쪽 "지금 가까이 1"과 상대 프로필 표시
+- 상세 "지금 주변에 있어요" → 첫 메시지 전송 `POST /api/v1/messages` **201 Created**
+- 상대 폰 대화 목록에 도착 → 답장 → 양쪽 대화창에 두 말풍선 모두 표시
+
+**광고 → 스캔 → 관측 보고 → 서버 조회 → 첫 메시지 → 답장**이 실제 무선과 실제 서버로 한 바퀴
+돌았다. 자세한 내용과 여기서 고친 두 가지는 [android/README.md](../android/README.md)에 있다.
+
 ## 아직 검증하지 못한 것
 
-- **BLE 그 자체.** 위 연동은 브라우저 두 탭이 식별자를 `localStorage`로 교환한 것이다.
-  실제 광고·스캔·임시 ID 회전은 확인하지 않았다.
-- **Capacitor `Discovery` 플러그인 구현(T01).** [`android/`](../android/README.md)에 계약과
-  골격만 있고 빌드·실행하지 않았다. 실제 권한 거부·Bluetooth OFF·배터리 제한 상태의 화면은
-  실기기에서 다시 봐야 한다.
-- 자격 증명을 Android 보호 저장소에서 WebView로 전달하는 실제 경로. 브라우저 폴백은
-  `localStorage`이며 보호된 저장소가 아니다.
-- 안드로이드 두 대의 실제 왕복과 백그라운드 관측·알림
+- **배포 환경.** 위 검증은 `adb reverse`로 개발 PC의 서버에 붙인 것이다. 공용 HTTPS 서버로
+  올린 뒤의 왕복은 아직이다
+- 백그라운드·화면 꺼짐 상태의 발견. 두 대 모두 앱을 앞에 둔 채로만 확인했다.
+  실기기가 `os: restricted`를 보고하므로 시연 전 배터리 최적화 제외가 필요하다
+- 거리에 따른 발견 성공률, 여러 대가 동시에 있을 때의 동작
+- Bluetooth OFF·권한 거부 상태의 화면. 그 상태를 만들어보지 않았다
 - Redis 재시작·AOF 복원의 실제 장애 시나리오(V12). 앱 인스턴스 재시작만 확인했다
 - 부하·동시성 규모. 원자성은 검증했지만 성능은 측정하지 않았다
-- AI 추천 품질·지연과 AI-D5의 "후보 20명·추천 갱신 5초" 목표. v0.1에는 추천 자체가 없다
+- AI 추천 품질·지연. v0.1에는 추천 자체가 없다
+- 릴리스 서명. `assembleRelease`는 통과하지만 서명 설정은 하지 않았다
