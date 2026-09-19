@@ -1,61 +1,57 @@
-// 채팅 화면. 2026-09-19 전면 개편으로 BLE 직접 채팅을 걷어내고 서버 저장
-// 채팅(REST + SSE)으로 바꿨다 — "실제 채팅은 서버가 저장하므로 '서버에 메시지가
-// 남지 않는다'고 안내하지 않는다"(spec/protocol.md). 지금은 lib/bleChat.js가
-// 여전히 메시지를 들고 있는 mock이고, T06에서 실제 서버 저장·SSE로 옮긴다 —
-// 그때도 이 화면의 마크업은 거의 안 바뀐다, sendChatMessage 안쪽만 API 호출로 바뀐다.
-import { useEffect, useRef, useState } from 'react';
-import { useRoom } from '../state.jsx';
+import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useRoom } from '../use-room.js';
+import { lengthOf, LIMITS } from '../lib/contracts.js';
+import { useCountdown } from '../lib/use-countdown.js';
+import { EmptyState, ErrorNotice, Loading, PageHeader } from '../components/Feedback.jsx';
 
 export default function Chat() {
-  const { state, closeChat, sendChatMessage } = useRoom();
-  const { chatWith: peer, chatMessages } = state;
-
-  const [draft, setDraft] = useState('');
-  const bubblesRef = useRef(null);
-
-  useEffect(() => {
-    bubblesRef.current?.scrollTo(0, bubblesRef.current.scrollHeight);
-  }, [chatMessages]);
-
-  if (!peer) return null;
-
-  function submit() {
-    const v = draft.trim();
-    if (!v) return;
-    setDraft('');
-    sendChatMessage(v);
+  const { state, actions } = useRoom();
+  const { peer, targetId, messages, me } = state;
+  const draft = state.drafts[targetId] ?? '';
+  const pending = state.outbox[targetId];
+  const sending = pending?.status === 'sending';
+  const cooldown = useCountdown(pending?.retryAt);
+  const stopped = me.participation_status !== 'active' || peer?.participation_status === 'stopped';
+  const count = lengthOf(draft.trim());
+  const list = useRef(null), nearBottom = useRef(true), previous = useRef(null), prepend = useRef(null);
+  useLayoutEffect(() => {
+    const node = list.current;
+    if (!node) return;
+    if (prepend.current) {
+      node.scrollTop += node.scrollHeight - prepend.current;
+      prepend.current = null;
+    } else if (nearBottom.current || previous.current === null || messages.at(-1)?.sender_id === me.id) node.scrollTop = node.scrollHeight;
+    previous.current = messages.at(-1)?.id ?? null;
+  }, [messages, me.id]);
+  useEffect(() => { if (pending?.status === 'failed') nearBottom.current = true; }, [pending?.status]);
+  function submit(event) {
+    event.preventDefault();
+    if (stopped || sending || cooldown || !count || count > LIMITS.text || !peer) return;
+    // Preserve the request ID when retrying exactly the same failed message.
+    void actions.send(draft, pending?.status === 'failed' && pending.error?.code !== 'IDEMPOTENCY_CONFLICT' && pending.text === draft.trim());
   }
-
-  return (
-    <section className="screen on screen-chat">
-      <header className="row" style={{ padding: '18px 0 12px', borderBottom: '1px solid var(--border)', gap: 10 }}>
-        <button type="button" onClick={closeChat} aria-label="뒤로" style={{ width: 32, height: 44, display: 'flex', alignItems: 'center' }}>
-          <svg className="ic lg"><use href="#i-back" /></svg>
-        </button>
-        <div className="grow">
-          <div className="t-lg">{peer.nickname}</div>
-        </div>
-      </header>
-
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <p className="sysline">행사가 끝날 때까지 대화가 남아있어요. 앱을 닫아도 사라지지 않아요.</p>
-        <div className="bubbles" ref={bubblesRef}>
-          {chatMessages.map((m, i) => (
-            <div key={i} className={`b ${m.me ? 'me' : 'you'}`}>{m.t}</div>
-          ))}
-        </div>
-        <div className="composer">
-          <input
-            className="field" style={{ height: 44 }} placeholder="메시지" autoComplete="off"
-            value={draft} onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-          />
-          <button type="button" onClick={submit} aria-label="보내기"
-            style={{ width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg className="ic lg"><use href="#i-send" /></svg>
-          </button>
-        </div>
+  return <section className="screen screen-chat">
+    <PageHeader title={peer?.nickname ?? '대화'} onBack={() => actions.navigate('conversations')} action={peer && <button className="text-button" onClick={() => actions.navigate('detail', peer.id)}>소개</button>} />
+    {stopped && <p className="notice" role="status">참여 중단 중에는 이전 대화만 볼 수 있어요.</p>}
+    <ErrorNotice error={state.chatError} onRetry={actions.loadChat} />
+    <div className="bubbles" ref={list} role="log" aria-label="대화 내용" aria-live="polite" aria-relevant="additions text"
+      onScroll={() => { const node = list.current; nearBottom.current = node.scrollHeight - node.scrollTop - node.clientHeight < 80; }}>
+      {state.hasOlder && <button className="text-button older-button" disabled={state.loadingOlder} onClick={() => { prepend.current = list.current.scrollHeight; void actions.loadOlder(); }}>이전 메시지 {state.loadingOlder ? '불러오는 중…' : '보기'}</button>}
+      {state.chatLoading && !messages.length ? <Loading text="대화를 불러오고 있어요" /> : !messages.length && !state.chatError && <EmptyState title="첫 인사를 건네보세요" text="소개에서 궁금했던 이야기로 시작해도 좋아요." />}
+      {messages.map((message) => <div key={message.id} className={'message-row ' + (message.sender_id === me.id ? 'mine' : '')}>
+        <p className={'b ' + (message.sender_id === me.id ? 'me' : 'you')}><span className="sr-only">{message.sender_id === me.id ? '나' : peer?.nickname}: </span>{message.text}</p>
+        <time dateTime={message.created_at}>{new Date(message.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</time>
+      </div>)}
+    </div>
+    {pending?.status === 'failed' && <div className="send-error" role="alert"><p>{pending.error.message}</p><p className="clamp-two">보내지 못한 내용: {pending.text}</p><button className="text-button" disabled={stopped || cooldown > 0} onClick={() => actions.send(pending.text, pending.error.code !== 'IDEMPOTENCY_CONFLICT')}>{cooldown ? `${cooldown}초 후 다시 시도` : pending.error.code === 'IDEMPOTENCY_CONFLICT' ? '새 메시지로 보내기' : '같은 메시지 재시도'}</button></div>}
+    <form className="composer" onSubmit={submit}>
+      <div className="grow"><label className="sr-only" htmlFor="message">메시지</label><textarea id="message" className="field" rows={2} placeholder={stopped ? '참여 중단 중에는 전송할 수 없어요' : '메시지를 입력하세요'} value={draft}
+        disabled={sending || !peer || stopped} aria-describedby="message-count" aria-invalid={count > LIMITS.text}
+        onChange={(event) => actions.setDraft(targetId, event.target.value)}
+        onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) { event.preventDefault(); submit(event); } }} />
+        <span id="message-count" className={'counter' + (count > LIMITS.text ? ' danger' : '')}>{count} / 2,000 · Shift+Enter 줄바꿈</span>
       </div>
-    </section>
-  );
+      <button className="send-button" type="submit" disabled={stopped || sending || cooldown > 0 || !peer || !count || count > LIMITS.text} aria-label={sending ? '보내는 중' : '보내기'}>{sending ? '…' : <svg className="ic lg" aria-hidden="true"><use href="#i-send" /></svg>}</button>
+    </form>
+  </section>;
 }

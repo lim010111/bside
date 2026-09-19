@@ -1,63 +1,60 @@
-# Bside — 프론트엔드
+# Bside 프론트엔드
 
-React + Vite + JavaScript/JSX. **2026-09-19 전면 개편 반영판** — `docs/development-contract.md`,
-`docs/api-contract.md`, `docs/team-plan.md`(T01=김성빈)를 따른다. 예전 spec/*(상태 4종·소속·
-5분 만료·BLE·ends_at 자동 종료) 기반 코드는 전부 걷어냈다.
+React 19 · Vite · JavaScript/JSX. 화면과 데이터 경계는 [개발 기준](../docs/development-contract.md), [API 계약](../docs/api-contract.md)을 따른다.
 
-## 실행
+## 실행과 빌드
 
-```bash
-npm install
+```sh
+npm ci
 npm run dev
+npm run lint
+npm test
+npm run build
 ```
 
-`?r=KOSS26`(기본) 또는 `?r=FEMEETUP`으로 방을 바꾼다. `?view=dashboard`는 운영진 대시보드
-(개발 우선순위 아님, team-plan.md). `.env`에 `VITE_USE_MOCK=0`을 두면 `src/api/client.js`
-(T05 전까지 미구현 에러)로 넘어간다.
+- `npm run dev`: 브라우저에 저장하는 데모. 예시 참가자는 답장하지 않는다. 사용자의 요청에 따라 화면에는 데모 배너나 구현 방식 안내를 표시하지 않는다.
+- `npm run build`: 실제 HTTP API를 사용하는 `dist/`. 예시 참가자 데이터는 번들에 포함하지 않는다.
+- `npm run build:demo`: 명시적인 데모 빌드 `dist-demo/`.
+- 개발 중 실제 서버에 연결하려면 `.env.example`을 `.env.local`로 복사하고 `VITE_USE_MOCK=0`을 사용한다. Vite가 `/api`를 `http://127.0.0.1:8000`으로 프록시한다.
+- `VITE_USE_MOCK=1`은 모든 모드에서 데모를 강제하며, `0`은 모든 모드에서 실제 API를 강제한다. 환경값 변경 후 개발 서버를 다시 시작한다.
+- 배포는 화면과 `/api`를 같은 HTTPS 출처에서 제공한다. `/r/*` 경로도 `index.html`로 연결하는 정적 호스팅 fallback이 필요하다.
 
-## 뭐가 됐는지 — 실기기로 눌러서 확인함
+기본 방은 `KOSS26`. `?r=FEMEETUP`과 `/r/{room_id}` 링크를 지원한다. 화면은 `#people`, `#profile`, `#detail/{id}`, `#chat/{id}`, `#conversations`로 구분하며 새로고침·브라우저 뒤로가기를 지원한다.
 
-**입장 → 목록(배너, 추천순) → 상세(자기소개·찾는 사람·추천 이유) → 채팅 → 내 정보 수정 →
-참여 중단, 전체 경로가 목 데이터로 동작한다.**
+## 구현 범위
 
-- 입력: 닉네임 + 자기소개(1~500자) + 교류 의도(1~500자). 상태 선택·소속 없음
-- 목록: 전체 참가자, 간결한 배너만(이름+자기소개 한 줄). 추천된 사람은 "추천" 표시
-- 상세: 배너 클릭 → 자기소개 전문·찾는 사람·**현재 조회자를 위한 추천 이유**·채팅 시작
-- 추천: intent/self_description의 키워드로 "도움 필요"↔"도와줄 수 있음"을 대충 상보적으로
-  짝짓는다(`mock.js`의 `reasonFor`). **정확한 문자열 일치가 아니라 키워드 검사다** — 처음엔
-  정확 일치로 짰다가 실제 자유 입력에서 항상 추천 0건만 나오는 버그를 실기기로 잡았다
-- 채팅: `lib/bleChat.js`(여전히 mock). "서버에 남지 않는다" 안내 제거 — 이제 서버 저장 채팅이
-  기본 전제다(BLE 아님)
-- 내 정보 수정: 닉네임은 못 고친다(계약에 없음). 자기소개·교류 의도만. 참여 중단 버튼 포함
-- 새로고침 복원: `sessionStorage`에 id만 두고 `getMe()`로 재확인. 영속 쿠키(계약)까지는
-  아니고 세션 수준 — 실제 수명은 T02(서버)가 정한다
-- 종료: 운영자 수동 종료만. `room.status: 'open'|'closed'`. 예정 시각·자동 타이머 없음
+- 입장·수정: 필수 입력, Unicode 코드 포인트 한도, 필드별 오류, 중복 저장 방지, 프로필 버전 충돌 처리.
+- 목록: 검색, 전체 참가자 유지, 유효한 추천 우선 정렬, 추천 지연·실패 안내, 수동 추천 재시도.
+- 상세: 자기소개·찾는 사람·조회자별 추천 이유. 오래된 프로필 버전의 이유는 표시하지 않는다.
+- 참여 중단·재개: 동일 참가자와 대화 유지. 중단 중에는 기존 대화만 열람하고 새 전송은 비활성화한다.
+- 대화: 상대별 목록·이력, 이전 메시지 페이지, 초안 유지, 전송 실패 재시도, 요청 ID 재사용, 서버 ID 중복 제거, 순번 기반 누락 복원.
+- 실시간 연결: SSE `ready` 이후 조회, 재연결·화면 복귀 동기화, 활성 화면 15초 보완 조회. SSE 연결이 성립하지 않으면 5초 후 REST 보완 조회를 시작한다.
+- 종료: `room.closed`·`ROOM_CLOSED` 수신 시 스트림/요청 종료와 개인 상태 제거. 늦은 응답은 무시한다.
+- 접근성·모바일: 입력 라벨, 오류 알림, 키보드 포커스, 한글 조합 중 Enter 전송 방지, 긴 문장 줄바꿈, viewport·safe area 대응, 줄어든 동작 설정.
 
-## 안 된 것 / 다음 (T05~T06)
+운영진 대시보드는 MVP 보류 범위다. `?view=dashboard`는 준비 중 안내만 제공하며 고정 숫자를 실시간 통계로 표시하지 않는다. 이 URL은 운영 권한이 아니다.
 
-- 서버 API 연결. `server/`는 아직 health check만 있어서 지금은 전부 mock
-- 실제 AI 추천(T03). 지금 `reasonFor()`는 키워드 휴리스틱이지 모델 호출이 아니다
-- SSE 실시간 갱신, 부재 중 메시지 복원(V05), 두 실기기 검증(V04)
-- 대시보드는 옛 mock 숫자 그대로 — team-plan.md가 우선순위에서 뺐다
+## 데이터와 서버 연결
+
+`api/client.js`는 쿠키 세션, 참가자, 추천, 대화 REST와 SSE 어댑터다. ID를 권한으로 사용하지 않고 서버의 HttpOnly 쿠키를 함께 전송한다. 네트워크 오류, 취소, 시간 초과, API 오류 코드와 `Retry-After`를 처리한다.
+
+`api/mock.js`는 같은 인터페이스의 브라우저 전용 데모다. `localStorage`의 `bside:demo:v2:*` 키에 예시 방·참가자·메시지를 저장한다. 기존 프로토타입 저장 키는 수정하지 않는다. 추천은 공통 주제와 교류 의도를 비교하는 단순 규칙이며 실제 AI가 아니다. 다른 기기와 공유되지 않으며 저장 권한이 없으면 오류를 표시한다.
+
+**`server/`의 제품 API는 아직 미구현이다.** 프론트 HTTP 호출부 구현과 실제 서버 통합 완료는 구분한다. 실제 두 기기의 답장, 영속 쿠키·Redis 재시작 복원, 서버 권한·원자성, 실제 AI 품질, 종료 후 서버 정리는 백엔드·AI와 함께 검증해야 한다.
 
 ## 구조
 
-```
+```text
 src/
-  api/
-    shapes.js    데이터 계약 요약 (원본은 docs/api-contract.md)
-    mock.js      목 구현. sessionStorage에 저장소를 얹어 새로고침 복원을 흉내낸다
-    client.js    진짜 백엔드 스텁 (T05)
-    index.js     스위치
-  lib/bleChat.js 채팅 mock. 서버 저장 채팅으로 옮길 때(T06) 이 파일만 API 호출로 바뀐다
-  state.jsx      useReducer + Context
-  screens/
-    Entry.jsx    입장 + 내 정보 수정 겸용
-    Room.jsx     목록 (배너, 추천순)
-    Detail.jsx   참가자 상세 + 추천 이유 + 채팅 시작
-    Chat.jsx
-    Dashboard.jsx, Ended.jsx
+  api/                 실제 HTTP·데모 어댑터와 공통 JSDoc
+  lib/contracts.js     입력 한도, 정렬, 추천 버전, 메시지 병합
+  room-controller.js   비동기 요청 소유권, 상태 reducer, 동기화·전송
+  state.jsx            React reducer·Context 연결과 브라우저 수명
+  use-room.js          Context hook
+  components/          공통 헤더·오류·로딩·참가자 카드
+  screens/             입장·목록·상세·대화 목록·채팅·종료
+  index.css            모바일 중심 다크 테마
+tests/                 Node 내장 테스트 러너로 계약·실패·응답 경합 검증
 ```
 
-CSS(`src/index.css`)는 이전 상태색·근접·만료 관련 클래스가 일부 안 쓰인 채 남아있다 —
-동작엔 지장 없지만 정리는 나중 순위.
+[검증 기록](VERIFICATION.md)에 실행 범위와 서버 통합의 미검증 항목을 기록한다. 테스트·빌드 성공만으로 실기기 통신 완료를 주장하지 않는다.

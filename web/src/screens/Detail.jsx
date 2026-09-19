@@ -1,49 +1,26 @@
-// 참가자 상세. "배너를 눌러 이동. 자기소개·그 사용자가 찾는 사람·현재 조회자를
-// 위한 추천 이유·채팅 시작 동작"(development-contract.md). 접점 시트가 하던
-// "여기만 손이 더 갔다" 역할을 이제 이 화면이 맡는다 — 근거 블록은 그대로 재사용.
-import { useRoom } from '../state.jsx';
+import { useRoom } from '../use-room.js';
+import { validReason } from '../lib/contracts.js';
+import { EmptyState, ErrorNotice, Loading, PageHeader, RecommendationRetry } from '../components/Feedback.jsx';
+
+const reasonLabels = { pending: '추천 이유를 준비하고 있어요.', failed: '추천 이유를 불러오지 못했어요.', unscored: '아직 추천 이유가 없어요. 소개를 보고 직접 이야기를 나눠보세요.', unavailable: '지금은 추천할 수 없는 참가자예요.' };
 
 export default function Detail() {
-  const { state, deselectParticipant, openChat } = useRoom();
-  const { selected } = state;
-
-  if (!selected) return null;
-  const { participant, recommendation } = selected;
-  const stopped = participant.participation_status === 'stopped';
-
-  return (
-    <section className="screen on">
-      <header className="row" style={{ padding: '18px 0 12px', gap: 10 }}>
-        <button type="button" onClick={deselectParticipant} aria-label="뒤로" style={{ width: 32, height: 44, display: 'flex', alignItems: 'center' }}>
-          <svg className="ic lg"><use href="#i-back" /></svg>
-        </button>
-        <h1 className="t-lg" style={{ margin: 0 }}>{participant.nickname}</h1>
-      </header>
-
-      {stopped && (
-        <p className="t-sm faint" style={{ margin: '0 0 12px', lineHeight: 1.6 }}>
-          이 분은 참여를 중단한 상태예요. 지금까지 나눈 대화는 볼 수 있지만 새 메시지는 못 보내요.
-        </p>
-      )}
-
-      <p className="t-sm faint" style={{ margin: '0 0 7px' }}>자기소개</p>
-      <p className="t-body wrap">{participant.self_description}</p>
-
-      <p className="t-sm faint" style={{ margin: '18px 0 7px' }}>찾는 사람</p>
-      <p className="t-body wrap">{participant.connection_intent}</p>
-
-      {recommendation?.reason && (
-        <div className="why" style={{ marginTop: 18 }}>
-          <div className="t-sm faint" style={{ marginBottom: 9 }}>왜 추천했나</div>
-          <p className="t-md" style={{ lineHeight: 1.55 }}>{recommendation.reason}</p>
-        </div>
-      )}
-
-      <div style={{ marginTop: 'auto', paddingBottom: 20 }}>
-        <button type="button" className="btn" disabled={stopped} onClick={() => openChat(participant)}>
-          {stopped ? '지금은 메시지를 보낼 수 없어요' : '채팅 시작'}
-        </button>
-      </div>
-    </section>
-  );
+  const { state, actions } = useRoom();
+  const { detail, detailLoading, detailError, me } = state;
+  if (!detail) return <section className="screen"><PageHeader title="참가자 상세" onBack={() => actions.navigate('people')} />{detailLoading ? <Loading text="소개를 불러오고 있어요" /> : <ErrorNotice error={detailError} onRetry={actions.loadDetail} />}</section>;
+  const { participant, recommendation } = detail;
+  const stopped = me.participation_status === 'stopped' || participant.participation_status === 'stopped';
+  const existing = state.conversations.find((c) => c.peer.id === participant.id);
+  return <section className="screen detail-screen">
+    <PageHeader title={participant.nickname} onBack={() => actions.navigate('people')} eyebrow="같은 행사 참가자" />
+    <ErrorNotice error={detailError} onRetry={actions.loadDetail} />
+    {participant.participation_status === 'stopped' && <p className="notice">이 분은 참여를 중단했어요. 새 메시지를 보낼 수 없어요.</p>}
+    <div className="detail-section"><h2>자기소개</h2><p className="profile-text">{participant.self_description}</p></div>
+    <div className="detail-section"><h2>찾는 사람</h2><p className="profile-text">{participant.connection_intent}</p></div>
+    <aside className="why"><h2>왜 추천했나요?</h2>{validReason(detail, me) ? <p className="profile-text">{recommendation.reason}</p> : <p className="dim">{reasonLabels[recommendation?.state] ?? '추천 이유를 다시 확인하고 있어요.'}</p>}
+      {recommendation?.state === 'failed' && <RecommendationRetry />}
+    </aside>
+    {me.participation_status === 'stopped' && <EmptyState compact title="참여를 재개하면 대화할 수 있어요" action={<button className="text-button" onClick={() => actions.navigate('profile')}>내 정보에서 재개하기</button>} />}
+    <div className="bottom-action"><button className="btn" disabled={stopped && !existing} onClick={() => actions.navigate('chat', participant.id)}>{existing ? '이전 대화 보기' : stopped ? '지금은 대화할 수 없어요' : '대화 시작하기'}</button></div>
+  </section>;
 }

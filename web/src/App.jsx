@@ -1,44 +1,55 @@
-import { useEffect } from 'react';
-import { useRoom } from './state.jsx';
+import { useEffect, useRef } from 'react';
+import { useRoom } from './use-room.js';
+import { ErrorNotice, Loading } from './components/Feedback.jsx';
 import Entry from './screens/Entry.jsx';
 import Room from './screens/Room.jsx';
 import Detail from './screens/Detail.jsx';
 import Chat from './screens/Chat.jsx';
+import Conversations from './screens/Conversations.jsx';
 import Dashboard from './screens/Dashboard.jsx';
 import Ended from './screens/Ended.jsx';
 
-// 운영진 전용 별도 진입. 로그인을 새로 만들지 않으니 참가자 화면이 아닌
-// 다른 URL로만 구분한다. team-plan.md는 대시보드를 개발 우선순위에서
-// 뺐지만(운영진 대시보드는 배정하지 않는다) 화면 자체는 남겨둔다.
-const IS_DASHBOARD = new URLSearchParams(window.location.search).get('view') === 'dashboard';
+const dashboard = new URLSearchParams(window.location.search).get('view') === 'dashboard';
 
 export default function App() {
-  const { state, loadRoom, restoreSession } = useRoom();
-
+  const { state, actions } = useRoom();
+  const main = useRef(null);
+  const page = state.room?.status === 'closed' ? 'ended' : !state.me ? 'entry' : state.view;
+  const connecting = state.me && !['connected', 'closed'].includes(state.connection);
   useEffect(() => {
-    loadRoom();
-    restoreSession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    document.title = state.room ? state.room.name + ' · Bside' : 'Bside';
+  }, [state.room]);
+  useEffect(() => {
+    if (state.booting) return;
+    window.scrollTo(0, 0);
+    main.current?.querySelector('h1')?.focus({ preventScroll: true });
+  }, [page, state.targetId, state.booting]);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const update = () => document.documentElement.style.setProperty('--viewport-height', (viewport?.height ?? window.innerHeight) + 'px');
+    update();
+    viewport?.addEventListener('resize', update);
+    return () => viewport?.removeEventListener('resize', update);
   }, []);
 
-  // room이 오기 전에 다른 화면을 마운트하면 안 된다 — 실기기 테스트로 잡았던
-  // 경쟁 조건(소속 select 초기값 버그)과 같은 종류의 함정이라 그대로 지킨다.
-  // restoring도 같이 기다린다: 안 그러면 복원 직전에 Entry가 한 프레임 깜빡인다.
-  if (!state.room || state.restoring) return <div id="app" />;
-
-  if (IS_DASHBOARD) return <div id="app"><Dashboard /></div>;
-
-  // 종료는 참가자 쪽에만 적용한다. 대시보드는 행사가 끝난 뒤에도 봐야 한다.
-  if (state.room.status === 'closed') return <div id="app"><Ended title={state.room.title} /></div>;
-
-  const showEntry = !state.me || state.editing;
+  let screen;
+  if (state.room?.status === 'closed') screen = <Ended title={state.room.name} />;
+  else if (state.booting) screen = <section className="screen centered"><Loading text="행사 정보를 확인하고 있어요" /></section>;
+  else if (state.bootError) screen = <section className="screen centered"><h1 tabIndex={-1}>행사에 연결하지 못했어요</h1><ErrorNotice error={state.bootError} onRetry={actions.start} /></section>;
+  else if (dashboard) screen = <Dashboard />;
+  else if (!state.me || state.view === 'profile') screen = <Entry key={state.me?.id ?? 'join'} />;
+  else if (state.view === 'detail') screen = <Detail />;
+  else if (state.view === 'chat') screen = <Chat key={state.targetId} />;
+  else if (state.view === 'conversations') screen = <Conversations />;
+  else screen = <Room />;
 
   return (
-    <div id="app">
-      {state.chatWith ? <Chat />
-        : showEntry ? <Entry />
-        : state.selectedId ? <Detail />
-        : <Room />}
+    <div id="app" style={{ '--connection-height': connecting ? '48px' : '0px' }}>
+      <main ref={main} id="main-content">
+        {state.notice && <div className="notice" role="status">{state.notice}<button className="text-button" onClick={actions.dismissNotice}>닫기</button></div>}
+        {connecting && <p className="connection-status" role="status">{state.connection === 'connecting' ? '연결 중…' : '연결을 다시 확인하고 있어요. 저장된 내용은 유지됩니다.'}</p>}
+        {screen}
+      </main>
     </div>
   );
 }
