@@ -1,134 +1,32 @@
-# Bside
+# 코쓱톤 프로젝트
 
-**Connect with who's beside you.**
-행사장에서 닿을 수 있는 거리에 있는 사람과 연결되는 앱.
+주제 **교류**를 바탕으로, 행사·밋업 참가자가 지금 만나고 싶은 사람을 설명하면 그 교류 의도에 맞는 상대를 찾고 1:1 채팅을 시작하도록 돕는 서비스를 구체화하고 있습니다. 별도 수락 절차 없이 메시지를 보내고, 수신자가 대화를 이어갈지 결정합니다. 연결 관계를 유사성·상보성으로 미리 제한하지 않고 사용자 맥락을 LLM이 해석하는 방향입니다. 잠시 앱을 닫아도 메시지를 보관하고 행사 종료까지 복원합니다. QR·링크로 계정 없이 참여하고, 운영자가 수동으로 행사를 종료합니다. 모바일 웹·서버 저장을 개발 기준으로 선택했으며 서비스명은 작업을 막지 않는 미정 항목입니다.
 
-> 코쓱톤 2026 · 국민대·숭실대·순천향대 연합 · 주제 **교류** · 제출 2026-09-20 12:00
-
----
-
-## 한눈에
-
-| | |
-|---|---|
-| **문제** | 네트워킹 시간에 혼자 온 사람은 누구에게 왜 말을 걸어야 할지 모른다 |
-| **해결** | QR로 3초 입장 → 상태 한 줄 30초 → **AI가 상보 관계와 첫마디** → **BLE로 서버 없이 직접 대화** → 만난다 |
-| **차별점** | 공통점이 아니라 **상보성**을 찾는다. 겹치는 단어가 0개인 두 사람을 잇는다 |
-| **왜 BLE** | GPS는 좌표가 서버로 간다. BLE는 근접 판정이 폰 안에서 끝난다. **QR은 어느 무리인지, BLE는 얼마나 가까운지** |
-| **고객** | 사용자는 참가자, **돈은 주최자가 낸다** |
-
----
-
-## 먼저 읽을 것
-
-**[spec/MASTER.md](spec/MASTER.md)** — 이 문서 하나면 전체 그림이 잡힌다. 서비스 소개부터 기술 스택, 배포, 협업, 일정까지.
-
-## 서버 실행
-
-[server/README.md](server/README.md) — Python 3.12 · uv 기반 FastAPI 실행 및 검증 안내.
-
-## 프로토타입 실행
-
-```bash
-cd prototype && python -m http.server 8777
-```
-
-`http://localhost:8777` 접속. 화면 6개가 목업 데이터로 전부 동작한다.
-우하단 버튼으로 **빈 방 · 매칭 중 · 접점 없음 · 블루투스 꺼짐 · 긴 텍스트 · 만료 빨리감기**를 바로 볼 수 있다.
-
----
-
-## 문서 지도
-
-### `spec/` — 확정된 명세 (개발자가 보는 것)
+## 팀이 함께 볼 문서
 
 | 문서 | 용도 |
-|---|---|
-| [MASTER.md](spec/MASTER.md) | **전체 총정리.** 여기서 시작 |
-| [PRD.md](spec/PRD.md) | 기능 명세, P0/P1/P2, 수용 기준 |
-| [protocol.md](spec/protocol.md) | **JSON 규격.** 이것만 지키면 셋이 서로 안 기다린다 |
-| [frontend-plan.md](spec/frontend-plan.md) | **프론트 작업 순서.** 코드 쓰기 전에 읽을 것 |
-| [web/README.md](web/README.md) | 프론트 진행 상황 — 0~4단계 완성, 실기기에서 잡은 버그 네 개 |
-| [prompts.md](spec/prompts.md) | LLM 프롬프트 전문 + 검증기 규칙 + 호출 수 관리 |
-| [scenario.md](spec/scenario.md) | 시연 영상 컷 대본 + 5분 발표 대본 + 예상 질문 |
-| [roadmap.md](spec/roadmap.md) | v0.1 ~ v1.0 버전 로드맵 |
+| --- | --- |
+| [해커톤 제약과 평가 기준](docs/hackathon-brief.md) | 배점, 제출 마감, 발표 규정과 원본 근거 |
+| [주제 평가와 검증 계획](docs/topic-evaluation.md) | 사용 장면별 비교, 차별성, AI·수요 검증과 시연 제안 |
+| [제품 결정 기록](docs/planning.md) | Q1~Q20의 질문·답변과 선택 근거 |
+| [MVP 개발 기준](docs/development-contract.md) | 현재 범위·화면·상태와 선택한 스택. 개발할 때 먼저 읽는 문서 |
+| [API와 데이터 계약](docs/api-contract.md) | 필드·권한·세션·추천 버전·메시지 순번·오류와 공통 예시 |
+| [검증과 시연 계획](docs/validation.md) | V01~V12 완료 조건, E01~E08 AI 사례, 평가 배점과 5분 발표 |
+| [4인 분업과 통합 계획](docs/team-plan.md) | 김성빈 프론트 확정, 나머지 역할 비교와 AI 도구를 쓰는 작업 경계 |
+| [최신 main 비교와 채택 결과](docs/reviews/baea751.md) | React·FastAPI 기반 재사용, 제품 규칙 충돌 해결, 검증 결과 |
+| [개발·배포 경계](docs/deployment.md) | 로컬 실행, 기존 Nginx 배포안과 같은 출처 API 연결 |
+| [BLE 조사와 검증 후보](docs/technical-findings.md) | 공식 문서로 확인한 플랫폼 제약과 실기기 검증안 |
+| [BLE 구현 설계안](docs/ble-design.md) | 광고 포맷, GATT 교환, 만료·재시도와 팀 구현 경계 |
+| [공통 용어](CONTEXT.md) | 기획·디자인·개발에서 같은 뜻으로 쓸 용어 |
+| [팀 논의 원문](docs/discussedw-raw.md) | 초기 아이디어와 팀원별 의견 |
+| [주최 측 안내 이미지](docs/info/) | 해커톤 안내 원본 |
 
-### `docs/` — 대회 정보와 초기 분석
+## 현재 단계
 
-| 문서 | 용도 |
-|---|---|
-| [hackathon-brief.md](docs/hackathon-brief.md) | 배점, 마감, 발표 규정과 원본 근거 |
-| [planning.md](docs/planning.md) | 초기 기획 분석과 결정 기록 |
-| [technical-findings.md](docs/technical-findings.md) | BLE 플랫폼 제약 공식 문서 조사 |
-| [discussedw-raw.md](docs/discussedw-raw.md) | 팀 논의 원문 (보존용) |
-| [info/](docs/info/) | 주최 측 안내 이미지 15장 |
+제품 질문의 답변과 최신 main `baea751`의 구현을 통합했습니다. 충돌은 더 나은 방식을 채택하라는 사용자 지시에 따라 해결했습니다. **현재 코드는 React 화면의 mock과 FastAPI health/ready 기반까지이며, 실제 참가자·추천·채팅 API는 다음 구현 작업입니다.** 프론트 빌드·린트와 서버 테스트는 확인했고, 실제 두 사용자 통신·AI·운영 배포는 아직 검증하지 않았습니다. 입력 한도·세션·정리 주기 같은 구현 기본값은 API 계약에 사용자 결정과 구분해 적었습니다.
 
-### `research/` — 근거 자료
+개발자는 **MVP 개발 기준 → API 계약 → 담당 작업과 검증 ID** 순으로 읽습니다. `spec/*`도 이 기준으로 갱신했습니다. 현재 코드에 남은 상태 한 줄·5분 만료·BLE 자동 답장은 교체할 mock 동작입니다. 고정 추천·자동 답장·상수 집계를 실제 동작으로 간주하지 않습니다.
 
-발표와 질의응답에서 인용할 숫자의 출처. 전부 링크가 달려 있다.
+팀 논의 원문은 보존합니다. 용어는 `CONTEXT.md`, 제품 결정 이력은 `docs/planning.md`, 현재 범위는 `docs/development-contract.md`, 공통 인터페이스는 `docs/api-contract.md`에서 관리합니다. 되돌리기 어려운 구조적 결정을 내리면 `docs/adr/`에 대안과 선택 이유를 남깁니다.
 
-| 폴더 | 내용 |
-|---|---|
-| [ideas/](research/ideas/) | 검토했다 접은 아이디어 6개와 사유 |
-| [market/](research/market/) | **근거리 서비스 실패 부검**, 경쟁 지형, GTM, 가격, 온보딩 수요 |
-| [naming/](research/naming/) | 이름 후보 충돌 검사 3라운드 |
-| [tech/](research/tech/) | 에이전트 프로토콜 검증, 입력 마찰 |
-
-**질의응답에서 가장 많이 쓸 문서**: [market/proximity-postmortem.md](research/market/proximity-postmortem.md)
-왜 Highlight·Sonar·Zenly가 죽었고 우리는 왜 다른지가 1차 출처와 함께 정리돼 있다.
-
-### 기타
-
-| | |
-|---|---|
-| [CONTEXT.md](CONTEXT.md) | 공통 용어집. 기획·디자인·개발이 같은 말을 쓰기 위한 것 |
-| [prototype/index.html](prototype/index.html) | **모바일 HTML 프로토타입.** 화면 6개 + 엣지 케이스 |
-| [spec/design.md](spec/design.md) | 디자인 토큰, AI 티 회피 규칙 |
-| [data/profiles.json](data/profiles.json) | 시연용 시드 프로필 |
-| [pitch/script.md](pitch/script.md) | 이전 버전 발표 대본 (**구버전**, [spec/scenario.md](spec/scenario.md) 참조) |
-
----
-
-## 기술 스택
-
-| 층 | 선택 |
-|---|---|
-| 프론트 | React + Vite |
-| 앱 래핑 | Capacitor (안드로이드) |
-| BLE | `@capgo/capacitor-bluetooth-low-energy` |
-| 백엔드 | FastAPI + uvicorn |
-| 상태 | Redis (AOF + named volume) |
-| 실시간 | SSE |
-| LLM | `ai.cs.kookmin.ac.kr` (OpenAI 호환) |
-| 배포 | OCI + Caddy + nip.io |
-
-아이폰 사용자는 같은 웹 주소로 들어오면 BLE만 없이 전부 동작한다.
-
----
-
-## 협업
-
-**브랜치 + PR.** PR은 작게, **30분 안에 머지**를 기본으로.
-
-```
-main            ← 항상 동작하는 상태
-  feat/server   ← FastAPI
-  feat/web      ← React 화면
-  feat/ble      ← Capacitor + BLE
-  feat/ai       ← 프롬프트·매칭
-```
-
-같은 파일을 두 사람이 만지지 않도록 디렉터리를 먼저 가른다.
-[protocol.md](spec/protocol.md)의 JSON 모양만 지키면 서로 기다릴 일이 없다.
-
----
-
-## 지금 할 일
-
-1. 게이트웨이 충전코드 받고 **API 호출 1회 성공**
-2. 안드로이드 스튜디오·JDK 설치 확인
-3. OCI에 Caddy + nip.io로 HTTPS 접속 확인
-4. FastAPI 뼈대 + Vite 프로젝트 생성
-5. 팀명 정하기 (제출 파일명에 필요)
-
-상세는 [spec/MASTER.md](spec/MASTER.md) 11번.
+팀은 4명이며 김성빈이 프론트를 맡습니다. 나머지 역할은 [분업안](docs/team-plan.md)을 비교해 정합니다. React·Vite·JavaScript와 FastAPI·Redis를 사용합니다. [프론트 실행](web/README.md), [서버 실행](server/README.md), [기존 코드에서 바꿀 화면 흐름](spec/frontend-plan.md)을 참고합니다.
