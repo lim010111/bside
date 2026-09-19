@@ -12,12 +12,17 @@ AI 추천은 독립 모듈까지 구현했으며 HTTP·Android에는 아직 연�
 ```sh
 docker compose up -d --wait redis
 uv sync --group dev
+export CREDENTIAL_REPLAY_SECRET="$(openssl rand -hex 32)"
 uv run fastapi dev app/main.py        # http://127.0.0.1:8000
 uv run pytest
 ```
 
 전체를 컨테이너로 올리려면 `docker compose up -d --wait`를 쓴다. `docker compose down -v`는
 제품 데이터를 지우므로 일반 재시작 절차가 아니다.
+
+`CREDENTIAL_REPLAY_SECRET`은 기본값이 없는 필수 값이다. 설치 credential의 10분 재생 값을
+Fernet으로 암호화하는 데 쓰므로 운영 중 변경하면 아직 유효한 재생 값을 복호화할 수 없다.
+회전은 해당 재생 요청이 만료 처리될 수 있음을 고려해 배포한다.
 
 API 통합 테스트는 기본적으로 **실제 Redis의 15번 데이터베이스**를 쓰고 각 테스트 전후로 비운다. 0번은 건드리지
 않는다. `TEST_REDIS_URL`로 별도 임시 Redis를 지정할 수 있다. Redis가 없으면 API 통합
