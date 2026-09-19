@@ -7,7 +7,7 @@
 최신 안정 태그인 `8.10.1`로 고정했습니다.
 
 ```bash
-docker compose up -d --wait
+docker compose up -d --wait redis
 uv sync --locked
 uv run fastapi dev --port 8000
 ```
@@ -28,7 +28,7 @@ curl -i http://localhost:8000/ready
 docker compose stop redis
 curl -i http://localhost:8000/ready   # 503
 curl -i http://localhost:8000/health  # 200
-docker compose up -d --wait
+docker compose up -d --wait redis
 curl -i http://localhost:8000/ready   # 200
 ```
 

@@ -18,13 +18,25 @@ uv run fastapi dev --port 8000
 [FastAPI 공식 구조 안내](https://fastapi.tiangolo.com/tutorial/bigger-applications/)에 따라 분리했습니다.
 방·상태·SSE·AI API 및 프론트 연결은 후속 작업입니다. 프론트의 목 데이터 설정은 유지합니다.
 
+## Docker로 함께 실행
+
+Docker Compose가 있으면 FastAPI와 Redis를 함께 실행할 수 있습니다.
+
+```bash
+cd server
+docker compose up -d --build --wait
+```
+
+접속 주소는 `http://localhost:8000`입니다. 종료는 `docker compose down`입니다.
+Compose의 API는 `redis://redis:6379/0`으로 연결하며, `CORS_ORIGINS`는 `.env`에서 변경할 수 있습니다.
+
 ## Redis
 
 서버 장애 대응과 수평 확장을 위해 Redis 저장 기반을 구성합니다.
 `server/`에서 Docker Compose로 실행합니다.
 
 ```bash
-docker compose up -d --wait
+docker compose up -d --wait redis
 curl -i http://localhost:8000/ready
 docker compose down  # 저장 데이터 유지
 ```
