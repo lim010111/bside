@@ -3,6 +3,14 @@
 //
 // getMatch()의 매칭 로직은 하드코딩이다. 실제 상보성 판단은 AI 레이어(담당 1) 몫이고
 // spec/prompts.md에 프롬프트가 있다 — 여기서는 그 결과 모양만 흉내낸다.
+import { TTL } from '../lib/expiry.js';
+
+// 행사 종료는 시각 비교로만 판단한다. 운영진이 방 만들 때 endsAt을 한 번 정하고,
+// 그 뒤론 아무도 버튼을 안 누른다 — 매 요청마다 now > endsAt만 본다(protocol.md
+// 0-1번 "운영진이 정한 종료 시각"). 서버에 크론이나 스윕 잡이 필요 없다.
+// 데모/테스트로 "이미 끝난 방"을 보고 싶으면 URL에 ?ended=1 (App.jsx가 처리).
+const HOURS = 3600 * 1000;
+const LOAD_TIME = Date.now();
 
 /* 행사마다 다른 것은 전부 여기 있다. 코드에 박지 않는다.
    주최자가 방을 만들 때 정하고, 참가자 화면은 이 설정을 따라간다. */
@@ -10,12 +18,14 @@ export const ROOMS = {
   KOSS26: {
     title: '코쓱톤 네트워킹',
     when: '국민대 미래관 4층 · 오늘 18:00까지',
+    endsAt: LOAD_TIME + 3 * HOURS,
     aff: { label: '소속', options: ['국민대', '숭실대', '순천향대'], placeholder: '직접 입력' },
     seed: () => SEED_HACK,
   },
   FEMEETUP: {
     title: '서울 프론트엔드 밋업',
     when: '성수 코워킹 · 오늘 21:00까지',
+    endsAt: LOAD_TIME + 3 * HOURS,
     aff: { label: '회사', options: null, placeholder: '예: 토스, 프리랜서, 취준' },
     seed: () => SEED_MEET,
   },
@@ -114,26 +124,53 @@ export const LATE = [
   { name: '민규', school: '국민대', st: 'FIRST_TIME', note: '친구 따라왔는데 친구가 사라졌어요', near: false },
 ];
 
-// ── 인메모리 저장. 새로고침하면 날아간다 — 실제 서버도 DB가 없으니 같은 성질이다 ──
-const rooms = {}; // code -> { members: Map<id, member> }
+// ── 저장소. sessionStorage 위에 얹은 흉내다 ──
+//
+// 진짜 서버는 브라우저 새로고침에 안 죽는다 — 서버 프로세스는 계속 떠 있고
+// "서버 재시작"이라는 완전히 다른 사건이 나야 메모리가 지워진다(protocol.md
+// 115번). 그런데 이 mock은 서버와 브라우저가 같은 JS 런타임이라, rooms를 그냥
+// 변수로만 두면 새로고침 = 서버 재시작이 되어버려서 세션 복원(getMe)을 제대로
+// 테스트할 수 없다. 그래서 sessionStorage에 같이 적어서 "새로고침에는 살고,
+// 탭을 닫으면 죽는다"는 진짜 서버-클라이언트 관계를 흉내 낸다.
+// client.js(8단계)로 가면 이 파일 자체가 필요 없어진다 — 진짜 서버가 그 역할을 한다.
+const DB_KEY = 'bside:mock:rooms';
+function loadRooms() {
+  try { return JSON.parse(sessionStorage.getItem(DB_KEY)) || {}; } catch { return {}; }
+}
+function saveRooms() { try { sessionStorage.setItem(DB_KEY, JSON.stringify(rooms)); } catch { /* noop */ } }
+const rooms = loadRooms(); // code -> { members: { [id]: member } }
 function db(code) {
-  if (!rooms[code]) rooms[code] = { members: new Map() };
+  if (!rooms[code]) rooms[code] = { members: {} };
   return rooms[code];
 }
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
-let nextId = 1;
+// nextId도 sessionStorage에 둬야 새로고침 뒤 새로 입장할 때 me1을 또 발급해서
+// 옛 me1(나였던 유령)을 덮어쓰는 사고가 안 난다.
+let nextId = Number(sessionStorage.getItem('bside:mock:nextId') || 1);
+function issueId() {
+  const id = `me${nextId++}`;
+  sessionStorage.setItem('bside:mock:nextId', String(nextId));
+  return id;
+}
 
 export async function getRoom(code) {
   const room = ROOMS[code];
   if (!room) throw new Error(`알 수 없는 방 코드: ${code}`);
-  return { code, title: room.title, when: room.when, aff: room.aff };
+  return {
+    code, title: room.title, when: room.when, aff: room.aff,
+    endsAt: room.endsAt, ended: Date.now() > room.endsAt,
+  };
 }
 
 export async function join(code, { nick, school, status, note }) {
   await delay(120);
-  const id = `me${nextId++}`;
-  const member = { id, name: nick, school, st: status, note, near: false, age: 0 };
-  db(code).members.set(id, member);
+  const id = issueId();
+  // joinedAt: 새로고침 복원(getMe) 때 "5분 안 지났나"를 판단하는 기준.
+  // 클라이언트의 t0도 복원할 땐 Date.now()가 아니라 이 값으로 맞춘다 —
+  // 안 그러면 새로고침할 때마다 내 만료 시계가 5분으로 부당하게 늘어난다.
+  const member = { id, name: nick, school, st: status, note, near: false, age: 0, joinedAt: Date.now() };
+  db(code).members[id] = member;
+  saveRooms();
   return member;
 }
 
@@ -141,8 +178,21 @@ export async function join(code, { nick, school, status, note }) {
 // 그 동작을 그대로 따라 여기서도 join()과 같은 전체 payload를 받는다.
 export async function updateStatus(code, id, { nick, school, status, note }) {
   await delay(120);
-  const member = { id, name: nick, school, st: status, note, near: false, age: 0 };
-  db(code).members.set(id, member);
+  // 수정도 "아직 여기 있다"는 신호라서 joinedAt을 다시 찍는다 — 5분 시계 리셋
+  // (state.jsx STATUS_UPDATED와 같은 원칙, 서버 쪽 기록도 맞춰둔다)
+  const member = { id, name: nick, school, st: status, note, near: false, age: 0, joinedAt: Date.now() };
+  db(code).members[id] = member;
+  saveRooms();
+  return member;
+}
+
+/** 새로고침 복원. sessionStorage에 남은 id로 "나 아직 유효해?"를 묻는다 */
+export async function getMe(code, id) {
+  await delay(100);
+  if (!id) return null;
+  const member = db(code).members[id];
+  if (!member) return null;
+  if (Date.now() - member.joinedAt > TTL * 1000) return null; // 이미 만료됐다. 새로 입장한 것처럼
   return member;
 }
 
@@ -164,7 +214,7 @@ export async function getMembers(code) {
 export async function getMatch(code, id) {
   await delay(1500); // "N명 중에서 찾는 중" 문구가 보일 시간을 준다
   const room = db(code);
-  const me = room.members.get(id);
+  const me = room.members[id];
   if (!me || me.st !== 'LOOKING_FOR') return null;
   const members = await getMembers(code);
   const helper = members.find((p) => p.st === 'CAN_SHARE');

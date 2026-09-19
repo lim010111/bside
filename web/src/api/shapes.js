@@ -12,6 +12,9 @@
  * @property {string} when
  * @property {{label:string, options:string[]|null, placeholder:string}} aff
  *   options가 null이면 자유 입력. 행사마다 다르다 (protocol.md 2-2번) — 코드에 박지 않는다.
+ * @property {number} endsAt   운영진이 방 만들 때 한 번 정한 종료 시각(ms epoch).
+ *   사람이 그 순간 누르는 버튼이 아니라 시각 비교로만 판단한다 — protocol.md 0-1번
+ * @property {boolean} ended   now > endsAt. true면 참가자 화면을 아무것도 못 연다
  */
 
 /**
@@ -59,5 +62,8 @@
  * heartbeat(code, id)                    -> Promise<void>        (7단계에서 실제로 호출 시작)
  * getDashboard(code)                     -> Promise<DashboardStats>
  *   숫자 하드코딩 허용(PRD F5). 운영진 전용 — 참가자 화면과 같은 join 없이 조회한다
+ * getMe(code, id)                        -> Promise<(Member & {joinedAt:number})|null>
+ *   새로고침 복원용. sessionStorage에 남은 내 id로 "나 아직 여기 있던 사람 맞아?"를
+ *   묻는다. 이미 5분 만료됐으면 null — 그러면 화면은 새로 입장한 것처럼 처리한다
  */
 export {};
