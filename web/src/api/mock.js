@@ -62,12 +62,12 @@ export function createMockApi({ storage = () => globalThis.localStorage, session
   //
   // 활용형을 정규식에 나열하지 않는다. `막힌`을 빠뜨려서 씨드 45명이 한 명도
   // 추천되지 않은 적이 있다. 어간까지만 적고 어미는 흘려보낸다.
-  const ASKS = /막히|막힌|막혀|막혔|모르|어렵|어려|헤매|궁금|찾|도움|필요|배우|알고 싶|보고 싶|익숙한 분|처음|계실까요|있나요|있을까요|주실|봐주|물어보|여쭤/;
-  const OFFERS = /해봤|해봅|구축|경험|자신|물어보셔도|물어봐 주|도와|알려|설명|봐드|나누|공유|잡아봤|통과시켜|만들어봤|할 줄|많이 했|오래 했|좀 합니다|드릴|드려|가능해|가능합/;
+  const ASKS = /막히|막힌|막혀|막혔|막막|모르|어렵|어려|헤매|궁금|찾|도움|필요|배우|알고 싶|보고 싶|익숙한 분|처음|감이 안|어떻게|보신 분|하실 분|계실까요|계신가요|있나요|있을까요|주실|봐주|물어보|여쭤|구해|구하/;
+  const OFFERS = /해봤|해봐|해봅|구축|경험|자신|물어보셔도|물어봐 주|도와|알려|설명|봐드|드릴|드려|나누|공유|잡아봤|통과시켜|만들어봤|할 줄|잘 아|많이 했|많이 해|오래 했|좀 합니다|웬만한|가능해|가능합/;
   // 낱말이 정확히 겹치는 일은 드물다. 주제로 묶어야 추천이 사람 수만큼 나온다.
   const TOPICS = [
-    ['배포와 인프라', ['도커', 'CI', '배포', 'AWS', '빌드', '파이프라인', '서버', '인증', 'OAuth', 'Firebase', '권한']],
-    ['프론트엔드', ['React', '리액트', '타입스크립트', '제네릭', '상태관리', '웹소켓', 'SSE', '소켓', '통신']],
+    ['배포와 인프라', ['도커', 'CI', '배포', 'AWS', '빌드', '파이프라인', '서버', '백엔드', '인증', 'OAuth', 'Firebase', '권한']],
+    ['프론트엔드', ['React', '리액트', '프론트', '타입스크립트', '제네릭', '상태관리', '웹소켓', 'SSE', '소켓', '통신']],
     ['디자인', ['디자인', '피그마', '토큰', '일러스트', '아이콘', '프로토타입', '오토레이아웃']],
     ['기획과 제품', ['기획', 'PM', '기획서', '제품', '논문', 'NLP']],
     ['발표 준비', ['발표', '대본', '자료', '심사', '대회']],
@@ -77,7 +77,12 @@ export function createMockApi({ storage = () => globalThis.localStorage, session
     ['데이터', ['파이썬', '크롤링', '지도', 'API']],
     ['협업 도구', ['테스트', '깃', '충돌']],
   ];
+  // `안 해봤어요`, `할 줄 아는 게 별로 없어요`는 `해봤`·`할 줄`을 품고 있다.
+  // 부정을 걸러내지 않으면 못 한다고 쓴 사람을 근거로 추천하게 된다.
+  const CANT = /안 해봤|못 해봤|해본 적 없|할 줄 아는 게 별로 없|아직 할 줄|한 번도|처음이라|별로 없|잘 몰라|모르겠/;
   const wrote = (person) => person.self_description + ' ' + person.connection_intent;
+  const asks = (person) => ASKS.test(wrote(person));
+  const offers = (person) => OFFERS.test(wrote(person)) && !CANT.test(wrote(person));
   function sharedTopic(viewer, candidate) {
     const mine = wrote(viewer), theirs = wrote(candidate);
     const hit = TOPICS.find(([, words]) => words.some((w) => mine.includes(w)) && words.some((w) => theirs.includes(w)));
@@ -86,8 +91,7 @@ export function createMockApi({ storage = () => globalThis.localStorage, session
   function reason(viewer, candidate) {
     if (candidate.participation_status !== 'active') return { state: 'unavailable', reason: null };
     // 상보성: 한쪽이 찾고 다른 쪽이 내어줄 때 성립한다. 방향은 양쪽 다 본다.
-    const complementary = (ASKS.test(wrote(viewer)) && OFFERS.test(wrote(candidate)))
-      || (OFFERS.test(wrote(viewer)) && ASKS.test(wrote(candidate)));
+    const complementary = (asks(viewer) && offers(candidate)) || (offers(viewer) && asks(candidate));
     const topic = complementary ? sharedTopic(viewer, candidate) : null;
     return { state: topic ? 'ready' : 'unscored',
       // 근거는 상대가 실제로 쓴 원문에서 가져온다. 지어내지 않는다.

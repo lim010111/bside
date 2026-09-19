@@ -110,3 +110,16 @@ test('recommendation reasons quote the other person rather than inventing one', 
   assert.ok(detail.recommendation.reason.includes(detail.participant.self_description),
     '이유가 상대의 원문을 담고 있지 않다: ' + detail.recommendation.reason);
 });
+
+// `안 해봤어요`는 `해봤`을 품는다. 부정을 읽지 못하면 못 한다고 쓴 사람을
+// 근거로 추천하게 되고, 심사위원이 그 사람을 눌러보면 바로 드러난다.
+test('demo never recommends someone on the strength of what they said they cannot do', async () => {
+  const api = await joinFresh(viewer('배포나 발표 해보신 분과 이야기하고 싶어요'));
+  const { ordered_evaluated_ids } = await api.getRecommendations('KOSS26');
+  assert.ok(ordered_evaluated_ids.length > 0);
+  for (const id of ordered_evaluated_ids) {
+    const { participant } = await api.getParticipant('KOSS26', id);
+    assert.doesNotMatch(participant.self_description, /안 해봤|한 번도|할 줄 아는 게 별로 없/,
+      '못 한다고 쓴 사람을 추천했다: ' + participant.self_description);
+  }
+});
