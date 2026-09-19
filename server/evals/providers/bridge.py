@@ -145,16 +145,19 @@ async def run(payload: dict) -> dict:
     cache = InMemoryRecommendationCache() if payload.get("cache") else NullRecommendationCache()
 
     runs = []
-    async with RecommendationService(settings, cache=cache, gateway=gateway) as service:
-        for _ in range(int(payload.get("repeats", 1))):
-            started = time.perf_counter()
-            result = await service.recommend(request)
-            runs.append(
-                {
-                    "wall_ms": round((time.perf_counter() - started) * 1000, 1),
-                    "result": normalize(result),
-                }
-            )
+    try:
+        async with RecommendationService(settings, cache=cache, gateway=gateway) as service:
+            for _ in range(int(payload.get("repeats", 1))):
+                started = time.perf_counter()
+                result = await service.recommend(request)
+                runs.append(
+                    {
+                        "wall_ms": round((time.perf_counter() - started) * 1000, 1),
+                        "result": normalize(result),
+                    }
+                )
+    finally:
+        await gateway.aclose()
     return {
         "mode": payload["mode"],
         "case_id": payload["request"].get("case_id"),

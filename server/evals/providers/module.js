@@ -14,6 +14,7 @@ import { assertAffordable, record } from '../lib/budget.js';
 export default class ModuleProvider {
   constructor(options = {}) {
     this.config = options.config ?? {};
+    this.onResult = options.onResult;
     this.mode = this.config.mode ?? 'scripted';
     this.model = this.config.model ?? null;
   }
@@ -58,16 +59,8 @@ export default class ModuleProvider {
     }
 
     const result = response.result;
-    if (live) {
-      record(`${caseId}@${this.model}`, result.gateway_calls ?? 0, {
-        case_id: caseId,
-        model: this.model,
-        candidates: fixture.request.candidates.length,
-        duration_ms: result.duration_ms,
-      });
-    }
 
-    return {
+    const normalized = {
       output: JSON.stringify(result),
       cached: false,
       metadata: {
@@ -85,5 +78,17 @@ export default class ModuleProvider {
         settings_overrides: this.config.settings ?? null,
       },
     };
+    // Persist the paid response before budget I/O can fail.
+    if (this.onResult) await this.onResult(normalized);
+    if (live) {
+      record(`${caseId}@${this.model}`, result.gateway_calls ?? 0, {
+        case_id: caseId,
+        model: this.model,
+        candidates: fixture.request.candidates.length,
+        duration_ms: result.duration_ms,
+      });
+    }
+
+    return normalized;
   }
 }

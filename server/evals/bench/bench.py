@@ -75,14 +75,17 @@ async def measure(args) -> dict:
         # 콜드: 매번 빈 캐시로 시작한다. 이전 반복의 결과를 재사용하면 콜드가 아니다.
         cache = InMemoryRecommendationCache()
         gateway = OpenAICompatibleGateway(settings) if live else ScriptedGateway()
-        async with RecommendationService(settings, cache=cache, gateway=gateway) as service:
-            started = time.perf_counter()
-            first = await service.recommend(request)
-            cold.append(sample(first, (time.perf_counter() - started) * 1000, index))
+        try:
+            async with RecommendationService(settings, cache=cache, gateway=gateway) as service:
+                started = time.perf_counter()
+                first = await service.recommend(request)
+                cold.append(sample(first, (time.perf_counter() - started) * 1000, index))
 
-            started = time.perf_counter()
-            second = await service.recommend(request)
-            cached.append(sample(second, (time.perf_counter() - started) * 1000, index))
+                started = time.perf_counter()
+                second = await service.recommend(request)
+                cached.append(sample(second, (time.perf_counter() - started) * 1000, index))
+        finally:
+            await gateway.aclose()
 
     return {
         "mode": args.mode,
