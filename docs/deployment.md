@@ -22,7 +22,7 @@ APK 안의 UI와 원격 API는 같은 출처라는 전제를 두지 않는다. H
 
 FastAPI·Redis AOF·영속 volume을 사용한다. 초기 단일 worker는 기존 기반의 개발 기본값으로 유지하며 확장·운영 SLA를 주장하지 않는다. `docker compose down -v`를 재시작 절차로 사용하지 않는다. 일반·시연 데이터 모두 같은 보관 정책이며 시연 종료 자동 정리 명령을 배포에 넣지 않는다.
 
-백그라운드 알림은 네이티브 결과 수신 경로가 필요하다. FCM을 채택한다면 해당 설정·서버 자격·앱 등록을 별도 구성해야 하며 현재 설정된 것으로 소개하지 않는다. 배포 완료는 health 성공이 아니라 실제 APK→서버→다른 단말 메시지·추천 알림까지 검증한 범위로 기록한다.
+백그라운드 알림은 FCM으로 구현했다(`server/app/push.py`, `android/.../PushService.kt`). 설정·서버 자격·앱 등록은 아래 [Firebase](#firebase)에 적는다. 배포 완료는 health 성공이 아니라 실제 APK→서버→다른 단말 메시지·추천 알림까지 검증한 범위로 기록한다.
 
 ## 배포 현황
 
@@ -55,8 +55,9 @@ ssh.exe myserver-1 "rm -rf ~/apps/bside/server && cd ~/apps/bside && tar xf /tmp
 ssh.exe myserver-1 "cd ~/apps/bside/server && sudo docker compose -p bside up -d --build --wait"
 ```
 
-`server.env`에는 `API_PORT=8100`, 운영 `CORS_ORIGINS`, 그리고 AI 추천을 켤 때 필요한
-`AI_API_KEY`·`AI_BASE_URL`·`AI_MODEL`을 둔다. 이 파일은 서버에만 있고 저장소에 넣지 않는다.
+`server.env`에는 `API_PORT=8100`, 운영 `CORS_ORIGINS`, AI 추천을 켤 때 필요한
+`AI_API_KEY`·`AI_BASE_URL`·`AI_MODEL`, 푸시를 켤 때 필요한 `FCM_CREDENTIALS_HOST_FILE`과
+`FCM_CREDENTIALS_FILE`을 둔다. 이 파일은 서버에만 있고 저장소에 넣지 않는다.
 `.dockerignore`가 `.env`를 이미지에서 제외하므로 이 값들은 compose 환경 변수로만 들어간다.
 셋 중 하나라도 비면 서버는 정상 기동하되 추천을 `unavailable`로 보고한다.
 
@@ -83,11 +84,34 @@ ssh.exe myserver-1 "cd ~/apps/bside/server && sudo docker compose -p bside exec 
   방향별이라 양쪽 모두 상대에 대한 추천을 받았다. 응답에 점수·근거 인용·내부 버전은 없었다.
 - 포그라운드 서비스 알림("주변 발견이 켜져 있어요")이 Android 16 실기기(Galaxy S25 계열) 알림 그늘에 실제로 뜬다.
   `POST_NOTIFICATIONS`를 요청하도록 고친 뒤의 상태다.
+- **푸시 알림이 운영에서 동작.** 앱을 백그라운드에 둔 단말에 메시지를 보내 `messages`
+  채널 알림이 뜨는 것을, 그리고 추천이 완료될 때 `nearby` 채널 알림이 뜨는 것을 확인했다.
+  메시지 알림은 보낸 사람 닉네임과 본문을, 추천 알림은 닉네임만 담고 이유는 담지 않는다.
+
+### Firebase
+
+| 항목 | 값 |
+| --- | --- |
+| 프로젝트 | `bside-5a002` (Spark 무료 플랜) |
+| Android 앱 | `app.bside` |
+| 서비스 계정 | `firebase-adminsdk-fbsvc@bside-5a002.iam.gserviceaccount.com` |
+| 키 위치 | 호스트 `~/apps/bside/fcm.json`, 컨테이너 `/run/secrets/fcm.json` |
+
+Gemini in Firebase와 Google Analytics는 FCM에 필요 없고 각각 별도 데이터 조건이 붙어서 껐다.
+
+**키 파일의 소유자는 컨테이너 UID여야 한다.** 이미지가 `USER 10001`로 돌기 때문에, 호스트
+사용자 소유의 `0600` 파일은 컨테이너가 열지 못하고 `Permission denied`로 푸시가 조용히
+꺼진다. 다른 서비스가 같이 도는 호스트라 `644`로 여는 대신 소유권을 넘긴다.
+
+```bash
+ssh.exe myserver-1 "sudo chown 10001:10001 ~/apps/bside/fcm.json && sudo chmod 400 ~/apps/bside/fcm.json"
+```
+
+적용 여부는 토큰을 하나 등록해 보고 응답의 `push_enabled`로 확인한다. 로그의 부재로
+판단하지 않는다 — 껐다 켜기 전의 경고가 그대로 남아 있어 오해하기 쉽다.
 
 ### 아직 안 된 것
 
-- **알림다운 알림이 없다.** 구현된 알림은 발견이 켜져 있다는 포그라운드 서비스 알림
-  하나뿐이다(`DiscoveryService.kt`의 `discovery` 채널). 앱을 백그라운드에 둔 단말에 메시지를
-  보내고 `dumpsys notification`을 확인했지만 새 알림은 없었다 — 메시지는 앱을 다시 열었을 때
-  보인다. 추천 알림도 마찬가지로 없다. 둘 다 FCM 또는 백그라운드 수신 경로가 필요하다.
+- 푸시를 끄는 사용자 설정이 없다. 지금은 앱을 지우면 FCM이 토큰을 죽었다고 답하고 서버가
+  지우는 것이 유일한 해지 경로다.
 - 모니터링 연결(Uptime Kuma에 이 주소 등록), 로그 보존 정책
