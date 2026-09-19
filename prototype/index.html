@@ -194,9 +194,6 @@ svg.ic.lg{width:22px;height:22px}
     </select>
     <div class="err" id="e1"></div>
     <button class="btn" style="margin-top:6px" onclick="enter()">들어가기</button>
-    <p class="t-sm faint" style="text-align:center;margin:14px 0 0">
-      설치 없음 · 가입 없음 · 나가면 사라짐
-    </p>
   </div>
 </section>
 
@@ -204,7 +201,6 @@ svg.ic.lg{width:22px;height:22px}
 <section class="screen" id="s2">
   <div style="padding:26px 0 20px">
     <h1 class="t-xl" style="margin:0">지금 무엇을 찾고 계세요?</h1>
-    <p class="t-sm dim" style="margin:8px 0 0">하나만 고르고 한 줄만 쓰면 끝나요.</p>
   </div>
   <div class="picks" id="picks"></div>
   <div style="margin-top:20px">
@@ -255,15 +251,15 @@ svg.ic.lg{width:22px;height:22px}
       <svg class="ic"><use href="#i-btoff"/></svg>
       <p class="t-md" style="margin:0 0 6px">블루투스가 꺼져 있어요</p>
       <p class="t-sm dim" style="margin:0 0 18px;line-height:1.6">
-        Bside는 서버를 거치지 않고 기기끼리 직접 대화해요.<br>블루투스를 켜면 바로 이어집니다.</p>
+        대화는 기기끼리 직접 주고받습니다.</p>
       <button class="btn btn-ghost" style="width:auto;padding:0 20px;height:44px;margin:0 auto"
         onclick="btOn()">블루투스 켜기</button>
       <p class="t-sm faint" style="margin:18px 0 0;line-height:1.6">
-        블루투스가 꺼져 있어도 방 목록과 접점 찾기는 계속 동작해요.</p>
+        꺼져 있어도 방 목록은 그대로 보입니다.</p>
     </div>
   </div>
   <div id="chatBody" style="flex:1;display:flex;flex-direction:column;min-height:0">
-    <p class="sysline">여기서 나눈 말은 서버에 저장되지 않아요. 방을 나가면 사라집니다.</p>
+    <p class="sysline">방을 나가면 사라집니다.</p>
     <div class="bubbles" id="bubbles"></div>
     <div class="composer">
       <input id="msg" class="field" style="height:44px" placeholder="메시지" autocomplete="off"
@@ -445,7 +441,7 @@ function renderRoom(){
       <svg class="ic"><use href="#i-inbox"/></svg>
       <p class="t-md" style="margin:0 0 6px">아직 이 방에 혼자 계세요</p>
       <p class="t-sm dim" style="margin:0 0 20px;line-height:1.6">
-        상태는 달아두었으니 누가 들어오면<br>바로 이어드릴게요.</p>
+        누가 들어오면 알려드릴게요.</p>
       <button class="btn btn-ghost" style="width:auto;padding:0 18px;height:44px;margin:0 auto">
         <svg class="ic"><use href="#i-qr"/></svg> QR 공유하기</button>
     </div>`;
@@ -493,7 +489,7 @@ function openSheet(pid){
           지금 ${S.people.length+1}명이 계시지만, 찾으시는
           <b style="color:var(--text);font-weight:400">배포·CI 경험</b>을 올리신 분이 아직 없네요.</p>
         <p class="t-sm faint" style="margin:14px 0 20px;line-height:1.6">
-          상태는 그대로 둘게요. 누가 들어오면 바로 알려드릴게요.</p>
+          누가 들어오면 알려드릴게요.</p>
         <button class="btn btn-ghost" onclick="closeSheet()">알겠어요</button>
       </div>`;
   } else {
@@ -530,7 +526,7 @@ function openSheet(pid){
           <button class="btn btn-ghost" onclick="closeSheet()">괜찮아요</button>
         </div>
         <p class="t-sm faint" style="text-align:center;margin:13px 0 0;line-height:1.55">
-          ${esc(p.name)}님께는 이름과 이 한 줄만 전해져요.<br>일정도 연락처도 넘어가지 않아요.</p>
+          ${esc(p.name)}님께 전해지는 건 이름과 이 한 줄뿐입니다.</p>
       </div>`;
   }
   document.getElementById('scrim').classList.add('on');
