@@ -1,20 +1,27 @@
-# 공통 데이터·동작 계약
+# 발견·추천·채팅 프로토콜
 
-**현재 계약은 [docs/api-contract.md](../docs/api-contract.md)다.** 경로·필드·오류·예시를 이곳에 중복 정의하지 않는다. `web/src/api/shapes.js`의 기존 JSDoc과 mock은 이전 제품의 형태이며 T00에서 현재 API 계약으로 갱신한다.
+원본은 [API 계약](../docs/api-contract.md)과 [개발 기준](../docs/development-contract.md)이다. 이 문서는 전송 계층의 책임을 요약하며 이전 행사/GATT 메시지 프로토콜은 [이력](../docs/history/event-mvp/spec/protocol.md)에 보존한다.
 
-| 경계 | 선택 |
-| --- | --- |
-| 입력 | `nickname`, `self_description`, `connection_intent`. 자유 입력 두 항목을 분리 |
-| 입장 | QR·링크, 계정 없는 브라우저 세션. 입력 완료 전 개인별 조회 거부 |
-| 후보 | 같은 방의 참여 중 참가자 전체. 의도 충돌은 제외 조건이 아님 |
-| 상세 | 자기소개·교류 의도·조회자별 추천 이유. 숫자 점수는 표시 보류 |
-| 복원 | 영속 쿠키와 서버 저장. 앱 종료·SSE 단절은 참가 상태를 변경하지 않음 |
-| 참여 | 명시적 `stop`·`resume`. 같은 참가자 ID와 대화 유지 |
-| 메시지 | REST 저장·이력, 대화별 순번·요청 ID 중복 방지, SSE 갱신 알림 |
-| 행사 종료 | 운영자 수동 종료, 예정 시각 없음. 종료 후 개인별 접근 차단 |
-| 실제 정리 | 종료 후 1시간이 개발 기본값. 앱 종료·5분 부재로 삭제하지 않음 |
-| 저장 구현 | Redis·AOF `always`·영속 volume. [저장 계약](../server/docs/redis.md) |
+```mermaid
+sequenceDiagram
+    participant A as Android A
+    participant B as Android B
+    participant S as 서버
+    A->>S: 설치 인증·소개·의도·발견 ON
+    B->>S: 설치 인증·소개·의도·발견 ON
+    B-->>A: BLE 광고의 임시 식별자
+    A->>S: 유효 관측 보고
+    S-->>A: 후보·추천 결과 또는 처리 상태
+    Note over A: 네이티브가 적합한 새 후보 알림
+    A->>S: 첫 메시지와 중복 방지 키
+    Note over S: 새 대화 조건 검사·메시지 저장
+    S-->>B: 메시지 갱신 / 복귀 후 이력 조회
+    B->>S: 답장
+    Note over A,B: 이탈·발견 OFF 뒤에도 기존 대화 유지
+```
 
-`STUCK × EXPERIENCED`, `LOOKING_FOR × CAN_SHARE`, 물리적 근접은 참가자 포함 조건이 아니다. 추후 접속 상태 표시를 넣더라도 데이터 수명과 분리한다. 실제 채팅은 서버가 저장하므로 ‘서버에 메시지가 남지 않는다’고 안내하지 않는다.
+BLE 식별자는 인증 토큰이나 공개 프로필이 아니다. 광고 바이트·서비스 UUID·임시 ID 회전은 Android API 예산 내에서 구현하며 구형 초안을 복사하지 않는다. Android는 스캔과 광고 지원을 실기기에서 확인한다.
 
-프론트·서버·AI는 같은 예시와 버전을 사용한다. 기존 `/room/{code}` 류 경로 대신 API 계약의 `/api/rooms/{room_id}`를 구현하며, 같은 출처 프록시는 [배포 경계](../docs/deployment.md)를 따른다.
+프로필·추천·채팅은 인터넷 서버로 처리한다. 첫 메시지 저장 전에는 현재 발견·참여를 확인하고, 기존 대화에는 근접성을 다시 요구하지 않는다. 서버 저장·순번·중복 방지가 전달의 기준이다. 연결 종료는 이력 삭제가 아니다.
+
+백그라운드 경로는 Kotlin이 BLE 보고와 서버 응답·결과 조회·시스템 알림까지 담당한다. UI용 실시간 연결은 복귀 시 이력 조회로 보완한다. 서버 평가가 비동기인 경우 네이티브의 제한된 결과 조회 또는 FCM 등 전달 경로를 구현 시 고정한다. FCM·SSE·WebSocket을 쓴다는 이유만으로 잠금 상태의 동작을 검증했다고 하지 않는다.

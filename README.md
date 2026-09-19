@@ -1,32 +1,33 @@
-# 코쓱톤 프로젝트
+# 코쓱톤 프로젝트 — BLE 기반 주변 교류
 
-주제 **교류**를 바탕으로, 행사·밋업 참가자가 지금 만나고 싶은 사람을 설명하면 그 교류 의도에 맞는 상대를 찾고 1:1 채팅을 시작하도록 돕는 서비스를 구체화하고 있습니다. 별도 수락 절차 없이 메시지를 보내고, 수신자가 대화를 이어갈지 결정합니다. 연결 관계를 유사성·상보성으로 미리 제한하지 않고 사용자 맥락을 LLM이 해석하는 방향입니다. 잠시 앱을 닫아도 메시지를 보관하고 행사 종료까지 복원합니다. QR·링크로 계정 없이 참여하고, 운영자가 수동으로 행사를 종료합니다. 모바일 웹·서버 저장을 개발 기준으로 선택했으며 서비스명은 작업을 막지 않는 미정 항목입니다.
+사전에 행사 방이나 QR을 준비하지 않은 곳에서도 주변의 참여자를 발견하고, 자기소개와 양쪽 교류 의도를 바탕으로 연결을 돕는 서비스입니다. **이번 MVP는 Android 사용자 간 BLE 발견과 인터넷 서버를 사용하며, 별도 수락 없이 바로 1:1 채팅합니다.**
 
-## 팀이 함께 볼 문서
+발견 참여는 직접 끌 때까지 유지합니다. 유효하게 발견한 참여자 전체를 추천 순서로 보여주고 적합한 새 상대를 자동 알림합니다. 이미 시작한 대화는 거리 이탈·발견 OFF 뒤에도 유지합니다. 회원가입 없이 같은 설치에서 복원하며 재설치·기기 간 복원은 제외합니다. 행사에서도 같은 흐름을 사용하고 시연 데이터도 일반 데이터와 동일하게 취급합니다.
 
-| 문서 | 용도 |
+## 현재 기준
+
+| 문서 | 역할 |
 | --- | --- |
-| [해커톤 제약과 평가 기준](docs/hackathon-brief.md) | 배점, 제출 마감, 발표 규정과 원본 근거 |
-| [주제 평가와 검증 계획](docs/topic-evaluation.md) | 사용 장면별 비교, 차별성, AI·수요 검증과 시연 제안 |
-| [제품 결정 기록](docs/planning.md) | Q1~Q20의 질문·답변과 선택 근거 |
-| [MVP 개발 기준](docs/development-contract.md) | 현재 범위·화면·상태와 선택한 스택. 개발할 때 먼저 읽는 문서 |
-| [API와 데이터 계약](docs/api-contract.md) | 필드·권한·세션·추천 버전·메시지 순번·오류와 공통 예시 |
-| [검증과 시연 계획](docs/validation.md) | V01~V12 완료 조건, E01~E08 AI 사례, 평가 배점과 5분 발표 |
-| [4인 분업과 통합 계획](docs/team-plan.md) | 김성빈 프론트 확정, 나머지 역할 비교와 AI 도구를 쓰는 작업 경계 |
-| [최신 main 비교와 채택 결과](docs/reviews/baea751.md) | React·FastAPI 기반 재사용, 제품 규칙 충돌 해결, 검증 결과 |
-| [개발·배포 경계](docs/deployment.md) | 로컬 실행, 기존 Nginx 배포안과 같은 출처 API 연결 |
-| [BLE 조사와 검증 후보](docs/technical-findings.md) | 공식 문서로 확인한 플랫폼 제약과 실기기 검증안 |
-| [BLE 구현 설계안](docs/ble-design.md) | 광고 포맷, GATT 교환, 만료·재시도와 팀 구현 경계 |
-| [공통 용어](CONTEXT.md) | 기획·디자인·개발에서 같은 뜻으로 쓸 용어 |
-| [팀 논의 원문](docs/discussedw-raw.md) | 초기 아이디어와 팀원별 의견 |
-| [주최 측 안내 이미지](docs/info/) | 해커톤 안내 원본 |
+| [제품 결정 B1~B14](docs/product-direction.md) | 사용자 최종 합의·번복 이력 |
+| [제품 요약](spec/PRD.md) | 범위와 핵심 흐름 |
+| [개발 기준](docs/development-contract.md) | 발견·첫 메시지·기존 대화·복원·알림 행동 |
+| [공통 용어](CONTEXT.md) | 현재 모델의 용어 |
+| [Android 구현 구성](docs/android-design.md) | React/Capacitor/Kotlin과 서버의 역할 |
+| [API 계약](docs/api-contract.md) · [저장 계약](server/docs/redis.md) | 식별·관측·추천·메시지 경계 |
+| [검증](docs/validation.md) · [팀 계획](docs/team-plan.md) | 실제 Android 시연·AI 평가와 작업 분담 |
+| [해커톤 기준](docs/hackathon-brief.md) | 외부 제출·평가 규정 |
+| [발표 흐름](pitch/script.md) | 실제 검증 상태에 맞춰 사용할 발표안 |
 
-## 현재 단계
+이번 MVP의 BLE 전환은 [ADR-0001](docs/adr/0001-ble-discovery-mvp.md), Android·머무는 상대 우선은 [ADR-0002](docs/adr/0002-android-dwell-mvp.md), 발견과 관계 수명 분리는 [ADR-0004](docs/adr/0004-discovery-and-relationships.md), 바로 채팅·동일 데이터 취급은 [ADR-0005](docs/adr/0005-direct-chat-uniform-data.md)를 따릅니다. ADR-0003의 요청·수락 모델은 폐기했습니다.
 
-제품 질문의 답변과 최신 main `baea751`의 구현을 통합했습니다. 충돌은 더 나은 방식을 채택하라는 사용자 지시에 따라 해결했습니다. **현재 코드는 React 화면의 mock과 FastAPI health/ready 기반까지이며, 실제 참가자·추천·채팅 API는 다음 구현 작업입니다.** 프론트 빌드·린트와 서버 테스트는 확인했고, 실제 두 사용자 통신·AI·운영 배포는 아직 검증하지 않았습니다. 입력 한도·세션·정리 주기 같은 구현 기본값은 API 계약에 사용자 결정과 구분해 적었습니다.
+## 구현·검증 상태
 
-개발자는 **MVP 개발 기준 → API 계약 → 담당 작업과 검증 ID** 순으로 읽습니다. `spec/*`도 이 기준으로 갱신했습니다. 현재 코드에 남은 상태 한 줄·5분 만료·BLE 자동 답장은 교체할 mock 동작입니다. 고정 추천·자동 답장·상수 집계를 실제 동작으로 간주하지 않습니다.
+최신 main `16349c7`에는 React/Vite 화면, 행사 기반 HTTP/SSE 클라이언트, 브라우저 데모와 회귀 테스트가 있습니다. 개발 실행은 데모, 일반 배포 빌드는 실제 HTTP 연결을 기본으로 합니다. FastAPI·Redis 기반은 있지만 서버 제품 API, Capacitor·Kotlin 계층, 실제 AI·BLE·두 사용자 통합은 미구현·미검증입니다. 기존 웹 구현과 새 BLE 계약의 차이는 [프론트 README](web/README.md)에 기록했습니다.
 
-팀 논의 원문은 보존합니다. 용어는 `CONTEXT.md`, 제품 결정 이력은 `docs/planning.md`, 현재 범위는 `docs/development-contract.md`, 공통 인터페이스는 `docs/api-contract.md`에서 관리합니다. 되돌리기 어려운 구조적 결정을 내리면 `docs/adr/`에 대안과 선택 이유를 남깁니다.
+자동 추천 알림은 일단 포함하고 실제 문제가 확인되면 재검토합니다. 장시간 배터리 최적화·iPhone·교차 OS는 후속 범위입니다. 플랫폼 선택은 현재 개발 환경의 설치 여부가 아니라 제품 요구와 기존 화면 자산을 근거로 했습니다.
 
-팀은 4명이며 김성빈이 프론트를 맡습니다. 나머지 역할은 [분업안](docs/team-plan.md)을 비교해 정합니다. React·Vite·JavaScript와 FastAPI·Redis를 사용합니다. [프론트 실행](web/README.md), [서버 실행](server/README.md), [기존 코드에서 바꿀 화면 흐름](spec/frontend-plan.md)을 참고합니다.
+팀은 4명이며 김성빈이 프론트를 담당합니다. 나머지 배정은 제안입니다. [웹 실행](web/README.md), [서버 실행](server/README.md), [배포 경계](docs/deployment.md)를 참고합니다. 문서화와 실제 구현·배포를 구분합니다.
+
+## 이전 문서
+
+이전 행사 MVP 명세·운영자 종료·방별 API·5분 소멸·무저장 발표안은 [문서 이력](docs/history/README.md)에 보존했습니다. 이력과 연구는 현재 요구보다 우선하지 않습니다. 기존 AI 후속 결정과 Promptfoo 선택은 [기획 기록](docs/planning.md)과 [AI 지침](spec/prompts.md)에 유지합니다.

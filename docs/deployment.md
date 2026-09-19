@@ -1,28 +1,25 @@
-# 개발·배포 경계
+# Android 앱과 서버 배포 경계
 
-상태: 최신 main의 FastAPI·Docker·Redis·Nginx 기반을 채택한 실행 기준이다. 운영 서버에 접속하거나 배포하지 않았다. 제품 경로는 [API 계약](api-contract.md), 구현 상태는 [main 비교](reviews/baea751.md)를 따른다.
+2026-09-20. 운영 서버에 접속하거나 배포하지 않았다. [Android 구성](android-design.md), [API](api-contract.md), [검증](validation.md)을 따른다. 이전 웹 같은 출처 배포안은 [이력](history/event-mvp/docs/deployment.md)에 보존한다.
 
-## 로컬 실행
+## 기존 로컬 자산
 
-- 화면: `web/`에서 `npm ci`, `npm run dev`. 빌드는 `npm run build`, 정적 검사는 `npm run lint`.
+- UI: `web/`에서 `npm ci`, `npm run dev`, `npm run build`, `npm run lint`.
 - 서버: `server/`에서 `.env.example`을 `.env`로 복사하고 `uv sync --locked`, `uv run fastapi dev --port 8000`.
-- Docker가 있으면 `server/`에서 `docker compose up -d --build --wait`로 API·Redis를 함께 실행한다. 로컬 API는 `http://localhost:8000`이다.
-- `/health`는 프로세스 생존, `/ready`는 Redis 준비 상태다. Compose가 떠도 `/ready`를 별도로 확인한다. 현재 제품 API는 없다.
-- 실제 API를 붙일 때 Vite의 `/api` 프록시를 `127.0.0.1:8000`으로 연결한다. 클라이언트는 상대 경로 `/api/...`를 사용한다. 이 프록시와 세션 쿠키는 아직 구현 작업이다.
+- Compose: `server/`에서 `docker compose up -d --build --wait`. `/health`와 `/ready`를 구분한다.
 
-## 채택한 운영 구성
+현재 UI에는 행사 기반 HTTP/SSE 클라이언트와 브라우저 데모가 있다. 개발 실행은 데모, 일반 빌드는 HTTP 연결을 기본으로 하지만 서버 제품 API와 네이티브 계층은 미구현이다. 개발 웹 서버 실행만으로 Android BLE를 검증할 수 없다.
 
-기존 main은 OCI 개인 서버의 Nginx·TLS와 `bside-api.sungblab.com`, 백엔드 `127.0.0.1:8100`, SSE 프록시 설정을 준비했다고 기록했다. [당시 기록](https://github.com/lim010111/kosscchthon/blob/baea7518c4820b249dfe3c90151302fc0833ce06/spec/MASTER.md#L240)은 재사용할 배포 근거이며 현재 가동 여부를 확인한 증거는 아니다.
+## Android 패키징
 
-선택한 연결은 **한 HTTPS 출처에서 정적 화면과 `/api`를 함께 제공하는 것**이다. 그 출처를 기존 도메인으로 정할 경우 Nginx가 `/`에서 `web/dist`를 제공하고 `/api/`를 FastAPI로 경로 변경 없이 전달하도록 맞춘다. 별도 프론트 도메인과 API 도메인을 직접 연결하는 구성을 기본값으로 쓰지 않는다. Caddy·새 도메인 구성을 추가하지 않는다.
+React 빌드 자산을 Capacitor Android 프로젝트에 포함하고 Kotlin BLE 계층을 연결한다. 실제 단말 개발 설치로 우선 검증하고 참여자 배포가 필요하면 APK·설치 안내를 준비한다. 앱스토어 출시는 자동 포함하지 않는다. SDK·최소 OS·빌드 버전은 구현 시 호환성과 실제 기기에 맞춰 고정한다.
 
-배포 담당이 적용할 조건:
+APK 안의 UI와 원격 API는 같은 출처라는 전제를 두지 않는다. HTTPS API 주소, WebView origin/CORS 또는 네이티브 HTTP 경계, 설치 인증 자격 전달을 명시한다. 실제 단말의 localhost는 개발 PC를 가리키지 않는다. 운영 인증 자격·LLM 비밀키를 APK나 Git에 넣지 않는다.
 
-1. 실제 Nginx 설정·인증서·다른 서비스 사용 포트·현재 Compose 프로젝트와 volume 이름을 확인한다. 기존 팀원의 ‘완료’ 기록만으로 교체 명령을 실행하지 않는다.
-2. 기존 Nginx 안에 맞춰 `API_PORT=8100`을 설정한다. Compose의 `8000`은 로컬 기본값이므로 배포 포트와 혼동하지 않는다. 컨테이너·volume은 다른 프로젝트와 구분한다. **이미 데이터가 있는 Compose 프로젝트 이름을 변경하면 기존 volume을 놓칠 수 있으므로 같은 이름과 volume을 유지한다.** 최초 새 설치라면 `-p bside`처럼 전용 이름을 사용한다.
-3. 정적 화면과 `/api`가 같은 scheme·host·port를 사용하게 연결한다. SSE의 응답 버퍼링을 끄고 긴 연결을 허용한다. 실제 경로는 `/api/rooms/{room_id}/events`다.
-4. 쿠키는 API 계약의 옵션과 요청 출처 검사를 적용한다. CORS 설정만으로 세션·권한이 생기지 않는다. 로컬 HTTP 쿠키의 개발용 예외는 운영 설정으로 전파하지 않는다.
-5. 초기 API worker는 하나다. Redis는 AOF와 영속 volume을 사용하고 제품 데이터에 짧은 TTL을 두지 않는다. `down -v`를 일반 배포·재시작 절차로 쓰지 않는다.
-6. Redis host `6379` 매핑은 로컬 개발 접근용이다. 기존 서버에서 점유 중이면 운영 설정에서 해당 매핑을 제거하고 컨테이너 내부 연결을 사용한다. 다른 프로젝트의 Redis를 중단하지 않는다.
+## 서버 운영
 
-화면·제품 API·세션을 연결한 뒤 [V01~V12](validation.md)로 실제 두 브라우저와 재시작·종료를 검증한다. health·빌드 성공만으로 배포 및 MVP 완료로 기록하지 않는다.
+기존 OCI/Nginx·TLS·API 포트 구성은 재사용 후보이며 가동 상태를 확인한 증거가 아니다. 실제 인증서·포트·프로젝트·volume을 확인한 뒤 변경한다. 기존 같은 출처 `/api/rooms/...`와 행사 쿠키 계약은 폐기한다. 원격 API와 Android 인증 경계에 맞춰 적용한다.
+
+FastAPI·Redis AOF·영속 volume을 사용한다. 초기 단일 worker는 기존 기반의 개발 기본값으로 유지하며 확장·운영 SLA를 주장하지 않는다. `docker compose down -v`를 재시작 절차로 사용하지 않는다. 일반·시연 데이터 모두 같은 보관 정책이며 시연 종료 자동 정리 명령을 배포에 넣지 않는다.
+
+백그라운드 알림은 네이티브 결과 수신 경로가 필요하다. FCM을 채택한다면 해당 설정·서버 자격·앱 등록을 별도 구성해야 하며 현재 설정된 것으로 소개하지 않는다. 배포 완료는 health 성공이 아니라 실제 APK→서버→다른 단말 메시지·추천 알림까지 검증한 범위로 기록한다.

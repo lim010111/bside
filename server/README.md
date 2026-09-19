@@ -1,5 +1,6 @@
 # Bside 서버
 
+
 Python 3.12와 [uv](https://docs.astral.sh/uv/)가 필요합니다.
 
 ```bash
@@ -16,7 +17,7 @@ uv run fastapi dev --port 8000
 
 진입점은 `app.main:app`이며 `create_app()`으로 앱을 생성합니다. 설정과 라우터는
 [FastAPI 공식 구조 안내](https://fastapi.tiangolo.com/tutorial/bigger-applications/)에 따라 분리했습니다.
-현재 구현은 health/ready·Redis 연결·기본 OpenAPI까지입니다. 세션·참가자·추천·채팅·SSE와 프론트 연결은 후속 작업입니다. [현재 API 계약](../docs/api-contract.md)과 [팀 작업 T00~T08](../docs/team-plan.md)을 따르며, 과거 상태 한 줄·5분 만료·BLE 전송 계약을 구현하지 않습니다. 프론트는 아직 mock입니다.
+현재 구현은 health/ready·Redis 연결·기본 OpenAPI까지입니다. 설치 인증·프로필·BLE 관측·추천·바로 채팅·클라이언트 연결은 후속 작업입니다. [현재 API 계약](../docs/api-contract.md)과 [팀 작업 T00~T08](../docs/team-plan.md)을 따르며, 과거 상태 한 줄·5분 만료·행사 방·요청/수락 계약을 구현하지 않습니다. BLE 발견은 Android가 담당하고 서버는 관측·추천·채팅을 처리합니다. 프론트는 아직 mock입니다.
 
 ## Docker로 함께 실행
 
@@ -32,7 +33,7 @@ Compose의 API는 `redis://redis:6379/0`으로 연결하며, `CORS_ORIGINS`는 `
 
 ## Redis
 
-브라우저 복원·부재 중 메시지 보관을 구현할 Redis 저장 기반입니다. 초기 API worker는 하나이며 수평 확장·프로세스 간 SSE 알림은 아직 구현하지 않았습니다.
+같은 앱 설치 복원·부재 중 메시지 보관을 구현할 Redis 저장 기반입니다. 초기 API worker는 하나이며 수평 확장·프로세스 간 SSE 알림은 아직 구현하지 않았습니다.
 `server/`에서 Docker Compose로 실행합니다.
 
 ```bash
@@ -47,6 +48,6 @@ docker compose down  # 저장 데이터 유지
 
 상세 설정과 장애·영속화 검증 절차는 [Redis 운영 및 검증](docs/redis.md)을 참고하세요.
 
-Compose는 AOF `appendfsync always`와 영속 volume을 사용합니다. 참가자·채팅에는 5분 TTL을 적용하지 않습니다. 실제 제품 저장과 변경한 AOF 설정의 장애 복원 검증은 아직 남아 있습니다.
+Compose는 AOF `appendfsync always`와 영속 volume을 사용합니다. 사용자·채팅에는 5분 TTL이나 시연 종료 특별 삭제를 적용하지 않습니다. 실제 제품 저장과 변경한 AOF 설정의 장애 복원 검증은 아직 남아 있습니다.
 
-기존 OCI/Nginx 배포 시 `API_PORT=8100`과 같은 출처 `/api`를 맞추는 방법은 [배포 기준](../docs/deployment.md)을 참고하세요. 이번 통합에서 운영 서버에 접속하거나 배포하지 않았습니다.
+기존 OCI/Nginx 재사용과 Android APK의 원격 API·인증 경계는 [배포 기준](../docs/deployment.md)을 참고하세요. 이번 통합에서 운영 서버에 접속하거나 배포하지 않았습니다.
