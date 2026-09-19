@@ -20,3 +20,4 @@ export async function getMembers(_code) { notImplemented('getMembers'); }
 export async function getMatch(_code, _id) { notImplemented('getMatch'); }
 export async function heartbeat(_code, _id) { notImplemented('heartbeat'); }
 export async function getDashboard(_code) { notImplemented('getDashboard'); }
+export async function getMe(_code, _id) { notImplemented('getMe'); }

@@ -6,6 +6,15 @@ import * as bleChat from './lib/bleChat.js';
 
 const ROOM_CODE = new URLSearchParams(window.location.search).get('r') || 'KOSS26';
 
+// 새로고침해도 내가 누구였는지 잊지 않는다 — 딱 이것만 sessionStorage에 둔다(id
+// 하나). 탭·앱을 완전히 닫으면 sessionStorage 자체가 없어진다. 새 탭에서 같은
+// 링크를 열어도 별개 세션이라 새 사람 취급된다 — "브라우저 세션마다 새로
+// 생성"(protocol.md 116번)을 이제 이 규칙으로 정확히 정의한다.
+const SESSION_KEY = `bside:${ROOM_CODE}:me`;
+function rememberMe(id) { sessionStorage.setItem(SESSION_KEY, id); }
+function forgetMe() { sessionStorage.removeItem(SESSION_KEY); }
+function recalledId() { return sessionStorage.getItem(SESSION_KEY); }
+
 const initial = {
   code: ROOM_CODE,
   room: null, // RoomMeta | null — getRoom() 응답
@@ -19,6 +28,7 @@ const initial = {
   chatWith: null, // Member | null — 채팅 중인 상대. null이면 방 화면
   chatMessages: [],
   bleConnected: true, // 9단계 전까진 항상 true. 실제 BLE 상태 감지는 Capacitor에서
+  restoring: true, // sessionStorage 복원 시도가 끝나기 전엔 Entry를 깜빡 보여주지 않는다
 };
 
 function reducer(state, action) {
@@ -31,6 +41,12 @@ function reducer(state, action) {
       // prototype의 saveStatus()는 수정 때도 S.t0 = Date.now()를 다시 찍는다.
       // 수정도 "아직 여기 있다"는 신호라서 내 만료 시계가 5분으로 되돌아간다.
       return { ...state, me: action.me, editing: false, t0: Date.now() };
+    case 'SESSION_RESTORED':
+      // 새로고침 복원. t0는 Date.now()가 아니라 서버가 들고 있던 joinedAt이다 —
+      // 안 그러면 새로고침할 때마다 만료 시계가 부당하게 5분으로 늘어난다
+      return { ...state, me: action.me, t0: action.me.joinedAt, restoring: false };
+    case 'RESTORE_DONE':
+      return { ...state, restoring: false };
     case 'MEMBERS_LOADED':
       return { ...state, members: action.members };
     case 'START_EDIT':
@@ -71,6 +87,7 @@ export function RoomProvider({ children }) {
 
   const join = useCallback(async (payload) => {
     const me = await api.join(state.code, payload);
+    rememberMe(me.id);
     dispatch({ type: 'JOINED', me });
     await loadMembers();
     return me;
@@ -81,6 +98,18 @@ export function RoomProvider({ children }) {
     dispatch({ type: 'STATUS_UPDATED', me });
     return me;
   }, [state.code, state.me]);
+
+  // 새로고침 복원. App.jsx가 마운트 시 한 번만 부른다. sessionStorage에 id가
+  // 없거나, 있어도 서버가 이미 만료 처리했으면(getMe -> null) 그냥 처음 온
+  // 사람으로 둔다 — 남아있던 낡은 sessionStorage 키는 지운다.
+  const restoreSession = useCallback(async () => {
+    const id = recalledId();
+    if (!id) { dispatch({ type: 'RESTORE_DONE' }); return; }
+    const me = await api.getMe(state.code, id);
+    if (!me) { forgetMe(); dispatch({ type: 'RESTORE_DONE' }); return; }
+    dispatch({ type: 'SESSION_RESTORED', me });
+    await loadMembers();
+  }, [state.code, loadMembers]);
 
   const startEdit = useCallback(() => dispatch({ type: 'START_EDIT' }), []);
   const cancelEdit = useCallback(() => dispatch({ type: 'CANCEL_EDIT' }), []);
@@ -108,7 +137,7 @@ export function RoomProvider({ children }) {
 
   const value = {
     state, loadRoom, loadMembers, join, updateStatus, startEdit, cancelEdit, loadMatch,
-    openChat, closeChat, sendChatMessage,
+    openChat, closeChat, sendChatMessage, restoreSession,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
