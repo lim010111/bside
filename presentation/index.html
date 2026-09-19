@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bside — 발표 슬라이드</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/web/variable/wanted-sans-variable.min.css">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card: #111827;
+      --border: #1f2937;
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --green: #34d399;
+      --blue: #38bdf8;
+      --purple: #a78bfa;
+      --red: #f87171;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #000;
+      color: var(--text);
+      font-family: 'Wanted Sans Variable', -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      user-select: none;
+    }
+
+    #stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .slide {
+      width: 1200px;
+      height: 675px; /* 16:9 */
+      background: var(--bg);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+      padding: 48px 56px;
+      display: none;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .slide.active {
+      display: flex;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.99); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .tag {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--green);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .title {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      flex: 1;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .card-body {
+      font-size: 15px;
+      color: #e2e8f0;
+      line-height: 1.6;
+    }
+
+    .card-body li {
+      margin-bottom: 10px;
+      list-style-type: none;
+      position: relative;
+      padding-left: 18px;
+    }
+
+    .card-body li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--blue);
+      font-weight: bold;
+    }
+
+    .table-box {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .table-box th, .table-box td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-box th {
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--blue);
+      font-weight: 700;
+    }
+
+    .table-box td {
+      background: var(--card);
+    }
+
+    .highlight-match {
+      color: var(--green);
+      font-weight: 700;
+    }
+    .highlight-fail {
+      color: var(--red);
+    }
+
+    /* 슬라이드 1 전용 */
+    .cover-slide {
+      justify-content: center;
+      align-items: flex-start;
+      padding-left: 80px;
+    }
+    .cover-logo {
+      font-size: 68px;
+      font-weight: 900;
+      color: var(--green);
+      letter-spacing: -0.02em;
+    }
+    .cover-tagline {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 12px 0 20px;
+    }
+    .cover-desc {
+      font-size: 20px;
+      color: var(--blue);
+      margin-bottom: 40px;
+    }
+    .cover-meta {
+      font-size: 15px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+      width: 80%;
+    }
+
+    /* 네비게이션 바 */
+    #nav {
+      background: #0f172a;
+      border-top: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    .nav-btn {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+    .nav-btn:hover { background: #1e293b; }
+
+    /* 인쇄 모드 (PDF 저장 지원) */
+    @media print {
+      body {
+        background: transparent;
+        overflow: visible;
+        height: auto;
+      }
+      #nav { display: none; }
+      #stage { padding: 0; display: block; }
+      .slide {
+        display: flex !important;
+        width: 100vw;
+        height: 100vh;
+        page-break-after: always;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        box-sizing: border-box;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="stage">
+  <!-- SLIDE 1 -->
+  <div class="slide cover-slide active">
+    <div class="cover-logo">Bside</div>
+    <div class="cover-tagline">Connect with who's beside you.</div>
+    <div class="cover-desc">행사장에서 닿을 수 있는 거리에 있는 사람과 이어지는 상보성 AI 네트워킹</div>
+    <div class="cover-meta">코쓱톤 2026 연합 해커톤 · 주제: 교류 · 국민대 · 숭실대 · 순천향대</div>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide">
+    <div class="tag">01. Problem</div>
+    <div class="title">네트워킹 시간 30분, 왜 아무도 말을 걸지 못할까요?</div>
+    <div class="subtitle">용기가 없어서가 아니라 "누구에게 왜 말을 걸어야 하는지" 모르기 때문입니다.</div>
+    <div class="content-grid">
+      <div class="card">
+        <div class="card-title" style="color: var(--red);">혼자 온 참가자의 현실</div>
+        <ul class="card-body">
+          <li>네트워킹 30분: 이미 아는 사람끼리 뭉치고 혼자 온 사람은 폰만 봄</li>
+          <li>말을 걸고 싶어도 상대방의 배경이나 고민을 알 수 없음</li>
+          <li>공통점을 찾으려 애쓰다 어색한 침묵 속에 시간만 소모</li>
+          <li>결과: 형식적 명함 교환 외 실질적인 기술적/인간적 교류 0건</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color: var(--blue);">기존 전용 앱(Brella 등)의 한계</div>
+        <ul class="card-body">
+          <li><strong>주최자의 15%만</strong> 자사 행사 네트워킹이 효과적이라 응답 (Converve 조사)</li>
+          <li>대표 솔루션도 앱 채택률 58%, 미팅 수락률 39%에 불과</li>
+          <li>앱스토어 다운로드 + 긴 프로필 작성의 극심한 진입 장벽</li>
+          <li><strong>핵심: 돈 내고 앱을 깔게 해도 참가자의 절반이 쓰지 않는다</strong></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide">
+    <div class="tag">02. Solution</div>
+    <div class="title">Bside: 3초 입장, 30초 상태 등록, 현실 만남</div>
+    <div class="subtitle">설치 없이 QR로 바로 열리고, AI가 상보 관계를 찾아 첫마디를 건네줍니다.</div>
+    <div class="content-grid" style="grid-template-columns: repeat(4, 1fr); gap: 16px;">
+      <div class="card">
+        <div class="card-title" style="color: var(--green);">1. QR 3초 입장</div>
+        <div class="card-body">앱 설치 0초. 현장 테이블의 QR 코드를 찍으면 사파리/크롬 브라우저에서 즉시 실행됩니다.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color: var(--blue);">2. 30초 한 줄 등록</div>
+        <div class="card-body">닉네임, 소속, 상태 4종, 한 줄 등록. '내가 올려야 46명 방이 열린다'는 참여 규칙.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color: var(--purple);">3. AI 상보성 매칭</div>
+        <div class="card-body">겹치는 단어 0개라도 '막힌 자'와 '해본 자'를 LLM이 추론하여 1.5초 만에 접점 카드 오픈.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color: var(--green);">4. BLE 직접 대화</div>
+        <div class="card-body">서버 없는 P2P 연결로 "창가 쪽에 있어요, 손 들게요" 3마디 후 현실에서 만납니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 -->
+  <div class="slide">
+    <div class="tag">03. Core Innovation</div>
+    <div class="title">왜 AI인가: 유사도가 아니라 상보성(相補性)을 찾는다</div>
+    <div class="subtitle">키워드가 겹치면 둘 다 모르는 상태지만, Bside는 서로를 완벽히 채워주는 사람을 잇습니다.</div>
+    <table class="table-box">
+      <thead>
+        <tr>
+          <th>구분</th>
+          <th>지원 (LOOKING_FOR)</th>
+          <th>태현 (FIRST_TIME)</th>
+          <th>민서 (CAN_SHARE)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>작성한 한 줄</strong></td>
+          <td>"배포·CI 권한 오류로 막힘"</td>
+          <td>"배포 처음이라 막막함"</td>
+          <td>"작년에 도커 CI 구축해봄"</td>
+        </tr>
+        <tr>
+          <td><strong>겹치는 단어</strong></td>
+          <td>기준 (배포, CI)</td>
+          <td>배포 (1개 일치)</td>
+          <td><strong style="color: var(--green);">0개 (완전 불일치)</strong></td>
+        </tr>
+        <tr>
+          <td><strong>기존 키워드 매칭</strong></td>
+          <td>-</td>
+          <td class="highlight-fail">지원 ↔ 태현 매칭 (둘 다 모름 ❌)</td>
+          <td class="highlight-fail">지원 ↔ 민서 탈락 (단어 불일치 ❌)</td>
+        </tr>
+        <tr>
+          <td><strong>Bside AI 매칭</strong></td>
+          <td>-</td>
+          <td>-</td>
+          <td class="highlight-match">지원 ↔ 민서 성사 (해결 관계 성립 ✅)</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="content-grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div class="card" style="padding: 16px;">
+        <div class="card-title" style="font-size: 15px; color: var(--red);">기존 단어 매칭의 오류</div>
+        <div class="card-body" style="font-size: 13px;">'배포' 단어 일치로 둘을 묶으면 만나서 서로 한숨만 쉼. 결핍과 경험의 비대칭을 이해하지 못함.</div>
+      </div>
+      <div class="card" style="padding: 16px;">
+        <div class="card-title" style="font-size: 15px; color: var(--green);">Bside LLM 비대칭 해결 매칭 (ASYMMETRIC_HELP)</div>
+        <div class="card-body" style="font-size: 13px;">"오류로 막힘"과 "작년에 구축해봄" 사이의 인과적 상보성을 추론하고 추천 첫마디까지 제시.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5 -->
+  <div class="slide">
+    <div class="tag">04. Service Flow</div>
+    <div class="title">80초 시연 워크플로우: 방 입장부터 만남까지</div>
+    <div class="subtitle">실제 라이브 구동 중인 React + FastAPI 서비스의 핵심 사용자 경로</div>
+    <div class="content-grid">
+      <div class="card">
+        <div class="card-title" style="color: var(--blue);">1. 한 화면 입장 폼</div>
+        <div class="card-body">방 인원수와 구성 띠는 보여주되 남의 한 줄은 가립니다. "내 한 줄을 올려야 열린다"는 규칙으로 유령 참가자 방지.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color: var(--green);">2. 46명 군중 방 목록</div>
+        <div class="card-body">닿는 거리 / 떨어진 곳 분류, 시간순 정렬. 카드 하단에 5분 TTL 만료 실선이 실시간으로 줄어듭니다.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color: var(--purple);">3. 1.5초 접점 시트</div>
+        <div class="card-body">AI가 발견한 상보성 카드 팝업. "겹치는 단어 0개" 근거 도표와 추천 첫마디 ("혹시 CI 해보셨다고 들었어요").</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color: var(--blue);">4. BLE 직접 채팅 & 만남</div>
+        <div class="card-body">서버를 거치지 않는 기기 간 전파 연결. "창가 쪽 손 들게요" 위치만 확인 후 폰을 넣고 현실에서 만납니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6 -->
+  <div class="slide">
+    <div class="tag">05. Architecture</div>
+    <div class="title">GPS 없는 근접 판정, DB 없는 인메모리 프라이버시</div>
+    <div class="subtitle">서버에 올라갈 좌표 자체가 없으며, 행사가 종료되면 모든 데이터는 0으로 소멸합니다.</div>
+    <div class="content-grid">
+      <div class="card">
+        <div class="card-title" style="color: var(--green);">왜 GPS가 아니라 BLE인가?</div>
+        <ul class="card-body">
+          <li>GPS는 내 좌표가 서버로 올라감 → 위치정보법 신고 및 사생활 유출</li>
+          <li>BLE는 내 폰의 전파(3~5m) 범위만 폰 안에서 판정 → <strong>서버에 올라갈 좌표가 없음</strong></li>
+          <li>근접 ID 해석도 폰 내부에서 수행 (서버에 '누구 옆이냐' 묻지 않음)</li>
+          <li>아이폰은 웹으로 QR 입장, 안드로이드는 Capacitor로 전파 송수신</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color: var(--purple);">No-DB 인메모리 아키텍처</div>
+        <ul class="card-body">
+          <li>서버에 영구 DB 없음: FastAPI 프로세스 메모리(dict)에만 상주</li>
+          <li>5분 TTL 만료: 60초 하트비트 단절 시 명단에서 자동 영구 삭제</li>
+          <li>행사 종료 시 즉시 소멸: <code>{ rooms: 0, database: null }</code></li>
+          <li><strong>"저장하지 않는 것이 약속이 아니라 아키텍처 구조입니다"</strong></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7 -->
+  <div class="slide">
+    <div class="tag">06. Business Model</div>
+    <div class="title">사용자는 무료 참가자, 돈은 주최자가 낸다</div>
+    <div class="subtitle">주최자가 돈을 내는 이유는 참가자 만족도와 네트워킹 성과를 숫자로 보고해야 하기 때문입니다.</div>
+    <div class="content-grid">
+      <div class="card">
+        <div class="card-title" style="color: var(--blue);">유료 기능: 운영진 실시간 대시보드 & PDF 리포트</div>
+        <ul class="card-body">
+          <li>실시간 지표: 입장률(71%), 상태 작성률(91%), 접점 발견 37건</li>
+          <li>실제 대화 시작 24건 및 관심 토픽 Top 4 분석 (배포·CI, 기획 등)</li>
+          <li>행사 종료 즉시 <strong>'1장 PDF 네트워킹 성과 리포트'</strong> 자동 발급</li>
+          <li>주최자의 상부 성과 보고 및 다음 스폰서 유치용 필수 자산</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color: var(--green);">수익 모델 및 검증된 시장</div>
+        <ul class="card-body">
+          <li>수익 구조: 행사 1회당 30~50만 원 (규모별 티어제 과금)</li>
+          <li><strong>참가자 리텐션이 아니라 '주최자 재도입률'이 핵심 지표</strong></li>
+          <li>Mentimeter 벤치마크: 참가자 리텐션 없이도 주최자 과금으로 흑자 달성</li>
+          <li>글로벌 경쟁사(Swapcard, Brella)는 주최자에게 건당 $1,000~$18,000 과금</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8 -->
+  <div class="slide">
+    <div class="tag">07. Expansion</div>
+    <div class="title">밀도가 있는 공간이라면 어디든 확장됩니다</div>
+    <div class="subtitle">길거리나 카페처럼 밀도가 없는 곳은 배제하고, 목적이 뚜렷한 집합 공간에 집중합니다.</div>
+    <div class="content-grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div class="card" style="padding: 20px;">
+        <div class="card-title" style="color: var(--blue);">IT 컨퍼런스 & 밋업</div>
+        <div class="card-body">FEConf, 우아콘 등 대규모 개발자 행사. 연차/기술 기반 상보 매칭 (시니어 ↔ 주니어 커리어/이직 질문).</div>
+      </div>
+      <div class="card" style="padding: 20px;">
+        <div class="card-title" style="color: var(--green);">해커톤 & 캡스톤 디자인</div>
+        <div class="card-body">코쓱톤 등 대학 연합 해커톤. 팀 빌딩 결핍 매칭 (기획자 ↔ 디자이너 ↔ 백엔드 개발자).</div>
+      </div>
+      <div class="card" style="padding: 20px;">
+        <div class="card-title" style="color: var(--purple);">기업 신입 온보딩</div>
+        <div class="card-body">신입사원 퇴사 사유 1위 '조직 적응 실패(49.1%)' 해소. 타 부서 동기 간 아이스브레이킹 및 멘토 매칭.</div>
+      </div>
+      <div class="card" style="padding: 20px;">
+        <div class="card-title" style="color: var(--blue);">대학 캠퍼스 & 도서관</div>
+        <div class="card-body">시험 기간 열람실 및 연구실 라운지. 상시 학습 교류 (자료구조 질문 ↔ 같이 밥/커피 마실 사람).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9 -->
+  <div class="slide">
+    <div class="tag">08. Roadmap</div>
+    <div class="title">점진적 진화: 웹 PWA에서 BLE 네이티브까지</div>
+    <div class="subtitle">기존 웹 기능을 결코 깨뜨리지 않고 네이티브 전파 레이어를 얹는 구조적 설계</div>
+    <div class="content-grid" style="grid-template-columns: repeat(3, 1fr); gap: 16px;">
+      <div class="card">
+        <div class="card-title" style="color: var(--green); font-size: 16px;">v0.1 해커톤 제출본 (현재 완료)</div>
+        <div class="card-body" style="font-size: 13px;">
+          • 웹 PWA + QR 3초 입장<br>
+          • 46명 방 + 5분 만료 실선<br>
+          • LLM 상보성 매칭 + 첫마디 추천<br>
+          • 모바일 운영진 실시간 대시보드<br>
+          • 모의 BLE 직접 연결 채팅
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color: var(--blue); font-size: 16px;">v0.2 첫 유료 판매본 (+1~2주)</div>
+        <div class="card-body" style="font-size: 13px;">
+          • 현장 구역 선택 (창가, 음료대)<br>
+          • 행사 유형별 상태 세트 커스텀<br>
+          • 연사/스폰서 식별 배지 부여<br>
+          • 1장 PDF 성과 리포트 자동 발급<br>
+          • 행사당 30~50만 원 유료 도입
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color: var(--purple); font-size: 16px;">v0.3 Capacitor BLE (+2~4주)</div>
+        <div class="card-body" style="font-size: 13px;">
+          • 웹 코드 재사용률 100% 래핑<br>
+          • @capgo BLE Peripheral 광고/스캔<br>
+          • 물리적 닿는 거리 정밀 판정<br>
+          • BLE 단절 시 QR/웹 자동 폴백<br>
+          • 대형 컨퍼런스 네트워킹 정식 공급
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10 -->
+  <div class="slide cover-slide">
+    <div class="title" style="font-size: 40px; color: var(--green);">교류의 시작은, 말을 걸 이유를 아는 것입니다.</div>
+    <div class="card-body" style="font-size: 20px; line-height: 1.8; margin: 24px 0 32px; color: #f1f5f9;">
+      "온라인에는 상태 메시지가 있는데, 현실에는 없었습니다.<br>
+      Bside는 닿을 수 있는 거리에 있는 두 사람의 결핍과 경험을 이어냅니다.<br><br>
+      채팅은 만나기 위한 도구일 뿐이며, <strong>우리의 최종 결과물은 현실에서의 만남입니다.</strong>"
+    </div>
+    <div class="cover-desc" style="margin-bottom: 0;">Connect with who's beside you — Bside</div>
+  </div>
+</div>
+
+<!-- 하단 컨트롤 바 -->
+<div id="nav">
+  <div>
+    <button class="nav-btn" onclick="prevSlide()">◀ 이전 (←)</button>
+    <button class="nav-btn" onclick="nextSlide()" style="margin-left: 8px;">다음 (→, Space) ▶</button>
+  </div>
+  <div>
+    <span id="page-num" style="color: var(--muted); font-weight: bold; margin-right: 16px;">1 / 10</span>
+    <button class="nav-btn" onclick="window.print()">🖨 PDF로 저장 (Cmd+P)</button>
+    <button class="nav-btn" onclick="toggleFullScreen()" style="margin-left: 8px;">전체화면 (F)</button>
+  </div>
+</div>
+
+<script>
+  let current = 0;
+  const slides = document.querySelectorAll('.slide');
+  const pageNum = document.getElementById('page-num');
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = (index + slides.length) % slides.length;
+    slides[current].classList.add('active');
+    pageNum.textContent = `${current + 1} / ${slides.length}`;
+  }
+
+  function nextSlide() { showSlide(current + 1); }
+  function prevSlide() { showSlide(current - 1); }
+
+  function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+    }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      nextSlide();
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      prevSlide();
+    } else if (e.key === 'f' || e.key === 'F') {
+      toggleFullScreen();
+    }
+  });
+</script>
+
+</body>
+</html>
