@@ -94,6 +94,8 @@ svg.ic.lg{width:22px;height:22px}
 /* signature: 만료가 가까울수록 바랜다 */
 .fade{transition:opacity 1.2s linear}
 
+#joinBar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:420px;
+  padding:14px 16px 20px;background:linear-gradient(to top,var(--bg) 64%,transparent);z-index:10}
 .empty{text-align:center;padding:52px 20px}
 .empty .ic{width:30px;height:30px;color:var(--text-faint);margin-bottom:14px}
 
@@ -172,46 +174,59 @@ svg.ic.lg{width:22px;height:22px}
 
 <div id="app">
 
-<!-- ══ S1 입장 ══ -->
+<!-- S1 방 미리보기 : QR 찍으면 바로 여기 -->
 <section class="screen on" id="s1">
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 0 20px;min-height:150px">
-    <div class="brand">Bside</div>
-    <div class="tag">Connect with who's beside you.</div>
-  </div>
-  <div style="padding-bottom:22px">
-    <div class="card row" style="gap:10px;margin-bottom:22px">
-      <svg class="ic dim"><use href="#i-qr"/></svg>
-      <div class="grow">
-        <div class="t-md trunc" id="evTitle"></div>
-        <div class="t-sm faint" id="evWhen"></div>
-      </div>
+  <header style="padding:18px 0 12px">
+    <div class="row" style="justify-content:space-between">
+      <span class="t-sm faint" style="font-weight:500;letter-spacing:-.02em">Bside</span>
+      <span class="t-sm faint" id="pvWhen"></span>
     </div>
-    <label class="t-sm dim" for="nick">닉네임</label>
-    <input id="nick" class="field" style="margin-top:6px" maxlength="12" placeholder="지원" autocomplete="off">
-    <label class="t-sm dim" for="aff" style="display:block;margin-top:14px" id="affLabel">소속</label>
-    <div id="affWrap" style="margin-top:6px"></div>
-    <div class="err" id="e1"></div>
-    <button class="btn" style="margin-top:6px" onclick="enter()">들어가기</button>
+    <h1 class="t-xl" style="margin:10px 0 0" id="pvTitle"></h1>
+    <p class="t-sm dim" style="margin:5px 0 0" id="pvCount"></p>
+  </header>
+  <div class="stats" id="pvStats" style="margin-bottom:14px"></div>
+  <div id="pvList" style="display:flex;flex-direction:column;gap:8px"></div>
+  <div style="height:106px"></div>
+  <div id="joinBar">
+    <button class="btn" onclick="openJoin()">나도 상태 달기</button>
+    <p class="t-sm faint" style="text-align:center;margin:9px 0 0">30초면 됩니다</p>
   </div>
 </section>
 
-<!-- ══ S2 상태 ══ -->
+<!-- S2 참여 : 한 화면에서 끝낸다 -->
 <section class="screen" id="s2">
-  <div style="padding:26px 0 20px">
-    <h1 class="t-xl" style="margin:0">지금 무엇을 찾고 계세요?</h1>
+  <header class="row" style="padding:16px 0 10px;gap:10px">
+    <button onclick="go('s1')" aria-label="뒤로" style="width:32px;height:44px;display:flex;align-items:center">
+      <svg class="ic lg"><use href="#i-back"/></svg></button>
+    <h1 class="t-lg" style="margin:0">상태 달기</h1>
+  </header>
+
+  <div class="row" style="gap:8px;align-items:flex-start">
+    <div class="grow">
+      <label class="t-sm dim" for="nick">닉네임</label>
+      <input id="nick" class="field" style="margin-top:5px" maxlength="12" placeholder="지원" autocomplete="off">
+    </div>
+    <div class="grow">
+      <label class="t-sm dim" for="aff" id="affLabel">소속</label>
+      <div id="affWrap" style="margin-top:5px"></div>
+    </div>
   </div>
+  <div id="affOtherWrap" style="margin-top:8px"></div>
+
+  <p class="t-sm dim" style="margin:18px 0 7px">지금 무엇을 찾고 계세요?</p>
   <div class="picks" id="picks"></div>
-  <div style="margin-top:20px">
-    <label class="t-sm dim" for="note" id="notelabel">어떤 분을 찾으세요?</label>
-    <textarea id="note" class="field" style="margin-top:6px" maxlength="140"
+
+  <div style="margin-top:14px">
+    <textarea id="note" class="field" maxlength="140"
       placeholder="배포·CI 경험 있으신 분 찾아요" oninput="noteTyped()"></textarea>
-    <div class="row" style="justify-content:space-between;margin-top:5px">
+    <div class="row" style="justify-content:space-between;margin-top:4px">
       <span class="err" id="e2" style="margin:0"></span>
       <span class="t-sm faint" id="count">0 / 140</span>
     </div>
   </div>
-  <div style="margin-top:auto;padding-bottom:22px">
-    <button class="btn" onclick="saveStatus()">저장하고 들어가기</button>
+
+  <div style="margin-top:auto;padding-bottom:20px">
+    <button class="btn" onclick="saveStatus()">올리기</button>
   </div>
 </section>
 
@@ -313,7 +328,7 @@ svg.ic.lg{width:22px;height:22px}
   <button id="devbtn" onclick="document.getElementById('devmenu').classList.toggle('on')" aria-label="데모 상태 전환">
     <svg class="ic"><use href="#i-sliders"/></svg></button>
   <div id="devmenu">
-    <button onclick="dm('flow')">처음부터 (S1)</button>
+    <button onclick="dm('flow')">처음부터 (미리보기)</button>
     <button onclick="dm('room2')">다른 행사로 (밋업)</button>
     <button onclick="dm('room')">방 · 기본</button>
     <button onclick="dm('match')">접점 카드 열기</button>
@@ -376,7 +391,7 @@ const SEED = [
    note:'커피 들고 서 있어요. 아무나 오세요', near:false, age:262},
 ];
 
-let S = {me:null, people:[], mode:'room', speed:1, bt:true, t0:Date.now()};
+let S = {me:null, st:null, people:[], mode:'room', speed:1, bt:true, t0:Date.now()};
 
 /* ── nav ── */
 function go(id){
@@ -385,74 +400,89 @@ function go(id){
   window.scrollTo(0,0);
 }
 
-/* ── S1 ── */
-function renderEntry(){
-  document.getElementById('evTitle').textContent = ROOM.title;
-  document.getElementById('evWhen').textContent  = ROOM.when;
+/* 미리보기 */
+let PREVIEW = [];
+const SHORT = {LOOKING_FOR:'찾아요', CAN_SHARE:'얘기', FIRST_TIME:'처음', OPEN:'대화'};
+
+function renderPreview(){
+  document.getElementById('pvTitle').textContent = ROOM.title;
+  document.getElementById('pvWhen').textContent  = ROOM.when.split(' \u00b7 ').pop();
+  document.getElementById('pvCount').textContent =
+    PREVIEW.length ? `지금 ${PREVIEW.length + 42}명이 상태를 올려뒀어요` : '아직 아무도 없어요';
+  const counts = {}; PREVIEW.forEach(p => counts[p.st] = (counts[p.st]||0) + 1);
+  document.getElementById('pvStats').innerHTML = STATUSES.filter(s=>counts[s.k])
+    .map(s=>`<span class="chip s-${s.k}"><i class="dot"></i>${SHORT[s.k]} ${counts[s.k]}</span>`).join('');
+  document.getElementById('pvList').innerHTML = PREVIEW.slice(0,4).map(p=>`
+    <div class="person s-${p.st}">
+      <div class="row" style="gap:7px">
+        <i class="dot"></i><span class="t-lg grow trunc">${esc(p.name)}</span>
+        ${p.near ? '<span class="badge">닿는 거리</span>' : ''}
+      </div>
+      <div class="t-sm dim" style="margin:2px 0 6px">${esc(p.school)} \u00b7 ${SL[p.st]}</div>
+      <div class="t-md wrap">${esc(p.note)}</div>
+    </div>`).join('') || `<div class="empty">
+      <svg class="ic"><use href="#i-inbox"/></svg>
+      <p class="t-md" style="margin:0">첫 번째로 상태를 올려보세요</p></div>`;
+}
+
+/* 참여 */
+function openJoin(){
+  renderAff(); renderPicks(); go('s2');
+  setTimeout(()=>document.getElementById('nick').focus(), 80);
+}
+function renderAff(){
   document.getElementById('affLabel').textContent = ROOM.aff.label;
-  const w = document.getElementById('affWrap');
-  if(ROOM.aff.options){
-    w.innerHTML = `<select id="aff" class="field" onchange="affPick()">
-      ${ROOM.aff.options.map(o=>`<option>${esc(o)}</option>`).join('')}
-      <option value="__other">직접 입력</option></select>
-      <input id="affOther" class="field" style="margin-top:8px;display:none"
-        maxlength="20" placeholder="${esc(ROOM.aff.placeholder)}" autocomplete="off">`;
-  } else {
-    w.innerHTML = `<input id="aff" class="field" maxlength="20"
-      placeholder="${esc(ROOM.aff.placeholder)}" autocomplete="off">`;
-  }
+  document.getElementById('affOtherWrap').innerHTML = '';
+  document.getElementById('affWrap').innerHTML = ROOM.aff.options
+    ? `<select id="aff" class="field" onchange="affPick()">${
+        ROOM.aff.options.map(x=>`<option>${esc(x)}</option>`).join('')
+      }<option value="__other">직접 입력</option></select>`
+    : `<input id="aff" class="field" maxlength="20" placeholder="${esc(ROOM.aff.placeholder)}" autocomplete="off">`;
 }
 function affPick(){
-  const sel = document.getElementById('aff'), oth = document.getElementById('affOther');
-  if(!oth) return;
-  const other = sel.value === '__other';
-  oth.style.display = other ? '' : 'none';
-  if(other) oth.focus();
+  const sel = document.getElementById('aff'), o = document.getElementById('affOtherWrap');
+  if(sel.value === '__other'){
+    o.innerHTML = `<input id="affOther" class="field" maxlength="20" placeholder="${esc(ROOM.aff.placeholder)}" autocomplete="off">`;
+    document.getElementById('affOther').focus();
+  } else o.innerHTML = '';
 }
 function affValue(){
   const el = document.getElementById('aff');
   if(el.tagName === 'INPUT') return el.value.trim();
-  if(el.value === '__other') return document.getElementById('affOther').value.trim();
+  if(el.value === '__other') return (document.getElementById('affOther')?.value || '').trim();
   return el.value;
 }
-function enter(){
-  const n = document.getElementById('nick').value.trim();
-  const e = document.getElementById('e1');
-  if(!n){ e.textContent='닉네임을 입력해 주세요'; return; }
-  const a = affValue();
-  if(!a){ e.textContent=ROOM.aff.label+'을 입력해 주세요'; return; }
-  e.textContent='';
-  S.me = {id:'me', name:n, school:a, st:null, note:'', age:0};
-  renderPicks(); go('s2');
-}
-document.getElementById('nick').addEventListener('input',()=>document.getElementById('e1').textContent='');
 
-/* ── S2 ── */
+/* 상태 고르기 */
 function renderPicks(){
   document.getElementById('picks').innerHTML = STATUSES.map(s=>`
-    <button class="pick s-${s.k}" aria-pressed="${S.me.st===s.k}" onclick="pick('${s.k}')">
+    <button class="pick s-${s.k}" aria-pressed="${S.st===s.k}" onclick="pick('${s.k}')">
       <svg class="ic"><use href="#${s.icon}"/></svg><b>${s.label}</b>
     </button>`).join('');
 }
 function pick(k){
-  S.me.st = k; renderPicks();
-  const s = STATUSES.find(x=>x.k===k);
-  document.getElementById('notelabel').textContent = s.q;
-  document.getElementById('note').placeholder = s.ph;
+  S.st = k; renderPicks();
+  document.getElementById('note').placeholder = STATUSES.find(x=>x.k===k).ph;
   document.getElementById('e2').textContent = '';
 }
 function noteTyped(){
   const v = document.getElementById('note').value;
   document.getElementById('count').textContent = `${v.length} / 140`;
-  if(v.trim()) document.getElementById('e2').textContent='';
+  if(v.trim()) document.getElementById('e2').textContent = '';
 }
 function saveStatus(){
   const e = document.getElementById('e2');
-  if(!S.me.st){ e.textContent='상태를 하나 골라주세요'; return; }
+  const n = document.getElementById('nick').value.trim();
+  if(!n){ e.textContent='닉네임을 입력해 주세요'; document.getElementById('nick').focus(); return; }
+  const a = affValue();
+  if(!a){ e.textContent=ROOM.aff.label+'을 입력해 주세요'; return; }
+  if(!S.st){ e.textContent='상태를 하나 골라주세요'; return; }
   const v = document.getElementById('note').value.trim();
   if(!v){ e.textContent='한 줄만 적어주세요. 이게 있어야 이어드릴 수 있어요'; return; }
-  e.textContent=''; S.me.note=v; S.me.age=0; S.t0=Date.now();
-  S.people = S.mode==='empty' ? [] : SEED.map(p=>({...p}));
+  e.textContent='';
+  S.me = {id:'me', name:n, school:a, st:S.st, note:v, age:0};
+  S.t0 = Date.now();
+  S.people = S.mode==='empty' ? [] : PREVIEW.map(p=>({...p}));
   go('s3'); renderRoom();
   if(S.mode!=='empty' && S.mode!=='none') runMatch();
 }
@@ -515,8 +545,11 @@ function renderRoom(){
     </button>`;
   }).join('');
 }
-function editMine(){ go('s2'); renderPicks();
-  document.getElementById('note').value=S.me.note; noteTyped(); pick(S.me.st); }
+function editMine(){
+  renderAff(); S.st = S.me.st; renderPicks(); go('s2');
+  document.getElementById('nick').value = S.me.name;
+  document.getElementById('note').value = S.me.note; noteTyped();
+}
 
 /* ── 매칭: 스피너 대신 구체적인 문구 ── */
 let matchTimer=null;
@@ -631,13 +664,14 @@ function dm(m){
   closeSheet(); clearTimeout(matchTimer); S.speed=1; S.bt=true;
   if(m==='room2'){ ROOM = ROOMS.FEMEETUP; m='flow'; }
   else if(m==='flow'){ ROOM = ROOMS.KOSS26; }
-  if(m==='flow'){ S={me:null,people:[],mode:'room',speed:1,bt:true,t0:Date.now()};
-    renderEntry();
+  if(m==='flow'){ S={me:null,st:null,people:[],mode:'room',speed:1,bt:true,t0:Date.now()};
+    PREVIEW = SEED.map(p=>({...p})); renderPreview();
     document.getElementById('nick').value=''; document.getElementById('note').value='';
     document.getElementById('count').textContent='0 / 140'; go('s1'); return; }
   // longtext 모드가 남긴 값이 다음 모드로 새지 않게 매번 초기화한다
-  S.me={id:'me',name:'지원',school:'국민대',st:'LOOKING_FOR',
+  S.me={id:'me',name:'지원',school:ROOM.aff.options?ROOM.aff.options[0]:'토스',st:'LOOKING_FOR',
     note:'배포·CI 경험 있으신 분 찾아요',age:0};
+  S.st = S.me.st; PREVIEW = SEED.map(p=>({...p}));
   S.t0 = Date.now(); S.mode = m;
   S.people = SEED.map(p=>({...p}));
 
@@ -661,7 +695,8 @@ function dm(m){
 
 function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-renderEntry();
+PREVIEW = SEED.map(p=>({...p}));
+renderPreview();
 setInterval(()=>{ if(S.me && document.getElementById('s3').classList.contains('on')) renderRoom(); }, 1000);
 </script>
 </body>
