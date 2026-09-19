@@ -23,6 +23,10 @@
 
 **[spec/MASTER.md](spec/MASTER.md)** — 이 문서 하나면 전체 그림이 잡힌다. 서비스 소개부터 기술 스택, 배포, 협업, 일정까지.
 
+## 서버 실행
+
+[server/README.md](server/README.md) — Python 3.12 · uv 기반 FastAPI 실행 및 검증 안내.
+
 ## 프로토타입 실행
 
 ```bash
