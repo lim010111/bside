@@ -1,325 +1,221 @@
-import React, { useState } from 'react';
-import { 
-  Users, 
-  MapPin, 
-  Edit3, 
-  Check, 
-  BarChart3, 
-  LogOut,
-  UserPlus
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BarChart3, LogOut, Sparkles } from 'lucide-react';
 
-const STATUS_MAP = {
-  OPEN: { label: '대화 가능', emoji: '🟢', class: 'OPEN' },
-  FOCUS: { label: '집중 중', emoji: '🔴', class: 'FOCUS' },
-  BREAK: { label: '같이 쉬기', emoji: '☕', class: 'BREAK' },
-  NEED_HELP: { label: '도움 필요', emoji: '🙋', class: 'NEED_HELP' },
-  CAN_HELP: { label: '도움 가능', emoji: '💪', class: 'CAN_HELP' },
+const STATUS_LABELS = {
+  LOOKING_FOR: '이런 분 찾아요',
+  CAN_SHARE: '이런 얘기 할 수 있어요',
+  FIRST_TIME: '처음 왔어요',
+  OPEN: '대화 가능',
+  // Short
+  SHORT_LOOKING_FOR: '찾는 중',
+  SHORT_CAN_SHARE: '나눌 수 있음',
+  SHORT_FIRST_TIME: '처음',
+  SHORT_OPEN: '대화 가능',
 };
+
+const TTL = 300; // 300 seconds
 
 export default function RoomView({
   roomData,
   currentUser,
-  onUpdateStatus,
-  onSimulatePeer,
+  onEditMine,
   onOpenAdmin,
   onLeave,
+  onSelectMemberForMatch,
+  matchState = '',
+  onRunMatch = null,
 }) {
-  const [editing, setEditing] = useState(false);
-  const [newStatus, setNewStatus] = useState(currentUser.status);
-  const [newNote, setNewNote] = useState(currentUser.note || '');
+  const [now, setNow] = useState(Date.now());
 
-  const handleSaveStatus = (e) => {
-    e.preventDefault();
-    onUpdateStatus({
-      status: newStatus,
-      note: newNote,
-    });
-    setEditing(false);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const members = roomData?.members || [];
+  const compo = roomData?.compo || [];
+  const tally = roomData?.tally || '찾는 중 12 · 나눌 수 있음 15 · 처음 10 · 대화 가능 8';
+  const headcount = roomData?.headcount || `${members.length + 1}명`;
+
+  // Filter out current user from members list if present
+  const otherMembers = members.filter((m) => m.id !== currentUser?.id && m.id !== 'me');
+
+  const nearMembers = otherMembers.filter((m) => m.near);
+  const farMembers = otherMembers.filter((m) => !m.near);
+
+  const myAge = currentUser?.age || 0;
+  const myLife = Math.max(0, 1 - myAge / TTL);
+  const myMinutesLeft = Math.max(1, Math.ceil((myLife * TTL) / 60));
+
+  const getFadeOpacity = (age = 40) => {
+    const life = Math.max(0, 1 - age / TTL);
+    return life > 0.45 ? 1 : 0.34 + (life / 0.45) * 0.66;
   };
 
-  const counts = roomData?.counts || { OPEN: 0, FOCUS: 0, BREAK: 0, NEED_HELP: 0, CAN_HELP: 0 };
-  const members = roomData?.members || [];
-
   return (
-    <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      {/* Room Header Banner */}
-      <div style={{ 
-        background: 'var(--bg-card)', 
-        padding: '14px 16px', 
-        borderRadius: 'var(--radius-sm)', 
-        border: '1px solid var(--border-subtle)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: 'var(--status-open)', fontWeight: 500 }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--status-open)' }} />
-              실시간 상태 동기화 중
-            </div>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-              {roomData?.title || '코쓱톤 네트워킹'}
-            </h2>
-          </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button 
+    <div style={{ padding: '0 16px 40px', display: 'flex', flexDirection: 'column' }}>
+      {/* S3 Room Header */}
+      <header style={{ padding: '20px 0 14px' }}>
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <h1 className="t-lg" style={{ margin: 0 }}>
+            {roomData?.title || '코쓱톤 네트워킹'}
+          </h1>
+          <div className="row" style={{ gap: '10px', alignItems: 'center' }}>
+            <span className="t-sm dim">{headcount}</span>
+            <button
               onClick={onOpenAdmin}
-              className="btn-icon" 
+              className="badge"
+              style={{ cursor: 'pointer', padding: '3px 8px' }}
               title="운영진 대시보드"
             >
-              <BarChart3 size={15} />
+              대시보드
             </button>
-            <button 
+            <button
               onClick={onLeave}
-              className="btn-icon" 
-              title="퇴장"
+              className="badge"
+              style={{ cursor: 'pointer', padding: '3px 8px' }}
+              title="나가기"
             >
-              <LogOut size={15} />
+              나가기
             </button>
           </div>
         </div>
+      </header>
 
-        {/* Aggregated Status Counter Strip */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between', 
-          background: 'var(--bg-input)', 
-          padding: '7px 10px', 
-          borderRadius: 'var(--radius-xs)',
-          fontSize: '0.74rem',
-          border: '1px solid var(--border-subtle)'
-        }}>
-          <span style={{ color: 'var(--status-open)' }}>🟢 {counts.OPEN || 0}</span>
-          <span style={{ color: '#818cf8' }}>🙋 {counts.NEED_HELP || 0}</span>
-          <span style={{ color: '#38bdf8' }}>💪 {counts.CAN_HELP || 0}</span>
-          <span style={{ color: 'var(--status-break)' }}>☕ {counts.BREAK || 0}</span>
-          <span style={{ color: 'var(--status-focus)' }}>🔴 {counts.FOCUS || 0}</span>
-          <span style={{ color: 'var(--text-muted)' }}>| 총 {members.length}명</span>
-        </div>
-      </div>
-
-      {/* My Current Status Card */}
-      <div style={{ 
-        background: 'var(--bg-card)', 
-        border: '1px solid var(--border-subtle)', 
-        borderRadius: 'var(--radius-sm)', 
-        padding: '14px 16px' 
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <div style={{ fontSize: '0.76rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-            내 현재 상태 (Presence)
-          </div>
-          <button 
-            onClick={() => setEditing(!editing)}
-            style={{ 
-              background: 'transparent', 
-              border: 'none', 
-              color: 'var(--text-secondary)', 
-              fontSize: '0.76rem', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '4px', 
-              cursor: 'pointer',
-              fontWeight: 500 
-            }}
-          >
-            <Edit3 size={12} />
-            {editing ? '닫기' : '상태 변경'}
-          </button>
-        </div>
-
-        {!editing ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className={`status-pill ${currentUser.status}`}>
-                {STATUS_MAP[currentUser.status]?.label || currentUser.status}
-              </span>
-              <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>{currentUser.nick}</span>
-              {currentUser.school && (
-                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>({currentUser.school})</span>
-              )}
-            </div>
-            {currentUser.note && (
-              <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', background: 'var(--bg-input)', padding: '6px 10px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-subtle)' }}>
-                "{currentUser.note}"
-              </div>
-            )}
-          </div>
-        ) : (
-          <form onSubmit={handleSaveStatus} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {Object.keys(STATUS_MAP).map((st) => (
-                <button
-                  key={st}
-                  type="button"
-                  onClick={() => setNewStatus(st)}
-                  className={`status-pill ${st}`}
-                  style={{
-                    cursor: 'pointer',
-                    opacity: newStatus === st ? 1 : 0.45,
-                    border: newStatus === st ? '1px solid var(--border-active)' : '1px solid transparent'
-                  }}
-                >
-                  {STATUS_MAP[st].emoji} {STATUS_MAP[st].label}
-                </button>
-              ))}
-            </div>
-            <input
-              type="text"
-              value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
-              placeholder="상태 한 줄 입력 (최대 140자)"
-              className="input-field"
-              maxLength={140}
-              style={{ fontSize: '0.82rem', padding: '7px 10px' }}
+      {/* Composition Bar */}
+      {compo.length > 0 && (
+        <div className="compo">
+          {compo.map((c) => (
+            <i
+              key={c.key}
+              className={`bar-${c.key}`}
+              style={{ width: `${c.pct}%` }}
+              title={`${c.key}: ${c.pct}%`}
             />
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button type="submit" className="btn-primary" style={{ padding: '7px 12px', fontSize: '0.8rem', width: 'auto' }}>
-                <Check size={14} /> 저장
-              </button>
-              <button type="button" onClick={() => setEditing(false)} className="btn-secondary" style={{ padding: '7px 12px', fontSize: '0.8rem' }}>
-                취소
-              </button>
-            </div>
-          </form>
-        )}
+          ))}
+        </div>
+      )}
+
+      {/* Tally Strip */}
+      <div className="stats" style={{ marginBottom: '14px' }}>
+        {tally}
+        <span className="faint" style={{ marginLeft: '8px' }}>방금 3명 들어옴</span>
       </div>
 
-      {/* Demo Simulation Action Strip */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        padding: '9px 12px',
-        borderRadius: 'var(--radius-sm)',
-        background: 'var(--bg-subtle)',
-        border: '1px solid var(--border-subtle)'
-      }}>
-        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-          상대방 참가 시뮬레이션
-        </span>
+      {/* My Status Card (Click to Edit) */}
+      <div style={{ marginTop: '4px' }}>
         <button
-          onClick={onSimulatePeer}
-          style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-medium)',
-            color: 'var(--text-primary)',
-            fontSize: '0.74rem',
-            fontWeight: 500,
-            padding: '4px 9px',
-            borderRadius: 'var(--radius-xs)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
+          className={`card mine s-${currentUser?.status || 'LOOKING_FOR'}`}
+          onClick={onEditMine}
+          title="클릭하여 내 상태 수정"
         >
-          <UserPlus size={13} />
-          {currentUser.status === 'NEED_HELP' ? '민서 (도커 CI) 입장' : '지원 (배포 막힘) 입장'}
+          <div className="row" style={{ justifyContent: 'space-between', marginBottom: '5px' }}>
+            <span className="t-sm" style={{ color: 'var(--c)' }}>
+              내 상태 · {STATUS_LABELS[currentUser?.status] || '이런 분 찾아요'}
+            </span>
+            <span className="t-sm faint">{myMinutesLeft}분 뒤 사라짐</span>
+          </div>
+          <div className="t-md wrap" style={{ color: 'var(--text)' }}>
+            {currentUser?.note || '배포·CI 경험 있으신 분 찾아요'}
+          </div>
         </button>
       </div>
 
-      {/* Room Member List */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Users size={14} />
-            행사장 참가자 ({members.length})
-          </div>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-            거리: 닿는 거리
-          </span>
+      {/* Matching State & Group Header */}
+      <div className="row" style={{ justifyContent: 'space-between', margin: '20px 0 9px' }}>
+        <span className="t-sm dim">같은 공간</span>
+        <span className="t-sm faint" style={{ color: 'var(--looking)', fontWeight: 500 }}>
+          {matchState ? matchState : onRunMatch ? (
+            <button
+              onClick={onRunMatch}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--looking)' }}
+            >
+              <Sparkles size={13} /> AI 접점 찾기
+            </button>
+          ) : ''}
+        </span>
+      </div>
+
+      {/* Empty State */}
+      {otherMembers.length === 0 ? (
+        <div className="empty">
+          <p className="t-md" style={{ margin: '0 0 6px' }}>
+            아직 이 방에 혼자 계세요
+          </p>
+          <p className="t-sm dim" style={{ margin: '0 0 20px', lineHeight: 1.6 }}>
+            누가 들어오면 알려드릴게요.
+          </p>
         </div>
-
+      ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {members.length === 0 ? (
-            <div style={{ padding: '30px 20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.84rem' }}>
-              아직 참가자가 없습니다.
-            </div>
-          ) : (
-            members.map((m) => {
-              const isMe = m.id === currentUser.id;
-              const statusCfg = STATUS_MAP[m.status] || { label: m.status, emoji: '🟢', class: 'OPEN' };
-              
-              return (
-                <div 
-                  key={m.id} 
-                  className="glass-card" 
-                  style={{ 
-                    borderLeft: isMe ? '2px solid var(--text-primary)' : '1px solid var(--border-subtle)',
-                    padding: '12px 14px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '7px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ 
-                        width: '28px', 
-                        height: '28px', 
-                        borderRadius: 'var(--radius-xs)', 
-                        background: isMe ? 'var(--bg-subtle)' : 'var(--bg-input)', 
-                        border: '1px solid var(--border-subtle)',
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        fontWeight: 600,
-                        fontSize: '0.78rem',
-                        color: 'var(--text-primary)'
-                      }}>
-                        {m.nick ? m.nick[0] : '?'}
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontWeight: 600, fontSize: '0.86rem' }}>{m.nick}</span>
-                          {isMe && (
-                            <span style={{ fontSize: '0.66rem', padding: '1px 5px', borderRadius: 'var(--radius-xs)', background: 'var(--bg-subtle)', color: 'var(--text-secondary)' }}>
-                              나
-                            </span>
-                          )}
-                          {m.school && (
-                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{m.school}</span>
-                          )}
-                        </div>
-                      </div>
+          {/* 닿는 거리 (Nearby) */}
+          {nearMembers.length > 0 && (
+            <>
+              <p className="glabel" style={{ color: 'var(--text-dim)', fontWeight: 500 }}>
+                닿는 거리 {nearMembers.length}
+              </p>
+              {nearMembers.map((p) => {
+                const op = getFadeOpacity(p.age).toFixed(2);
+                return (
+                  <button
+                    key={p.id}
+                    className="person"
+                    style={{ opacity: op }}
+                    onClick={() => onSelectMemberForMatch(p)}
+                  >
+                    <div className="row" style={{ gap: '7px' }}>
+                      <span className="t-lg grow trunc" style={{ fontWeight: 600 }}>
+                        {p.name || p.nick}
+                      </span>
+                      <span className="badge" style={{ color: 'var(--sharing)', background: 'rgba(74, 222, 128, 0.1)' }}>
+                        닿는 거리
+                      </span>
                     </div>
-
-                    <span className={`status-pill ${statusCfg.class}`}>
-                      <span className="status-indicator-dot" />
-                      {statusCfg.emoji} {statusCfg.label}
-                    </span>
-                  </div>
-
-                  {m.note && (
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', lineHeight: 1.4, paddingLeft: '36px' }}>
-                      {m.note}
+                    <div className="t-sm faint" style={{ margin: '2px 0 6px' }}>
+                      {p.school} · {STATUS_LABELS[p.st || p.status] || p.status}
                     </div>
-                  )}
-
-                  {m.tags && m.tags.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', paddingLeft: '36px' }}>
-                      {m.tags.map((tag, tIdx) => (
-                        <span key={tIdx} className="tag-chip">
-                          #{tag}
-                        </span>
-                      ))}
+                    <div className="t-md wrap" style={{ color: 'var(--text)' }}>
+                      {p.note}
                     </div>
-                  )}
+                  </button>
+                );
+              })}
+            </>
+          )}
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', color: 'var(--text-muted)', paddingLeft: '36px' }}>
-                    <MapPin size={11} />
-                    {m.zone || '중앙 홀'} · 닿는 거리
-                  </div>
-                </div>
-              );
-            })
+          {/* 조금 떨어진 곳 (Further) */}
+          {farMembers.length > 0 && (
+            <>
+              <p className="glabel" style={{ color: 'var(--text-faint)', marginTop: '16px' }}>
+                조금 떨어진 곳 {farMembers.length}
+              </p>
+              {farMembers.map((p) => {
+                const op = getFadeOpacity(p.age).toFixed(2);
+                return (
+                  <button
+                    key={p.id}
+                    className="person"
+                    style={{ opacity: op }}
+                    onClick={() => onSelectMemberForMatch(p)}
+                  >
+                    <div className="row" style={{ gap: '7px' }}>
+                      <span className="t-lg grow trunc" style={{ fontWeight: 600 }}>
+                        {p.name || p.nick}
+                      </span>
+                    </div>
+                    <div className="t-sm faint" style={{ margin: '2px 0 6px' }}>
+                      {p.school} · {STATUS_LABELS[p.st || p.status] || p.status}
+                    </div>
+                    <div className="t-md wrap" style={{ color: 'var(--text)' }}>
+                      {p.note}
+                    </div>
+                  </button>
+                );
+              })}
+            </>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

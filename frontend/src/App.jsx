@@ -2,51 +2,76 @@ import React, { useState, useEffect, useRef } from 'react';
 import JoinView from './components/JoinView';
 import RoomView from './components/RoomView';
 import MatchModal from './components/MatchModal';
+import BLEChatModal from './components/BLEChatModal';
 import AdminDashboard from './components/AdminDashboard';
 import ContrastModal from './components/ContrastModal';
 import PrivacyModal from './components/PrivacyModal';
 import QRCodeModal from './components/QRCodeModal';
-import { Sparkles, QrCode, BarChart3, Wifi, WifiOff, Split, ShieldCheck } from 'lucide-react';
+import { Sliders, ShieldCheck, Split, QrCode } from 'lucide-react';
+
+const ROOMS_CONFIG = {
+  KOSS26: {
+    code: 'KOSS26',
+    title: '코쓱톤 네트워킹',
+    when: '국민대 미래관 4층 · 오늘 18:00까지',
+    affLabel: '소속',
+    affOptions: ['국민대', '숭실대', '순천향대'],
+  },
+  FEMEETUP: {
+    code: 'FEMEETUP',
+    title: '서울 프론트엔드 밋업',
+    when: '성수 코워킹 · 오늘 21:00까지',
+    affLabel: '회사',
+    affOptions: null,
+  },
+};
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem('bside_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [currentRoomCode, setCurrentRoomCode] = useState('KOSS26');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [screen, setScreen] = useState('entry'); // 'entry' | 'room' | 'chat' | 'admin'
+  const [isEditing, setIsEditing] = useState(false);
 
   const [roomData, setRoomData] = useState(null);
   const [activeMatch, setActiveMatch] = useState(null);
-  const [showAdmin, setShowAdmin] = useState(false);
+  const [selectedPartner, setSelectedPartner] = useState(null);
+  const [chatPartner, setChatPartner] = useState(null);
+
+  const [matchState, setMatchState] = useState('');
+  const [btEnabled, setBtEnabled] = useState(true);
+
+  // Modals
   const [showContrast, setShowContrast] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showQR, setShowQR] = useState(false);
-  const [connected, setConnected] = useState(false);
+  const [devMenuOpen, setDevMenuOpen] = useState(false);
 
   const eventSourceRef = useRef(null);
-  const heartbeatIntervalRef = useRef(null);
+
+  // Initial fetch of room data
+  const loadRoom = async (code) => {
+    try {
+      const res = await fetch(`/api/room/${code}`);
+      if (res.ok) {
+        const data = await res.json();
+        setRoomData(data);
+      }
+    } catch (e) {
+      console.warn('Failed to load room data:', e);
+    }
+  };
 
   useEffect(() => {
-    if (!currentUser?.roomCode || !currentUser?.id) {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-      clearInterval(heartbeatIntervalRef.current);
-      return;
-    }
+    loadRoom(currentRoomCode);
+  }, [currentRoomCode]);
 
-    const code = currentUser.roomCode;
-    const sseUrl = `/api/room/${code}/stream`;
+  // SSE Stream
+  useEffect(() => {
+    if (!currentUser?.id || !currentRoomCode) return;
 
+    const sseUrl = `/api/room/${currentRoomCode}/stream`;
     const es = new EventSource(sseUrl);
     eventSourceRef.current = es;
-
-    es.onopen = () => {
-      setConnected(true);
-    };
 
     es.addEventListener('update', (e) => {
       try {
@@ -68,230 +93,356 @@ export default function App() {
       }
     });
 
-    es.onerror = () => {
-      setConnected(false);
-    };
-
-    heartbeatIntervalRef.current = setInterval(() => {
-      fetch(`/api/room/${code}/heartbeat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: currentUser.id }),
-      }).catch((e) => console.warn('Heartbeat error:', e));
-    }, 45000);
-
     return () => {
       es.close();
-      clearInterval(heartbeatIntervalRef.current);
     };
-  }, [currentUser?.id, currentUser?.roomCode]);
+  }, [currentUser?.id, currentRoomCode]);
 
-  const handleJoin = async ({ roomCode, nick, school, status, note, zone }) => {
+  // Join or Update Profile
+  const handleJoinOrUpdate = async ({ nick, school, status, note }) => {
+    if (isEditing && currentUser?.id) {
+      // Profile update
+      try {
+        const res = await fetch(`/api/room/${currentRoomCode}/profile`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: currentUser.id,
+            nick,
+            school,
+            status,
+            note,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentUser((prev) => ({
+            ...prev,
+            nick,
+            name: nick,
+            school,
+            status,
+            st: status,
+            note,
+          }));
+        }
+      } catch (err) {
+        console.warn('Update failed, updating locally:', err);
+      }
+      setIsEditing(false);
+      setScreen('room');
+      return;
+    }
+
+    // New Join
     try {
-      const res = await fetch(`/api/room/${roomCode}/join`, {
+      const res = await fetch(`/api/room/${currentRoomCode}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nick, school, status, note, zone }),
+        body: JSON.stringify({ nick, school, status, note }),
       });
       const data = await res.json();
       const user = {
         id: data.id,
-        roomCode,
         nick,
+        name: nick,
         school,
         status,
+        st: status,
         note,
-        zone: zone || '중앙 홀',
+        roomCode: currentRoomCode,
+        age: 0,
       };
       setCurrentUser(user);
-      sessionStorage.setItem('bside_user', JSON.stringify(user));
+      setScreen('room');
+      runMatchFlow(user);
     } catch (err) {
-      console.error('Join API failed, fallback to local state:', err);
+      // Offline fallback
       const user = {
-        id: 'local_' + Math.random().toString(36).substring(2, 8),
-        roomCode,
+        id: 'me',
         nick,
+        name: nick,
         school,
         status,
+        st: status,
         note,
-        zone: zone || '중앙 홀',
+        roomCode: currentRoomCode,
+        age: 0,
       };
       setCurrentUser(user);
-      sessionStorage.setItem('bside_user', JSON.stringify(user));
+      setScreen('room');
+      runMatchFlow(user);
     }
   };
 
-  const handleUpdateStatus = async ({ status, note, zone }) => {
-    if (!currentUser) return;
-    const updated = { ...currentUser, status, note, zone: zone || currentUser.zone };
-    setCurrentUser(updated);
-    sessionStorage.setItem('bside_user', JSON.stringify(updated));
-
-    try {
-      await fetch(`/api/room/${currentUser.roomCode}/status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: currentUser.id, status, note, zone }),
+  // Run Match flow with realistic delay
+  const runMatchFlow = (user = currentUser) => {
+    const total = (roomData?.members?.length || 45) + 1;
+    setMatchState(`${total}명 중에서 찾는 중`);
+    setTimeout(() => {
+      setMatchState('');
+      setActiveMatch({
+        id: 'demo_match',
+        seeker_id: user?.id || 'me',
+        seeker_nick: user?.nick || '지원',
+        helper_id: 'minseo',
+        helper_nick: '민서',
+        helper_school: '순천향대',
+        helper_near: true,
+        strength: 0.85,
+        why_a: user?.note ? `${user.note.slice(0, 18)}을 찾는 중` : '배포·CI 경험을 찾는 중',
+        why_b: '작년에 CI 파이프라인 구축',
+        opener: '혹시 CI 구축해보셨다고 들었어요. 저 지금 배포 권한에서 막혀 있는데요.',
       });
-    } catch (err) {
-      console.error('Status update failed:', err);
-    }
+    }, 1800);
   };
 
-  const handleSimulatePeer = async () => {
-    if (!currentUser) return;
-    const isSeeker = currentUser.status === 'NEED_HELP';
-
-    const peerData = isSeeker
-      ? {
-          nick: '민서',
-          school: '순천향대',
-          status: 'CAN_HELP',
-          note: '작년에 개인 프로젝트에서 도커 CI 구축해봄',
-          zone: '음료 테이블 앞'
-        }
-      : {
-          nick: '지원',
-          school: '국민대',
-          status: 'NEED_HELP',
-          note: 'GitHub Actions 배포에서 권한 오류로 막힘',
-          zone: '중앙 홀'
-        };
-
-    try {
-      await fetch(`/api/room/${currentUser.roomCode}/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(peerData),
-      });
-    } catch (err) {
-      console.error('Simulate peer failed:', err);
-    }
-  };
-
-  const handleReactMatch = async (matchId, reaction) => {
-    try {
-      await fetch(`/api/match/${matchId}/react`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ match_id: matchId, reaction }),
-      });
-    } catch (err) {
-      console.error('Match react failed:', err);
-    }
-  };
-
-  const handleLeave = async () => {
-    if (currentUser) {
-      try {
-        await fetch(`/api/room/${currentUser.roomCode}/leave`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: currentUser.id }),
-        });
-      } catch (err) {
-        console.error('Leave error:', err);
-      }
-    }
-    sessionStorage.removeItem('bside_user');
-    setCurrentUser(null);
-    setRoomData(null);
+  // Dev Scenario Switcher (11 PRD demo modes)
+  const handleDevMode = (m) => {
+    setDevMenuOpen(false);
     setActiveMatch(null);
-    setShowAdmin(false);
-  };
+    setSelectedPartner(null);
+    setMatchState('');
+    setBtEnabled(true);
 
-  const currentRoomCode = currentUser?.roomCode || 'KOSS26';
+    if (m === 'flow') {
+      setCurrentRoomCode('KOSS26');
+      setCurrentUser(null);
+      setIsEditing(false);
+      setScreen('entry');
+      return;
+    }
+
+    if (m === 'room2') {
+      setCurrentRoomCode('FEMEETUP');
+      setCurrentUser(null);
+      setIsEditing(false);
+      setScreen('entry');
+      return;
+    }
+
+    // Preset user "지원"
+    const jiwon = {
+      id: 'me',
+      nick: '지원',
+      name: '지원',
+      school: '국민대',
+      status: 'LOOKING_FOR',
+      st: 'LOOKING_FOR',
+      note: '배포·CI 경험 있으신 분 찾아요',
+      roomCode: currentRoomCode,
+      age: 0,
+    };
+    setCurrentUser(jiwon);
+
+    if (m === 'room') {
+      setScreen('room');
+    } else if (m === 'match') {
+      setScreen('room');
+      setActiveMatch({
+        id: 'demo_match',
+        seeker_id: 'me',
+        seeker_nick: '지원',
+        helper_id: 'minseo',
+        helper_nick: '민서',
+        helper_school: '순천향대',
+        helper_near: true,
+        strength: 0.85,
+        why_a: '배포·CI 경험을 찾는 중',
+        why_b: '작년에 CI 파이프라인 구축',
+        opener: '혹시 CI 구축해보셨다고 들었어요. 저 지금 배포 권한에서 막혀 있는데요.',
+      });
+    } else if (m === 'none') {
+      setScreen('room');
+      setActiveMatch({ isNone: true });
+    } else if (m === 'empty') {
+      setRoomData((prev) => ({ ...prev, members: [], total_active: 1 }));
+      setScreen('room');
+    } else if (m === 'loading') {
+      setScreen('room');
+      runMatchFlow(jiwon);
+    } else if (m === 'btoff') {
+      setBtEnabled(false);
+      setChatPartner({ id: 'minseo', name: '민서', school: '순천향대' });
+      setScreen('chat');
+    } else if (m === 'longtext') {
+      setCurrentUser({
+        ...jiwon,
+        name: '김지원국민대소프트웨어학부',
+        nick: '김지원국민대소프트웨어학부',
+        note: '배포랑 CI 쪽 경험 있으신 분 찾고 있어요. GitHub Actions에서 빌드까지는 통과하는데 배포 단계에서 권한 오류가 계속 나서 어제부터 붙잡고 있는데 도저히 안 풀리네요. 혹시 비슷한 거 겪어보신 분 계실까요',
+      });
+      setScreen('room');
+    } else if (m === 'dash') {
+      setScreen('admin');
+    } else if (m === 'expire') {
+      setCurrentUser((prev) => ({ ...prev, age: 280 }));
+      setScreen('room');
+    }
+  };
 
   return (
-    <div className="app-container">
-      {/* Top Application Header */}
-      <header className="top-bar">
-        <div className="brand-badge" onClick={() => setShowAdmin(false)}>
-          <span className="brand-logo">Bside</span>
-          <span className="brand-tagline">
-            {currentRoomCode}
-          </span>
-        </div>
-
-        <div className="top-actions">
-          <button 
-            onClick={() => setShowQR(true)} 
-            className="btn-icon" 
-            title="방 QR 코드 보기"
-          >
-            <QrCode size={16} />
-          </button>
-          
-          <button 
-            onClick={() => setShowContrast(true)} 
-            className="btn-icon" 
-            title="상보성 vs 유사도 대조"
-            style={{ color: '#818cf8' }}
-          >
-            <Split size={16} />
-          </button>
-
-          <button 
-            onClick={() => setShowPrivacy(true)} 
-            className="btn-icon" 
-            title="정보공개 범위 대조"
-            style={{ color: '#10b981' }}
-          >
-            <ShieldCheck size={16} />
-          </button>
-
-          {currentUser && (
-            <button 
-              onClick={() => setShowAdmin(!showAdmin)} 
-              className="btn-icon" 
-              title="운영진 대시보드"
-              style={{ color: showAdmin ? '#ec4899' : 'var(--text-secondary)' }}
-            >
-              <BarChart3 size={16} />
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* Main Content View */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {!currentUser ? (
-          <JoinView onJoin={handleJoin} initialRoomCode="KOSS26" />
-        ) : showAdmin ? (
-          <AdminDashboard onBack={() => setShowAdmin(false)} roomCode={currentRoomCode} />
-        ) : (
-          <RoomView
-            roomData={roomData}
-            currentUser={currentUser}
-            onUpdateStatus={handleUpdateStatus}
-            onSimulatePeer={handleSimulatePeer}
-            onOpenAdmin={() => setShowAdmin(true)}
-            onLeave={handleLeave}
+    <div className="app-shell" id="app">
+      {/* Top Utility Bar for Presentation */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 16px',
+          background: 'var(--surface)',
+          borderBottom: '1px solid var(--border)',
+          fontSize: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-dim)' }}>
+          <span
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: 'var(--sharing)',
+              display: 'inline-block',
+            }}
           />
-        )}
-      </main>
+          Bside · 실시간 P2P
+        </div>
 
-      {/* Modals */}
-      {activeMatch && currentUser && (
-        <MatchModal
-          match={activeMatch}
-          currentUser={currentUser}
-          onReact={handleReactMatch}
-          onClose={() => setActiveMatch(null)}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => setShowContrast(true)}
+            className="row"
+            style={{ gap: '3px', color: 'var(--text-dim)', fontSize: '11px' }}
+            title="기존 유사도 매칭 vs Bside 상보 매칭 대조표"
+          >
+            <Split size={12} /> 상보 대조
+          </button>
+          <button
+            onClick={() => setShowPrivacy(true)}
+            className="row"
+            style={{ gap: '3px', color: 'var(--text-dim)', fontSize: '11px' }}
+            title="개인정보 0 서버 소멸 아키텍처"
+          >
+            <ShieldCheck size={12} /> 소멸 보안
+          </button>
+          <button
+            onClick={() => setShowQR(true)}
+            className="row"
+            style={{ gap: '3px', color: 'var(--text-dim)', fontSize: '11px' }}
+            title="행사장 입장 QR 코드"
+          >
+            <QrCode size={12} /> QR
+          </button>
+        </div>
+      </div>
+
+      {/* Main Screen View Router */}
+      {screen === 'entry' && (
+        <JoinView
+          roomCode={currentRoomCode}
+          initialData={isEditing ? currentUser : null}
+          isEditing={isEditing}
+          roomMeta={ROOMS_CONFIG[currentRoomCode]}
+          onBackToRoom={() => {
+            setIsEditing(false);
+            setScreen('room');
+          }}
+          onJoin={handleJoinOrUpdate}
         />
       )}
 
-      {showContrast && (
-        <ContrastModal onClose={() => setShowContrast(false)} />
+      {screen === 'room' && (
+        <RoomView
+          roomData={roomData}
+          currentUser={currentUser}
+          matchState={matchState}
+          onRunMatch={() => runMatchFlow(currentUser)}
+          onEditMine={() => {
+            setIsEditing(true);
+            setScreen('entry');
+          }}
+          onOpenAdmin={() => setScreen('admin')}
+          onLeave={() => {
+            setCurrentUser(null);
+            setScreen('entry');
+          }}
+          onSelectMemberForMatch={(member) => {
+            setSelectedPartner(member);
+          }}
+        />
       )}
 
-      {showPrivacy && (
-        <PrivacyModal onClose={() => setShowPrivacy(false)} />
+      {screen === 'chat' && (
+        <BLEChatModal
+          partner={chatPartner}
+          currentUser={currentUser}
+          btEnabled={btEnabled}
+          onToggleBt={(val) => setBtEnabled(val)}
+          onBack={() => setScreen('room')}
+        />
       )}
 
-      {showQR && (
-        <QRCodeModal roomCode={currentRoomCode} onClose={() => setShowQR(false)} />
+      {screen === 'admin' && (
+        <AdminDashboard
+          roomCode={currentRoomCode}
+          onBack={() => setScreen('room')}
+          onOpenQR={() => setShowQR(true)}
+        />
       )}
+
+      {/* Touchpoint Sheet (MatchModal) */}
+      {(activeMatch || selectedPartner) && (
+        <MatchModal
+          match={activeMatch}
+          partner={selectedPartner}
+          currentUser={currentUser}
+          totalCount={roomData?.total_active || 46}
+          onClose={() => {
+            setActiveMatch(null);
+            setSelectedPartner(null);
+          }}
+          onStartChat={(partner) => {
+            setActiveMatch(null);
+            setSelectedPartner(null);
+            setChatPartner(partner);
+            setScreen('chat');
+          }}
+        />
+      )}
+
+      {/* Auxiliary Modals */}
+      {showContrast && <ContrastModal onClose={() => setShowContrast(false)} />}
+      {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
+      {showQR && <QRCodeModal roomCode={currentRoomCode} onClose={() => setShowQR(false)} />}
+
+      {/* Dev Demo Scenario Switcher */}
+      <div id="dev">
+        <button
+          id="devbtn"
+          aria-label="데모 상태 전환"
+          onClick={() => setDevMenuOpen(!devMenuOpen)}
+        >
+          <Sliders size={18} />
+        </button>
+
+        {devMenuOpen && (
+          <div id="devmenu">
+            <button onClick={() => handleDevMode('flow')}>처음부터 (입장)</button>
+            <button onClick={() => handleDevMode('room2')}>다른 행사로 (밋업)</button>
+            <button onClick={() => handleDevMode('room')}>방 · 기본 (46명)</button>
+            <button onClick={() => handleDevMode('match')}>접점 카드 열기</button>
+            <button onClick={() => handleDevMode('none')}>접점 없음</button>
+            <hr />
+            <button onClick={() => handleDevMode('empty')}>방이 텅 빔</button>
+            <button onClick={() => handleDevMode('loading')}>매칭 중</button>
+            <button onClick={() => handleDevMode('btoff')}>블루투스 꺼짐</button>
+            <button onClick={() => handleDevMode('longtext')}>긴 텍스트</button>
+            <hr />
+            <button onClick={() => handleDevMode('dash')}>운영진 대시보드</button>
+            <button onClick={() => handleDevMode('expire')}>만료 빨리감기</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

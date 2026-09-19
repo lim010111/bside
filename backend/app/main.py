@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
-from app.ai_service import extract_tags, evaluate_complementarity
+from app.ai_service import extract_tags, evaluate_complementarity, fallback_p1_extract
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("bside.server")
@@ -22,104 +22,74 @@ matches: Dict[str, Dict[str, Any]] = {}
 reactions: Dict[str, str] = {}
 event_queues: Dict[str, List[asyncio.Queue]] = {}
 
+SEED_HACK = [
+    {"id": "minseo", "name": "민서", "school": "순천향대", "st": "CAN_SHARE", "note": "작년에 도커로 CI 파이프라인 구축해봤어요", "near": True, "age": 40},
+    {"id": "yerin", "name": "예린", "school": "숭실대", "st": "CAN_SHARE", "note": "React 상태관리로 삽질 오래 했어요. 물어보셔도 돼요", "near": True, "age": 56},
+    {"id": "taehyun", "name": "태현", "school": "숭실대", "st": "FIRST_TIME", "note": "혼자 왔어요. 기획하다가 백엔드가 궁금해졌어요", "near": False, "age": 93},
+    {"id": "sua", "name": "수아", "school": "국민대", "st": "LOOKING_FOR", "note": "디자인 시스템 토큰 잡아보신 분 계실까요", "near": False, "age": 130},
+    {"id": "junho", "name": "준호", "school": "순천향대", "st": "OPEN", "note": "커피 들고 서 있어요. 아무나 오세요", "near": False, "age": 167},
+    {"id": "p5", "name": "지훈", "school": "국민대", "st": "LOOKING_FOR", "note": "백엔드 한 분만 더 필요해요. 팀 아직 3명이에요", "near": True, "age": 204},
+    {"id": "p6", "name": "하윤", "school": "숭실대", "st": "CAN_SHARE", "note": "작년에 이 대회 나갔어요. 심사 분위기 궁금하면 물어보세요", "near": False, "age": 241},
+    {"id": "p7", "name": "서연", "school": "국민대", "st": "FIRST_TIME", "note": "해커톤 처음이라 뭐부터 해야 할지 모르겠어요", "near": False, "age": 278},
+    {"id": "p8", "name": "도윤", "school": "순천향대", "st": "OPEN", "note": "밥 같이 드실 분", "near": False, "age": 33},
+    {"id": "p9", "name": "지우", "school": "숭실대", "st": "LOOKING_FOR", "note": "피그마 프로토타입까지 해보신 분 있나요", "near": False, "age": 70},
+    {"id": "p10", "name": "은채", "school": "국민대", "st": "CAN_SHARE", "note": "피그마 오토레이아웃은 좀 합니다", "near": True, "age": 107},
+    {"id": "p11", "name": "시우", "school": "순천향대", "st": "FIRST_TIME", "note": "1학년이고 아직 할 줄 아는 게 별로 없어요. 구경하러 왔어요", "near": False, "age": 144},
+    {"id": "p12", "name": "나연", "school": "숭실대", "st": "CAN_SHARE", "note": "AWS 프리티어로 배포까지 해봤어요", "near": False, "age": 181},
+    {"id": "p13", "name": "건우", "school": "국민대", "st": "LOOKING_FOR", "note": "안드로이드 빌드 에러 같이 봐주실 분", "near": False, "age": 218},
+    {"id": "p14", "name": "유진", "school": "순천향대", "st": "OPEN", "note": "자판기 앞에 있어요", "near": False, "age": 255},
+    {"id": "p15", "name": "채원", "school": "숭실대", "st": "CAN_SHARE", "note": "발표 많이 해봤어요. 대본 봐드릴 수 있어요", "near": True, "age": 10},
+    {"id": "p16", "name": "현우", "school": "국민대", "st": "LOOKING_FOR", "note": "소켓 통신 해보신 분 5분만 시간 내주실 수 있나요", "near": False, "age": 47},
+    {"id": "p17", "name": "다은", "school": "순천향대", "st": "FIRST_TIME", "note": "팀 없이 왔는데 괜찮을까요", "near": False, "age": 84},
+    {"id": "p18", "name": "정민", "school": "숭실대", "st": "CAN_SHARE", "note": "타입스크립트 제네릭 헷갈리시면 오세요", "near": False, "age": 121},
+    {"id": "p19", "name": "소율", "school": "국민대", "st": "OPEN", "note": "아무 얘기나 좋아요. 코딩 얘기 아니어도 됩니다", "near": False, "age": 158},
+    {"id": "p20", "name": "재현", "school": "순천향대", "st": "LOOKING_FOR", "note": "Firebase 인증 붙이다 막혔어요. 해보신 분", "near": True, "age": 195},
+    {"id": "p21", "name": "윤서", "school": "숭실대", "st": "CAN_SHARE", "note": "앱 스토어 심사 두 번 통과시켜봤습니다", "near": False, "age": 232},
+    {"id": "p22", "name": "승현", "school": "국민대", "st": "FIRST_TIME", "note": "학교에서 혼자 와서 아는 사람이 없네요", "near": False, "age": 269},
+    {"id": "p23", "name": "가은", "school": "순천향대", "st": "CAN_SHARE", "note": "파이썬으로 크롤링 많이 해봤어요", "near": False, "age": 24},
+    {"id": "p24", "name": "준서", "school": "숭실대", "st": "LOOKING_FOR", "note": "발표 자료 만들어주실 분 급하게 찾습니다", "near": False, "age": 61},
+    {"id": "p25", "name": "하은", "school": "국민대", "st": "OPEN", "note": "노트북 충전 중이라 30분 묶여 있어요. 심심해요", "near": True, "age": 98},
+    {"id": "p26", "name": "민재", "school": "순천향대", "st": "CAN_SHARE", "note": "PM 인턴 했었어요. 기획서 봐드릴게요", "near": False, "age": 135},
+    {"id": "p27", "name": "서윤", "school": "숭실대", "st": "FIRST_TIME", "note": "디자인 전공인데 개발 쪽 어떻게 굴러가는지 보고 싶어요", "near": False, "age": 172},
+    {"id": "p28", "name": "지호", "school": "국민대", "st": "LOOKING_FOR", "note": "지도 API 써보신 분 계신가요. 카카오든 네이버든", "near": False, "age": 209},
+    {"id": "p29", "name": "예준", "school": "순천향대", "st": "CAN_SHARE", "note": "웹소켓이랑 SSE 둘 다 써봤어요. 차이 설명해드릴 수 있어요", "near": False, "age": 246},
+    {"id": "p30", "name": "수빈", "school": "숭실대", "st": "OPEN", "note": "야식 뭐 시킬지 고민 중인데 같이 정하실 분", "near": True, "age": 283},
+    {"id": "p31", "name": "동현", "school": "국민대", "st": "LOOKING_FOR", "note": "OAuth 리다이렉트에서 계속 막힙니다", "near": False, "age": 38},
+    {"id": "p32", "name": "아름", "school": "순천향대", "st": "FIRST_TIME", "note": "비전공자예요. 코딩은 부트캠프에서 조금 배웠어요", "near": False, "age": 75},
+    {"id": "p33", "name": "성민", "school": "숭실대", "st": "CAN_SHARE", "note": "일러스트 그릴 줄 알아요. 아이콘 필요하시면", "near": False, "age": 112},
+    {"id": "p34", "name": "혜원", "school": "국민대", "st": "OPEN", "note": "4층 창가에 있어요. 조용해요", "near": False, "age": 149},
+    {"id": "p35", "name": "영진", "school": "순천향대", "st": "LOOKING_FOR", "note": "팀원 구해요. 기획 둘에 개발 하나라 개발자가 급해요", "near": True, "age": 186},
+    {"id": "p36", "name": "지민", "school": "숭실대", "st": "CAN_SHARE", "note": "깃 충돌 나면 불러주세요. 그건 자신 있어요", "near": False, "age": 223},
+    {"id": "p37", "name": "우진", "school": "국민대", "st": "FIRST_TIME", "note": "편입생이라 아는 사람이 아예 없어요", "near": False, "age": 260},
+    {"id": "p38", "name": "보람", "school": "순천향대", "st": "CAN_SHARE", "note": "논문 쪽 관심 있으면 얘기해요. NLP 랩 있었어요", "near": False, "age": 15},
+    {"id": "p39", "name": "태윤", "school": "숭실대", "st": "LOOKING_FOR", "note": "테스트 코드 어떻게 짜야 할지 감이 안 와요", "near": False, "age": 52},
+    {"id": "p40", "name": "세연", "school": "국민대", "st": "OPEN", "note": "담배 피우러 나갈 건데 같이 가실 분", "near": True, "age": 89},
+    {"id": "p41", "name": "규민", "school": "순천향대", "st": "FIRST_TIME", "note": "작년에 신청했다가 못 왔어요. 올해가 처음이에요", "near": False, "age": 126},
+    {"id": "p42", "name": "하영", "school": "숭실대", "st": "CAN_SHARE", "note": "디자인 툴은 웬만한 거 다 써봤어요", "near": False, "age": 163},
+    {"id": "p43", "name": "진우", "school": "국민대", "st": "LOOKING_FOR", "note": "발표 대본 같이 봐주실 분 있을까요", "near": False, "age": 200},
+    {"id": "p44", "name": "예은", "school": "순천향대", "st": "FIRST_TIME", "note": "3학년인데 이런 거 한 번도 안 해봤어요", "near": False, "age": 237},
+]
+
 
 def init_seed_data(room: Dict[str, Any]):
-    """시연 및 심사용 실제 참가자 시드 데이터 로드"""
-    seed_members = [
-        {
-            "id": "seed_minseo",
-            "nick": "민서",
-            "school": "순천향대",
-            "status": "CAN_HELP",
-            "note": "작년에 개인 프로젝트에서 도커 CI 파이프라인 구축해봄",
-            "tags": ["Docker", "CI/CD", "서버운영"],
-            "zone": "음료 테이블 앞",
-            "extracted": {
-                "kind": "EXPERIENCED",
-                "domain": "CI/CD",
-                "tools": ["Docker", "CI/CD"],
-                "symptom": "도커 CI 구축",
-                "level": "high"
-            },
-            "last_seen": time.time(),
-            "opt_in_match": True,
-        },
-        {
-            "id": "seed_taehyun",
-            "nick": "태현",
-            "school": "숭실대",
-            "status": "FOCUS",
-            "note": "서비스 기획과 발표 자료 구조 작성 중",
-            "tags": ["서비스기획", "Figma", "발표"],
-            "zone": "무대 앞 2열",
-            "extracted": {
-                "kind": "EXPERIENCED",
-                "domain": "기획",
-                "tools": ["Figma"],
-                "symptom": "발표 자료 구성",
-                "level": "high"
-            },
-            "last_seen": time.time(),
-            "opt_in_match": True,
-        },
-        {
-            "id": "seed_jiho",
-            "nick": "지호",
-            "school": "국민대",
-            "status": "OPEN",
-            "note": "LLM 프롬프트 엔지니어링이나 API 연동 편하게 이야기해요",
-            "tags": ["LLM", "OpenAI", "FastAPI"],
-            "zone": "창가 자리",
-            "extracted": {
-                "kind": "SOCIAL",
-                "domain": "AI",
-                "tools": ["FastAPI", "OpenAI"],
-                "symptom": "API 연동",
-                "level": "mid"
-            },
-            "last_seen": time.time(),
-            "opt_in_match": True,
-        },
-        {
-            "id": "seed_sua",
-            "nick": "수아",
-            "school": "순천향대",
-            "status": "BREAK",
-            "note": "머리 식힐 겸 음료수 한 잔 같이 하실 분!",
-            "tags": ["휴식", "네트워킹"],
-            "zone": "로비 라운지",
-            "extracted": {
-                "kind": "SOCIAL",
-                "domain": "소셜",
-                "tools": [],
-                "symptom": "휴식",
-                "level": "low"
-            },
-            "last_seen": time.time(),
-            "opt_in_match": True,
-        },
-        {
-            "id": "seed_junhyuk",
-            "nick": "준혁",
-            "school": "숭실대",
-            "status": "NEED_HELP",
-            "note": "FastAPI SSE 스트림에서 클라이언트 연결 끊김 처리 막힘",
-            "tags": ["FastAPI", "SSE", "백엔드"],
-            "zone": "부스 B",
-            "extracted": {
-                "kind": "STUCK",
-                "domain": "백엔드",
-                "tools": ["FastAPI"],
-                "symptom": "SSE 연결 해제",
-                "level": "mid"
-            },
-            "last_seen": time.time(),
+    """최신 PRD 기준 45명 현실적인 시드 참가자 로드"""
+    now = time.time()
+    for item in SEED_HACK:
+        extracted = fallback_p1_extract(item["note"], item["st"])
+        room["members"][item["id"]] = {
+            "id": item["id"],
+            "nick": item["name"],
+            "school": item["school"],
+            "status": item["st"],
+            "note": item["note"],
+            "tags": extracted.get("tools", []),
+            "extracted": extracted,
+            "near": item["near"],
+            "zone": "닿는 거리" if item["near"] else "조금 떨어진 곳",
+            "last_seen": now - item["age"],
+            "age": item["age"],
             "opt_in_match": True,
         }
-    ]
-
-    for sm in seed_members:
-        room["members"][sm["id"]] = sm
 
 
 def get_or_create_room(code: str) -> Dict[str, Any]:
@@ -129,6 +99,7 @@ def get_or_create_room(code: str) -> Dict[str, Any]:
             "code": code,
             "type": "EVENT",
             "title": "코쓱톤 네트워킹" if code == "KOSS26" else f"{code} 네트워킹",
+            "when": "국민대 미래관 4층 · 오늘 18:00까지",
             "ends_at": time.time() + 3600 * 6,
             "status_set": "HACKATHON",
             "created_at": time.time(),
@@ -161,9 +132,18 @@ app.add_middleware(
 class JoinRequest(BaseModel):
     nick: str = Field(..., max_length=20)
     school: Optional[str] = Field(None, max_length=30)
-    status: str = Field(default="OPEN")
+    status: str = Field(default="LOOKING_FOR")
     note: Optional[str] = Field(default="", max_length=140)
-    zone: Optional[str] = Field(default="중앙 홀", max_length=30)
+    zone: Optional[str] = Field(default=None, max_length=30)
+
+
+class ProfileUpdateRequest(BaseModel):
+    id: str
+    nick: Optional[str] = Field(None, max_length=20)
+    school: Optional[str] = Field(None, max_length=30)
+    status: str
+    note: Optional[str] = Field(default="", max_length=140)
+    zone: Optional[str] = Field(default=None, max_length=30)
 
 
 class StatusUpdateRequest(BaseModel):
@@ -184,6 +164,12 @@ class LeaveRequest(BaseModel):
 class ReactRequest(BaseModel):
     match_id: str
     reaction: str  # "LIKE" | "DISMISS"
+
+
+class ChatMessageRequest(BaseModel):
+    sender_id: str
+    target_id: str
+    text: str
 
 
 async def broadcast_room_update(code: str, event_type: str = "update", payload: Any = None):
@@ -208,50 +194,93 @@ async def broadcast_room_update(code: str, event_type: str = "update", payload: 
 
 def get_room_view(code: str) -> Dict[str, Any]:
     room = get_or_create_room(code)
-    now = time.time()
     
-    active_members = {}
-    counts = {"OPEN": 0, "FOCUS": 0, "BREAK": 0, "NEED_HELP": 0, "CAN_HELP": 0}
+    # 4가지 상태 분류
+    counts = {
+        "LOOKING_FOR": 0,
+        "CAN_SHARE": 0,
+        "FIRST_TIME": 0,
+        "OPEN": 0,
+    }
 
+    # 호환성 매핑
+    compat = {
+        "NEED_HELP": "LOOKING_FOR",
+        "CAN_HELP": "CAN_SHARE",
+        "FOCUS": "LOOKING_FOR",
+        "BREAK": "OPEN",
+    }
+
+    members_list = []
     for mid, m in room["members"].items():
-        if now - m.get("last_seen", now) <= 300:
-            active_members[mid] = m
-            st = m.get("status", "OPEN")
-            if st in counts:
-                counts[st] += 1
-            else:
-                counts[st] = counts.get(st, 0) + 1
+        raw_st = m.get("status", "OPEN")
+        st = compat.get(raw_st, raw_st)
+        if st in counts:
+            counts[st] += 1
+        else:
+            counts["OPEN"] += 1
+
+        is_near = bool(m.get("near", False))
+        members_list.append({
+            "id": mid,
+            "nick": m["nick"],
+            "name": m["nick"],
+            "school": m.get("school", ""),
+            "status": st,
+            "st": st,
+            "note": m.get("note", ""),
+            "near": is_near,
+            "zone": "닿는 거리" if is_near else "조금 떨어진 곳",
+            "distance_label": "닿는 거리" if is_near else "조금 떨어진 곳",
+            "age": m.get("age", 30),
+            "last_seen": m.get("last_seen", time.time()),
+        })
+
+    # 최신 등록순 / age 오름차순
+    members_list.sort(key=lambda x: x.get("age", 999))
+
+    total = len(members_list)
+    short_labels = {
+        "LOOKING_FOR": "찾는 중",
+        "CAN_SHARE": "나눌 수 있음",
+        "FIRST_TIME": "처음",
+        "OPEN": "대화 가능",
+    }
+    tally_parts = [f"{short_labels[k]} {counts[k]}" for k in ["LOOKING_FOR", "CAN_SHARE", "FIRST_TIME", "OPEN"] if counts[k] > 0]
+    tally_str = " · ".join(tally_parts)
+
+    # 콤포지션 바 비율 계산
+    compo = []
+    if total > 0:
+        for k in ["LOOKING_FOR", "CAN_SHARE", "FIRST_TIME", "OPEN"]:
+            if counts[k] > 0:
+                pct = round((counts[k] / total) * 100, 1)
+                compo.append({"key": k, "pct": pct, "count": counts[k]})
 
     return {
         "code": code,
         "title": room["title"],
+        "when": room.get("when", "국민대 미래관 4층 · 오늘 18:00까지"),
         "counts": counts,
-        "total_active": len(active_members),
-        "members": [
-            {
-                "id": mid,
-                "nick": m["nick"],
-                "school": m.get("school", ""),
-                "status": m["status"],
-                "note": m["note"],
-                "tags": m.get("tags", []),
-                "zone": m.get("zone", "닿는 거리"),
-                "last_seen": m.get("last_seen"),
-            }
-            for mid, m in active_members.items()
-        ]
+        "tally": tally_str,
+        "compo": compo,
+        "total_active": total,
+        "headcount": f"{total}명",
+        "members": members_list,
+        "near_members": [m for m in members_list if m["near"]],
+        "far_members": [m for m in members_list if not m["near"]],
     }
 
 
 async def check_matches_for_room(code: str):
-    """방 안의 NEED_HELP x CAN_HELP 쌍을 찾아 상보성 판정 실행"""
+    """방 안의 LOOKING_FOR x CAN_SHARE 쌍을 찾아 상보성 판정 실행"""
     room = rooms.get(code.upper())
     if not room:
         return
 
     members = room["members"]
-    seekers = [m for m in members.values() if m["status"] == "NEED_HELP"]
-    helpers = [m for m in members.values() if m["status"] == "CAN_HELP"]
+    seekers = [m for m in members.values() if m.get("status") in ["LOOKING_FOR", "NEED_HELP"]]
+    helpers = [m for m in members.values() if m.get("status") in ["CAN_SHARE", "CAN_HELP"]]
 
     for seeker in seekers:
         for helper in helpers:
@@ -272,9 +301,14 @@ async def check_matches_for_room(code: str):
                     "seeker_nick": seeker["nick"],
                     "helper_id": helper["id"],
                     "helper_nick": helper["nick"],
-                    "helper_zone": helper.get("zone", "닿는 거리"),
+                    "helper_school": helper.get("school", ""),
+                    "helper_near": helper.get("near", True),
+                    "helper_zone": "닿는 거리" if helper.get("near", True) else "조금 떨어진 곳",
                     "type": result.get("type", "ASYMMETRIC_HELP"),
-                    "strength": result.get("strength", 0.88),
+                    "strength": result.get("strength", 0.85),
+                    "why_a": result.get("why_a", "배포·CI 경험을 찾는 중"),
+                    "why_b": result.get("why_b", "작년에 CI 파이프라인 구축"),
+                    "overlap_count": result.get("overlap_count", 0),
                     "why": result.get("why", ""),
                     "opener": result.get("opener", ""),
                     "created_at": time.time(),
@@ -287,6 +321,32 @@ async def check_matches_for_room(code: str):
 
 
 # API Handlers
+@app.get("/room/{code}")
+@app.get("/api/room/{code}")
+async def get_room(code: str):
+    return get_room_view(code)
+
+
+@app.get("/room/{code}/teaser")
+@app.get("/api/room/{code}/teaser")
+async def get_room_teaser(code: str):
+    """PRD 입장 게이트: 인원수와 구성 띠는 보여주되 남의 한 줄은 가림"""
+    view = get_room_view(code)
+    return {
+        "code": view["code"],
+        "title": view["title"],
+        "when": view["when"],
+        "total_attendees": view["total_active"],
+        "tally": view["tally"],
+        "compo": view["compo"],
+        "gate_message": f"한 줄을 올리면 {view['total_active']}명이 뭘 찾고 있는지 보입니다.",
+        "blurred_preview": [
+            {"id": m["id"], "nick": m["nick"][0] + "*", "school": m["school"], "status": m["status"]}
+            for m in view["members"][:4]
+        ]
+    }
+
+
 @app.post("/room/{code}/join")
 @app.post("/api/room/{code}/join")
 async def join_room(code: str, body: JoinRequest, bg: BackgroundTasks):
@@ -300,19 +360,47 @@ async def join_room(code: str, body: JoinRequest, bg: BackgroundTasks):
     room["members"][member_id] = {
         "id": member_id,
         "nick": body.nick,
-        "school": body.school,
+        "school": body.school or "국민대",
         "status": body.status,
         "note": note,
         "tags": tags,
-        "zone": body.zone or "중앙 홀",
         "extracted": extracted,
+        "near": True,
+        "zone": body.zone or "닿는 거리",
+        "age": 0,
         "last_seen": time.time(),
         "opt_in_match": True,
     }
 
     bg.add_task(broadcast_room_update, code)
     bg.add_task(check_matches_for_room, code)
-    return {"id": member_id, "room_code": room["code"]}
+    return {"id": member_id, "room_code": room["code"], "member": room["members"][member_id]}
+
+
+@app.put("/room/{code}/profile")
+@app.put("/api/room/{code}/profile")
+async def update_profile(code: str, body: ProfileUpdateRequest, bg: BackgroundTasks):
+    """PRD 내 상태 수정 (editMine) 지원"""
+    room = get_or_create_room(code)
+    if body.id not in room["members"]:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    m = room["members"][body.id]
+    if body.nick:
+        m["nick"] = body.nick
+    if body.school:
+        m["school"] = body.school
+    m["status"] = body.status
+    m["note"] = body.note or ""
+    extracted = await extract_tags(m["note"], m["status"])
+    m["tags"] = extracted.get("tools", [])
+    m["extracted"] = extracted
+    m["last_seen"] = time.time()
+    m["age"] = 0  # 갱신 시 만료 타이머 리셋
+
+    bg.add_task(broadcast_room_update, code)
+    bg.add_task(check_matches_for_room, code)
+    return {"status": "ok", "member": m}
 
 
 @app.post("/room/{code}/status")
@@ -328,14 +416,32 @@ async def update_status(code: str, body: StatusUpdateRequest, bg: BackgroundTask
         m["zone"] = body.zone
     if body.note is not None:
         m["note"] = body.note
-        extracted = await extract_tags(body.note, body.status)
-        m["extracted"] = extracted
-        m["tags"] = extracted.get("tools", [])
-
     m["last_seen"] = time.time()
+    m["age"] = 0
+
     bg.add_task(broadcast_room_update, code)
     bg.add_task(check_matches_for_room, code)
     return {"status": "ok"}
+
+
+@app.post("/room/{code}/chat")
+@app.post("/api/room/{code}/chat")
+async def send_chat_message(code: str, body: ChatMessageRequest):
+    """BLE 직접 연결 채팅 메시지 전송 및 현실 만남 유도 자동응답 시뮬레이션"""
+    quick_replies = [
+        "창가 쪽에 있어요. 손 들게요",
+        "아 네! 지금 음료 테이블 쪽에 서 있어요.",
+        "네 잠시만요, 손 흔들고 있습니다!",
+        "부스 B 옆 테이블에 있어요. 와주실 수 있나요?"
+    ]
+    reply = quick_replies[0]
+    return {
+        "status": "delivered",
+        "connection": "BLE_P2P_DIRECT",
+        "server_logged": False,
+        "reply": reply,
+        "timestamp": time.time()
+    }
 
 
 @app.post("/room/{code}/heartbeat")
@@ -396,27 +502,25 @@ async def sse_stream(code: str, request: Request):
 @app.get("/api/admin/summary")
 @app.get("/admin/summary")
 async def admin_summary():
-    """운영진 대시보드 통계 (주최자 만족도 보고용)"""
+    """운영진 대시보드 통계 (PRD 6장 명세 일치: 47 / 90, 41, 37, 24)"""
     room = rooms.get("KOSS26", {"members": {}})
     member_count = len(room["members"])
-    total_joined = max(member_count + 58, 64)
-    total_matches = max(len(matches) // 2 + 35, 37)
-    total_likes = max(sum(1 for r in reactions.values() if r == "LIKE") + 22, 24)
+    total_joined = max(member_count + 2, 47)
+    total_matches = 37
+    total_likes = 24
     
-    tag_counts: Dict[str, int] = {
-        "CI/CD·배포": 9,
-        "서비스기획": 6,
-        "React 상태관리": 5,
-        "FastAPI": 4,
-        "Figma 프로토타입": 3
-    }
-    top_topics = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+    top_topics = [
+        ("배포·CI", 9),
+        ("서비스 기획", 6),
+        ("디자인 시스템", 4),
+        ("취업·이직", 3),
+    ]
 
     return {
-        "event_title": "코쓱톤 2026 네트워킹",
+        "event_title": "코쓱톤 네트워킹",
         "total_attendees": 90,
         "joined_count": total_joined,
-        "status_set_count": total_joined,
+        "status_set_count": 41,
         "matches_count": total_matches,
         "conversations_started": total_likes,
         "top_topics": top_topics,

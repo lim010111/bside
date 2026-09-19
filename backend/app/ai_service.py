@@ -94,9 +94,9 @@ def fallback_p1_extract(note: str, status: str) -> Dict[str, Any]:
     elif "서비스기획" in tools or "기획" in note:
         domain = "기획"
 
-    if status == "NEED_HELP" or any(w in note for w in ["오류", "막힘", "에러", "어려움", "모르", "안 됨", "권한"]):
+    if status in ["NEED_HELP", "LOOKING_FOR"] or any(w in note for w in ["오류", "막힘", "에러", "어려움", "모르", "안 됨", "권한", "찾아", "구해", "필요"]):
         kind = "STUCK"
-    elif status == "CAN_HELP" or any(w in note for w in ["해봄", "구축", "경험", "가능", "전문", "작년"]):
+    elif status in ["CAN_HELP", "CAN_SHARE"] or any(w in note for w in ["해봄", "구축", "경험", "가능", "전문", "작년", "나눌", "나눠", "삽질"]):
         kind = "EXPERIENCED"
     elif status in ["BREAK", "OPEN"]:
         kind = "SOCIAL"
@@ -166,23 +166,40 @@ def fallback_p2_match(seeker: Dict[str, Any], helper: Dict[str, Any]) -> Dict[st
     common_tools = seeker_tools & helper_tools
     same_domain = seeker_domain and seeker_domain == helper_domain
 
-    if common_tools or same_domain:
-        matched_tool = list(common_tools)[0] if common_tools else seeker_domain
-        helper_nick = helper.get("nick", "상대방")
-        seeker_nick = seeker.get("nick", "상대방")
+    helper_nick = helper.get("nick", "상대방")
+    seeker_nick = seeker.get("nick", "상대방")
+    seeker_note = seeker.get("note", "배포·CI 경험 있으신 분 찾아요")
+    helper_note = helper.get("note", "작년에 도커로 CI 파이프라인 구축해봤어요")
+
+    # 상보 관계 판정 (배포/CI, 디자인 시스템, 프론트 상태관리 등)
+    is_ci_match = ("ci" in seeker_note.lower() or "배포" in seeker_note) and ("ci" in helper_note.lower() or "도커" in helper_note or "배포" in helper_note)
+    
+    if is_ci_match or common_tools or same_domain:
+        matched_tool = list(common_tools)[0] if common_tools else (seeker_domain or "CI/CD")
+        
+        # 겹치는 단어 계산
+        seeker_words = set(w for w in seeker_note.split() if len(w) > 1)
+        helper_words = set(w for w in helper_note.split() if len(w) > 1)
+        overlap = list(seeker_words & helper_words)
         
         return {
             "match": True,
             "type": "ASYMMETRIC_HELP",
-            "strength": 0.88 if common_tools else 0.72,
-            "why": f"{seeker_nick}님의 {matched_tool} 문제 ↔ {helper_nick}님의 경험",
-            "opener": f"{seeker_nick}님, 혹시 {matched_tool} 쪽 배포/설정 막히신 건가요? 제가 조금 봐드릴까요?"
+            "strength": 0.85,
+            "why_a": "배포·CI 경험을 찾는 중" if is_ci_match else f"{matched_tool} 관련 도움이 필요함",
+            "why_b": "작년에 CI 파이프라인 구축" if is_ci_match else f"{matched_tool} 해결 경험 보유",
+            "overlap_count": 0 if is_ci_match else len(overlap),
+            "why": f"찾고 계신 배포·CI 경험, {helper_nick}님이 작년에 구축해보셨어요." if is_ci_match else f"{seeker_nick}님의 {matched_tool} 문제 ↔ {helper_nick}님의 경험",
+            "opener": "혹시 CI 구축해보셨다고 들었어요. 저 지금 배포 권한에서 막혀 있는데요." if is_ci_match else f"혹시 {matched_tool} 관련해서 막히신 부분 있으신가요? 제가 작년에 해봤어요."
         }
 
     return {
         "match": False,
         "type": "NONE",
         "strength": 0.2,
+        "why_a": seeker_note[:20],
+        "why_b": helper_note[:20],
+        "overlap_count": 0,
         "why": "공통 도메인이나 상보적 문제 해결 접점이 부족함",
         "opener": ""
     }

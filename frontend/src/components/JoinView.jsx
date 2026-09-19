@@ -1,227 +1,269 @@
-import React, { useState } from 'react';
-import { ArrowRight, ShieldCheck, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, MessageSquare, Hand, Circle, ArrowLeft } from 'lucide-react';
 
-const STATUS_OPTIONS = [
-  { code: 'OPEN', label: '대화 가능', emoji: '🟢', desc: '자유롭게 이야기 나눌 수 있습니다' },
-  { code: 'NEED_HELP', label: '도움 필요', emoji: '🙋', desc: '해결하고 싶은 문제나 오류가 있습니다' },
-  { code: 'CAN_HELP', label: '도움 가능', emoji: '💪', desc: '경험이나 노하우를 나눌 수 있습니다' },
-  { code: 'FOCUS', label: '집중 중', emoji: '🔴', desc: '작업이나 발표 준비에 몰입 중입니다' },
-  { code: 'BREAK', label: '같이 쉬기', emoji: '☕', desc: '가볍게 티타임이나 휴식할 사람을 찾습니다' },
+const STATUSES = [
+  { k: 'LOOKING_FOR', label: '이런 분 찾아요', icon: Search, ph: '배포·CI 경험 있으신 분 찾아요' },
+  { k: 'CAN_SHARE', label: '이런 얘기 할 수 있어요', icon: MessageSquare, ph: '작년에 도커로 CI 파이프라인 구축해봤어요' },
+  { k: 'FIRST_TIME', label: '처음 왔어요', icon: Hand, ph: '혼자 왔어요. 기획하다가 백엔드가 궁금해졌어요' },
+  { k: 'OPEN', label: '대화 가능', icon: Circle, ph: '뭐든 편하게 말 걸어주세요' },
 ];
 
-const PRESETS = [
-  { status: 'NEED_HELP', note: 'GitHub Actions 배포에서 권한 오류로 막힘' },
-  { status: 'CAN_HELP', note: '작년에 개인 프로젝트에서 도커 CI 구축해봄' },
-  { status: 'NEED_HELP', note: 'FastAPI 비동기 SSE 스트림 세션 관리 막힘' },
-  { status: 'OPEN', note: '프론트엔드 React 상태관리 이야기 나눠요' },
-];
+const DEFAULT_OPTIONS = ['국민대', '숭실대', '순천향대'];
 
-export default function JoinView({ onJoin, initialRoomCode = 'KOSS26' }) {
-  const [roomCode, setRoomCode] = useState(initialRoomCode);
-  const [nick, setNick] = useState('');
-  const [school, setSchool] = useState('');
-  const [status, setStatus] = useState('NEED_HELP');
-  const [note, setNote] = useState('GitHub Actions 배포에서 권한 오류로 막힘');
-  const [loading, setLoading] = useState(false);
+export default function JoinView({
+  onJoin,
+  roomCode = 'KOSS26',
+  initialData = null,
+  isEditing = false,
+  onBackToRoom = null,
+  roomMeta = null,
+}) {
+  const [nick, setNick] = useState(initialData?.nick || initialData?.name || '');
+  const [schoolSelect, setSchoolSelect] = useState(() => {
+    if (!initialData?.school) return '국민대';
+    return DEFAULT_OPTIONS.includes(initialData.school) ? initialData.school : '__other';
+  });
+  const [schoolOther, setSchoolOther] = useState(() => {
+    if (!initialData?.school) return '';
+    return DEFAULT_OPTIONS.includes(initialData.school) ? '' : initialData.school;
+  });
+
+  const [status, setStatus] = useState(initialData?.st || initialData?.status || 'LOOKING_FOR');
+  const [note, setNote] = useState(initialData?.note || '배포·CI 경험 있으신 분 찾아요');
+  const [error, setError] = useState('');
+  const [teaser, setTeaser] = useState(null);
+
+  useEffect(() => {
+    fetch(`/api/room/${roomCode}/teaser`)
+      .then((res) => res.json())
+      .then((data) => setTeaser(data))
+      .catch((err) => console.warn('Teaser fetch failed:', err));
+  }, [roomCode]);
+
+  useEffect(() => {
+    if (initialData) {
+      setNick(initialData.nick || initialData.name || '');
+      const s = initialData.school || '국민대';
+      if (DEFAULT_OPTIONS.includes(s)) {
+        setSchoolSelect(s);
+        setSchoolOther('');
+      } else {
+        setSchoolSelect('__other');
+        setSchoolOther(s);
+      }
+      setStatus(initialData.st || initialData.status || 'LOOKING_FOR');
+      setNote(initialData.note || '');
+    }
+  }, [initialData]);
+
+  const currentSchool = schoolSelect === '__other' ? schoolOther.trim() : schoolSelect;
+  const currentPlaceholder = STATUSES.find((s) => s.k === status)?.ph || '';
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!nick.trim()) return;
-    setLoading(true);
+    if (e) e.preventDefault();
+    if (!nick.trim()) {
+      setError('닉네임을 입력해 주세요');
+      return;
+    }
+    if (!currentSchool) {
+      setError('소속을 입력해 주세요');
+      return;
+    }
+    if (!status) {
+      setError('상태를 하나 골라주세요');
+      return;
+    }
+    if (!note.trim()) {
+      setError('한 줄만 적어주세요. 이게 있어야 이어드릴 수 있어요');
+      return;
+    }
+
+    setError('');
     onJoin({
-      roomCode: roomCode.trim().toUpperCase(),
       nick: nick.trim(),
-      school: school.trim(),
+      school: currentSchool,
       status,
       note: note.trim(),
     });
   };
 
-  const applyPreset = (preset) => {
-    setStatus(preset.status);
-    setNote(preset.note);
-    if (!nick) {
-      setNick(preset.status === 'NEED_HELP' ? '지원' : '민서');
-      setSchool(preset.status === 'NEED_HELP' ? '국민대' : '순천향대');
-    }
-  };
+  const attendeesCount = teaser?.total_attendees || 45;
+  const compo = teaser?.compo || [
+    { key: 'LOOKING_FOR', pct: 26.7 },
+    { key: 'CAN_SHARE', pct: 33.3 },
+    { key: 'FIRST_TIME', pct: 22.2 },
+    { key: 'OPEN', pct: 17.8 },
+  ];
+  const tally = teaser?.tally || '찾는 중 12 · 나눌 수 있음 15 · 처음 10 · 대화 가능 8';
 
   return (
-    <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '6px', 
-          padding: '3px 8px', 
-          borderRadius: 'var(--radius-xs)', 
-          background: 'var(--bg-subtle)', 
-          color: 'var(--text-secondary)', 
-          fontSize: '0.72rem', 
-          fontWeight: 500, 
-          marginBottom: '10px',
-          border: '1px solid var(--border-subtle)'
-        }}>
-          현장 전용 · 계정 등록 없음
-        </div>
-        <h1 style={{ fontSize: '1.45rem', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.3, color: 'var(--text-primary)' }}>
-          닿을 수 있는 거리에서<br />
-          서로를 채우는 대화
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', marginTop: '6px', lineHeight: 1.45 }}>
-          방 코드로 입장해 현재 상황(상태)을 한 줄로 남겨주세요.<br />
-          문제 해결에 알맞은 상보적 대화 상대를 찾아드립니다.
-        </p>
-      </div>
-
-      {/* Demo Preset Fill */}
-      <div style={{ background: 'var(--bg-card)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 500 }}>
-          빠른 예시 입력
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          {PRESETS.map((p, idx) => (
+    <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
+      {/* S2 Header */}
+      <header style={{ padding: '16px 0 12px' }}>
+        <div className="row" style={{ justifyContent: 'space-between', minHeight: '22px' }}>
+          {isEditing && onBackToRoom ? (
             <button
-              key={idx}
-              type="button"
-              onClick={() => applyPreset(p)}
-              style={{
-                background: 'var(--bg-subtle)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-xs)',
-                padding: '4px 8px',
-                color: 'var(--text-secondary)',
-                fontSize: '0.74rem',
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
+              onClick={onBackToRoom}
+              className="row"
+              style={{ gap: '4px', fontSize: '12px', color: 'var(--text-dim)', padding: 0 }}
             >
-              {p.status === 'NEED_HELP' ? '🙋 ' : '💪 '}
-              {p.note.length > 18 ? p.note.slice(0, 18) + '...' : p.note}
+              <ArrowLeft size={14} /> 방으로
             </button>
-          ))}
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-            행사장 방 코드
-          </label>
-          <input
-            type="text"
-            value={roomCode}
-            onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-            placeholder="예: KOSS26"
-            className="input-field"
-            required
-            maxLength={10}
-            style={{ fontWeight: 600, letterSpacing: '0.04em' }}
-          />
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-              닉네임 <span style={{ color: 'var(--text-muted)' }}>*</span>
-            </label>
-            <input
-              type="text"
-              value={nick}
-              onChange={(e) => setNick(e.target.value)}
-              placeholder="예: 지원"
-              className="input-field"
-              required
-              maxLength={12}
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-              소속 (선택)
-            </label>
-            <input
-              type="text"
-              value={school}
-              onChange={(e) => setSchool(e.target.value)}
-              placeholder="예: 국민대"
-              className="input-field"
-              maxLength={20}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-            현재 상태 (Presence)
-          </label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {STATUS_OPTIONS.map((opt) => {
-              const isSelected = status === opt.code;
-              return (
-                <div
-                  key={opt.code}
-                  onClick={() => setStatus(opt.code)}
-                  style={{
-                    padding: '9px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: isSelected ? 'var(--bg-card-hover)' : 'var(--bg-card)',
-                    border: `1px solid ${isSelected ? 'var(--border-active)' : 'var(--border-subtle)'}`,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    transition: 'border-color 0.12s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '1rem' }}>{opt.emoji}</span>
-                    <div>
-                      <div style={{ fontSize: '0.84rem', fontWeight: 600, color: isSelected ? '#ffffff' : 'var(--text-primary)' }}>
-                        {opt.label}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        {opt.desc}
-                      </div>
-                    </div>
-                  </div>
-                  {isSelected && (
-                    <Check size={14} color="var(--text-primary)" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <label style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
-              상태 한 줄 (Note)
-            </label>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              {note.length}/140
+          ) : (
+            <span className="t-sm faint" style={{ fontWeight: 500, letterSpacing: '-.02em' }}>
+              Bside
             </span>
-          </div>
-          <input
-            type="text"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder={status === 'NEED_HELP' ? '막힌 문제나 에러 내용을 적어주세요' : '나누고 싶은 경험이나 주제를 적어주세요'}
-            className="input-field"
-            maxLength={140}
+          )}
+          <span className="t-sm faint">
+            {roomMeta?.when || teaser?.when?.split(' · ').pop() || '오늘 18:00까지'}
+          </span>
+        </div>
+        <h1 className="t-xl" style={{ margin: '10px 0 0' }}>
+          {roomMeta?.title || teaser?.title || '코쓱톤 네트워킹'}
+        </h1>
+        <p className="t-sm dim" style={{ margin: '5px 0 0' }}>
+          지금 {attendeesCount}명이 상태를 올려뒀어요
+        </p>
+      </header>
+
+      {/* Composition Bar & Tally */}
+      <div className="compo">
+        {compo.map((c) => (
+          <i
+            key={c.key}
+            className={`bar-${c.key}`}
+            style={{ width: `${c.pct}%` }}
+            title={`${c.key}: ${c.pct}%`}
           />
+        ))}
+      </div>
+      <div className="stats">{tally}</div>
+
+      {/* Gate Message */}
+      <p className="t-sm faint" style={{ margin: '10px 0 0', lineHeight: 1.55 }}>
+        한 줄을 올리면 {attendeesCount}명이 뭘 찾고 있는지 보입니다.
+      </p>
+      <div style={{ borderTop: '1px solid var(--border)', margin: '16px 0 2px' }} />
+
+      {/* Form Area */}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, paddingBottom: '20px' }}>
+        <div className="row" style={{ gap: '8px', alignItems: 'flex-start', marginTop: '14px' }}>
+          <div className="grow">
+            <label className="t-sm dim" htmlFor="nick">
+              닉네임
+            </label>
+            <input
+              id="nick"
+              className="field"
+              style={{ marginTop: '5px' }}
+              maxLength={12}
+              placeholder="지원"
+              autoComplete="off"
+              value={nick}
+              onChange={(e) => {
+                setNick(e.target.value);
+                if (error) setError('');
+              }}
+            />
+          </div>
+
+          <div className="grow">
+            <label className="t-sm dim" htmlFor="aff">
+              소속
+            </label>
+            <div style={{ marginTop: '5px' }}>
+              <select
+                id="aff"
+                className="field"
+                value={schoolSelect}
+                onChange={(e) => {
+                  setSchoolSelect(e.target.value);
+                  if (error) setError('');
+                }}
+              >
+                {DEFAULT_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+                <option value="__other">직접 입력</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <button type="submit" className="btn-primary" disabled={loading || !nick.trim()} style={{ marginTop: '6px' }}>
-          {loading ? '입장 중...' : '입장하기'}
-          <ArrowRight size={16} />
-        </button>
-      </form>
+        {schoolSelect === '__other' && (
+          <div style={{ marginTop: '8px' }}>
+            <input
+              className="field"
+              maxLength={20}
+              placeholder="소속을 입력해 주세요 (예: 서울대, 카이스트)"
+              autoComplete="off"
+              value={schoolOther}
+              onChange={(e) => {
+                setSchoolOther(e.target.value);
+                if (error) setError('');
+              }}
+              autoFocus
+            />
+          </div>
+        )}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: '2px' }}>
-        <ShieldCheck size={13} />
-        계정 없이 브라우저 세션으로만 동작하며 행사 종료 시 소멸됩니다.
-      </div>
+        <p className="t-sm dim" style={{ margin: '18px 0 7px' }}>
+          지금 무엇을 찾고 계세요?
+        </p>
+
+        {/* 4-card Status Picker */}
+        <div className="picks">
+          {STATUSES.map((s) => {
+            const IconComp = s.icon;
+            const isSelected = status === s.k;
+            return (
+              <button
+                key={s.k}
+                type="button"
+                className={`pick s-${s.k}`}
+                aria-pressed={isSelected}
+                onClick={() => {
+                  setStatus(s.k);
+                  if (error) setError('');
+                }}
+              >
+                <IconComp className="ic" size={18} />
+                <b>{s.label}</b>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* One-liner Note Textarea */}
+        <div style={{ marginTop: '14px' }}>
+          <textarea
+            id="note"
+            className="field"
+            maxLength={140}
+            placeholder={currentPlaceholder}
+            value={note}
+            onChange={(e) => {
+              setNote(e.target.value);
+              if (error) setError('');
+            }}
+          />
+          <div className="row" style={{ justifyContent: 'space-between', marginTop: '4px' }}>
+            <span className="err" style={{ margin: 0 }}>
+              {error}
+            </span>
+            <span className="t-sm faint">{note.length} / 140</span>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
+          <button type="submit" className="btn">
+            {isEditing ? '수정 완료' : '올리기'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
