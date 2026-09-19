@@ -3,8 +3,8 @@
 Capacitor 셸 + Kotlin BLE 계층. [`web/src/lib/native.js`](../web/src/lib/native.js)의 `Discovery`
 플러그인 계약을 구현한다.
 
-**실기기 한 대에서 광고·스캔·서버 연동까지 확인했고, 두 대 사이의 실제 발견은 아직이다.**
-무엇을 확인했고 무엇을 안 했는지는 아래 [검증](#검증) 절에 그대로 적었다.
+**실기기 두 대에서 발견 → 첫 메시지 → 답장까지 확인했다(T07).** 무엇을 확인했고 무엇을 안
+했는지는 아래 [검증](#검증) 절에 그대로 적었다.
 
 ## 빌드
 
@@ -118,41 +118,49 @@ service에서 돈다. 표시되는 알림은 "지금 스캔 중인가"에 대한
 
 ## 검증
 
-**실기기(SM-S937N, Android 16 / API 36)에서 확인했다.** 에뮬레이터로는 알 수 없던 것들이
-여기서 드러났다.
+**실기기 두 대에서 발견부터 메시지 왕복까지 확인했다(T07).**
+SM-S937N과 SM-S931N, 둘 다 Android 16 / API 36.
 
-**실기기에서 확인한 것**
+**두 대로 확인한 것 — 실제 BLE 무선 구간**
 
-- `POST /api/v1/installations` 201 → `/me` 200 → 소개 저장 200 → 발견 켜기 200
-- **네이티브 스캐너가 `POST /api/v1/discovery/identifiers` 200을 직접 호출.** WebView와 다른
-  소켓에서 나갔으므로 `EncryptedSharedPreferences`의 자격 증명으로 스스로 인증한 것이 맞다
-- **BLE 광고가 실제로 전파에 나간다.** 블루투스 스택 덤프에
-  `Ongoing advertising: app.bside`, `Connectable: false`(GATT 안 씀), interval 400,
-  TX power -7로 잡힌다
-- **스캔 필터가 스택에 등록된다.** `[app.bside(if=8)] BluetoothLeScanFilter[ ManufacturerId=ffff ]`
-- foreground service가 `isForeground=true types=0x10(connectedDevice)`로 뜨고,
-  알림이 `channel=discovery flags=ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE`로 실제 표시됨
-- `BLUETOOTH_SCAN`·`BLUETOOTH_ADVERTISE`·`POST_NOTIFICATIONS` 모두 실제 권한 요청 후 granted
+- 두 폰이 **서로를 주변 목록에 띄웠다.** 양쪽 다 "지금 가까이 1"과 상대의 닉네임·자기소개
+- 상세 화면에 "지금 주변에 있어요" 표시
+- 첫 메시지 전송 → `POST /api/v1/messages` **201 Created**
+- 상대 폰의 대화 목록에 도착 → 답장 → 양쪽 대화창에 두 말풍선 모두 표시
+- 그동안 `POST /api/v1/discovery/observations` 200이 양쪽에서 반복 호출됨
+
+즉 **광고 → 스캔 → 관측 보고 → 서버 조회 → 첫 메시지 → 답장**이 실제 무선과 실제 서버로
+한 바퀴 돌았다. 31바이트 광고 패킷에 16바이트 식별자를 싣는 방식과
+`ManufacturerId=0xFFFF` 스캔 필터가 실기기에서 작동한다.
+
+**한 대로 확인한 것**
+
+- 블루투스 스택에 `Ongoing advertising: app.bside`, `Connectable: false`(GATT 안 씀),
+  interval 400, TX -7
+- 스캔 필터 등록: `[app.bside(if=8)] BluetoothLeScanFilter[ ManufacturerId=ffff ]`
+- foreground service `isForeground=true types=0x10(connectedDevice)`,
+  알림이 `ONGOING_EVENT|NO_CLEAR|FOREGROUND_SERVICE`로 실제 표시
+- **네이티브 스캐너가 `POST /api/v1/discovery/identifiers`를 WebView와 다른 소켓에서 직접
+  호출.** 보호 저장소의 자격 증명으로 스스로 인증한 것이 맞다
 - 빌드: `assembleDebug`·`assembleRelease` 둘 다 성공
 
 **실기기에서 발견해 고친 것**
 
 - **알림 권한을 요청하지 않고 있었다.** Android 13+에서는 `POST_NOTIFICATIONS` 없이는
   foreground service 알림이 조용히 안 뜬다. 서비스는 도는데 "지금 스캔 중"이라는 표시가
-  사용자에게 안 보이는 상태였다. 블루투스 권한 다음에 한 번만 묻도록 추가했고, 거부해도
-  발견은 계속된다. 상태에 `notifications`를 실어 화면에도 알린다.
-- 라디오의 `lastError`가 화면에 전혀 노출되지 않고 있었다. 광고가 실패해도 사용자는 아무것도
+  사용자에게 안 보이는 상태였다. 블루투스 권한 다음에 한 번만 묻도록 고쳤고, 거부해도
+  발견은 계속된다.
+- 라디오의 `lastError`가 화면에 전혀 노출되지 않았다. 광고가 실패해도 사용자는 아무것도
   못 본다. `nativeBlocker`가 이제 그대로 보여준다.
 
-**확인하지 않은 것 — 여기가 남은 일이다**
+**아직 확인하지 않은 것**
 
-- **두 대 사이의 실제 발견.** 한 대만 연결해서 테스트했다. 광고가 나가고 스캔 필터가 걸린
-  것까지는 확인했지만, 상대 기기의 광고를 실제로 잡아 `observed_users`가 채워지는지는
-  두 번째 기기가 있어야 안다. 여기서 31바이트 패킷 문제나 필터 오작동이 드러날 수 있다.
-- 두 대의 첫 메시지 왕복(T07)
-- Bluetooth OFF·권한 거부 상태의 화면. 코드 경로는 있으나 실제로 그 상태를 만들어보지 않았다
-- 백그라운드 sweep이 Doze·배터리 최적화에서 버티는 정도. 주기 15초도 측정 전 값이다.
-  실기기에서 `os: restricted`가 실제로 보고됐으므로 배터리 최적화 제외가 필요하다
+- 실기기 두 대를 USB로 동시에 붙이지 못해 **한 대는 무선 디버깅**으로 붙였다. 앱의 서버
+  통신은 양쪽 다 `adb reverse`를 거쳤다. 실제 배포 환경(공용 HTTPS 서버)에서의 왕복은 아직이다
+- 백그라운드·화면 꺼짐 상태의 발견. 두 대 모두 앱을 앞에 둔 채로만 확인했다.
+  실기기가 `os: restricted`(배터리 최적화)를 보고하므로 시연 전 제외 설정이 필요하다
+- 거리에 따른 발견 성공률, 여러 대가 동시에 있을 때의 동작
+- Bluetooth OFF·권한 거부 상태의 화면. 그 상태를 만들어보지 않았다
 - 추천 알림. v0.1에 추천 데이터 자체가 없어 아직 붙일 것이 없다
 - 릴리스 서명
 
