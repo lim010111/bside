@@ -70,17 +70,44 @@ SEED_HACK = [
     {"id": "p44", "name": "예은", "school": "순천향대", "st": "FIRST_TIME", "note": "3학년인데 이런 거 한 번도 안 해봤어요", "near": False, "age": 237},
 ]
 
+SEED_MEET = [
+    {"id": "minseo", "name": "민서", "school": "4년차", "st": "CAN_SHARE", "note": "디자인 시스템 2년째 운영 중이에요. 삽질 얘기 해드릴게요", "near": True, "age": 40},
+    {"id": "yerin", "name": "예린", "school": "프리랜서", "st": "CAN_SHARE", "note": "웹뷰랑 네이티브 브릿지 많이 짜봤어요", "near": True, "age": 56},
+    {"id": "taehyun", "name": "태현", "school": "부트캠프 수료", "st": "FIRST_TIME", "note": "부트캠프 막 수료했어요. 현업 얘기 듣고 싶어요", "near": False, "age": 93},
+    {"id": "sua", "name": "수아", "school": "3년차", "st": "LOOKING_FOR", "note": "사내 디자인 시스템 운영하시는 분 얘기 듣고 싶어요", "near": False, "age": 130},
+    {"id": "junho", "name": "준호", "school": "이직 준비", "st": "OPEN", "note": "맥주 들고 있어요. 편하게 오세요", "near": False, "age": 167},
+    {"id": "p5", "name": "지훈", "school": "스타트업", "st": "LOOKING_FOR", "note": "Next.js 앱라우터 마이그레이션 해보신 분 계실까요", "near": True, "age": 204},
+    {"id": "p6", "name": "하윤", "school": "6년차", "st": "CAN_SHARE", "note": "프론트 면접관 해봤어요. 궁금하시면", "near": False, "age": 241},
+    {"id": "p7", "name": "서연", "school": "취준", "st": "FIRST_TIME", "note": "밋업 처음 와봐요. 어색하네요", "near": False, "age": 278},
+    {"id": "p8", "name": "도윤", "school": "SI 3년차", "st": "OPEN", "note": "뒤풀이 가실 분 계신가요", "near": False, "age": 33},
+    {"id": "p9", "name": "지우", "school": "2년차", "st": "LOOKING_FOR", "note": "모노레포 turborepo 쓰시는 분", "near": False, "age": 70},
+    {"id": "p10", "name": "은채", "school": "5년차", "st": "CAN_SHARE", "note": "성능 최적화로 LCP 절반 줄여본 적 있어요", "near": True, "age": 107},
+    {"id": "p11", "name": "시우", "school": "1년차", "st": "FIRST_TIME", "note": "백엔드 하다가 프론트로 넘어온 지 두 달 됐어요", "near": False, "age": 144},
+    {"id": "p12", "name": "나연", "school": "프리랜서", "st": "CAN_SHARE", "note": "주니어 멘토링 하고 있어요. 커리어 얘기 편하게", "near": False, "age": 181},
+    {"id": "p13", "name": "건우", "school": "7년차", "st": "LOOKING_FOR", "note": "테스트 코드 문화 잡으신 팀 있나요", "near": False, "age": 218},
+    {"id": "p14", "name": "유진", "school": "취준", "st": "OPEN", "note": "그냥 구경 중이에요. 말 걸어주세요", "near": False, "age": 255},
+    {"id": "p15", "name": "채원", "school": "4년차", "st": "CAN_SHARE", "note": "사내에서 마이크로 프론트엔드 도입해봤어요", "near": True, "age": 10},
+    {"id": "p16", "name": "현우", "school": "이직 준비", "st": "LOOKING_FOR", "note": "이직 고민 중인데 프론트 3년차 분들 계신가요", "near": False, "age": 47},
+    {"id": "p17", "name": "다은", "school": "2년차", "st": "FIRST_TIME", "note": "혼자 와서 구석에 있어요", "near": False, "age": 84},
+    {"id": "p18", "name": "정민", "school": "스타트업", "st": "CAN_SHARE", "note": "혼자 프론트 다 해요. 1인 개발 궁금하면 물어보세요", "near": False, "age": 121},
+    {"id": "p19", "name": "소율", "school": "3년차", "st": "OPEN", "note": "입구 쪽에 서 있어요", "near": False, "age": 158},
+    {"id": "p20", "name": "재현", "school": "에이전시", "st": "LOOKING_FOR", "note": "접근성 제대로 해보신 분 계신가요", "near": True, "age": 195},
+    {"id": "p21", "name": "윤서", "school": "5년차", "st": "CAN_SHARE", "note": "리액트 네이티브 2년 했어요. 후회담 들려드릴게요", "near": False, "age": 232},
+]
 
-def init_seed_data(room: Dict[str, Any]):
-    """최신 PRD 기준 45명 현실적인 시드 참가자 로드"""
+
+def init_seed_data(room: Dict[str, Any], seed_items: List[Dict[str, Any]]):
+    """PRD 기준 현실적인 시드 참가자 로드"""
     now = time.time()
-    for item in SEED_HACK:
+    for item in seed_items:
         extracted = fallback_p1_extract(item["note"], item["st"])
         room["members"][item["id"]] = {
             "id": item["id"],
             "nick": item["name"],
+            "name": item["name"],
             "school": item["school"],
             "status": item["st"],
+            "st": item["st"],
             "note": item["note"],
             "tags": extracted.get("tools", []),
             "extracted": extracted,
@@ -95,19 +122,31 @@ def init_seed_data(room: Dict[str, Any]):
 def get_or_create_room(code: str) -> Dict[str, Any]:
     code = code.upper()
     if code not in rooms:
+        if code == "FEMEETUP":
+            title = "서울 프론트엔드 밋업"
+            when = "성수 코워킹 · 오늘 21:00까지"
+            aff = {"label": "회사", "options": None, "placeholder": "예: 토스, 프리랜서, 취준"}
+            seed = SEED_MEET
+        else:
+            title = "코쓱톤 네트워킹"
+            when = "국민대 미래관 4층 · 오늘 18:00까지"
+            aff = {"label": "소속", "options": ["국민대", "숭실대", "순천향대"], "placeholder": "직접 입력"}
+            seed = SEED_HACK
+
         rooms[code] = {
             "code": code,
             "type": "EVENT",
-            "title": "코쓱톤 네트워킹" if code == "KOSS26" else f"{code} 네트워킹",
-            "when": "국민대 미래관 4층 · 오늘 18:00까지",
+            "title": title,
+            "when": when,
+            "affiliation": aff,
+            "aff": aff,
             "ends_at": time.time() + 3600 * 6,
-            "status_set": "HACKATHON",
+            "status_set": "HACKATHON" if code == "KOSS26" else "MEETUP",
             "created_at": time.time(),
             "members": {}
         }
         event_queues[code] = []
-        if code == "KOSS26":
-            init_seed_data(rooms[code])
+        init_seed_data(rooms[code], seed)
     return rooms[code]
 
 
@@ -257,10 +296,18 @@ def get_room_view(code: str) -> Dict[str, Any]:
                 pct = round((counts[k] / total) * 100, 1)
                 compo.append({"key": k, "pct": pct, "count": counts[k]})
 
+    aff_config = room.get("aff") or room.get("affiliation") or {
+        "label": "소속",
+        "options": ["국민대", "숭실대", "순천향대"] if code != "FEMEETUP" else None,
+        "placeholder": "직접 입력" if code != "FEMEETUP" else "예: 토스, 프리랜서, 취준"
+    }
+
     return {
         "code": code,
         "title": room["title"],
         "when": room.get("when", "국민대 미래관 4층 · 오늘 18:00까지"),
+        "aff": aff_config,
+        "affiliation": aff_config,
         "counts": counts,
         "tally": tally_str,
         "compo": compo,
@@ -336,6 +383,7 @@ async def get_room_teaser(code: str):
         "code": view["code"],
         "title": view["title"],
         "when": view["when"],
+        "aff": view["aff"],
         "total_attendees": view["total_active"],
         "tally": view["tally"],
         "compo": view["compo"],
@@ -344,6 +392,54 @@ async def get_room_teaser(code: str):
             {"id": m["id"], "nick": m["nick"][0] + "*", "school": m["school"], "status": m["status"]}
             for m in view["members"][:4]
         ]
+    }
+
+
+@app.get("/room/{code}/match/{member_id}")
+@app.get("/api/room/{code}/match/{member_id}")
+async def get_member_match(code: str, member_id: str):
+    """web/src/api/shapes.js Match 계약 일치 엔드포인트"""
+    code = code.upper()
+    room = get_or_create_room(code)
+    member = room["members"].get(member_id)
+    if not member:
+        return None
+
+    raw_st = member.get("status") or member.get("st")
+    if raw_st != "LOOKING_FOR":
+        return None
+
+    # 1. 이미 발견된 match 확인
+    for m in matches.values():
+        if m.get("seeker_id") == member_id:
+            return {
+                "personId": m["helper_id"],
+                "leadSubject": "배포·CI 경험",
+                "leadDetail": "작년에 구축해보셨어요",
+                "reasonMine": m.get("why_a", "배포·CI 경험을 찾는 중"),
+                "reasonTheirs": m.get("why_b", "작년에 CI 파이프라인 구축"),
+                "overlapWords": m.get("overlap_count", 0),
+                "score": m.get("strength", 0.85),
+                "opener": m.get("opener") or "혹시 CI 구축해보셨다고 들었어요. 저 지금 배포 권한에서 막혀 있는데요.",
+            }
+
+    # 2. CAN_SHARE 파트너와 상보성 평가
+    helpers = [m for m in room["members"].values() if (m.get("status") == "CAN_SHARE" or m.get("st") == "CAN_SHARE") and m["id"] != member_id]
+    if not helpers:
+        return None
+
+    helper = next((h for h in helpers if h["id"] == "minseo"), helpers[0])
+    eval_res = await evaluate_complementarity(member, helper)
+
+    return {
+        "personId": helper["id"],
+        "leadSubject": "배포·CI 경험",
+        "leadDetail": "작년에 구축해보셨어요",
+        "reasonMine": eval_res.get("why_a", "배포·CI 경험을 찾는 중"),
+        "reasonTheirs": eval_res.get("why_b", "작년에 CI 파이프라인 구축"),
+        "overlapWords": eval_res.get("overlap_count", 0),
+        "score": eval_res.get("strength", 0.85),
+        "opener": eval_res.get("opener", "혹시 CI 구축해보셨다고 들었어요. 저 지금 배포 권한에서 막혀 있는데요."),
     }
 
 
@@ -357,11 +453,13 @@ async def join_room(code: str, body: JoinRequest, bg: BackgroundTasks):
     extracted = await extract_tags(note, body.status)
     tags = extracted.get("tools", [])
 
-    room["members"][member_id] = {
+    member_obj = {
         "id": member_id,
         "nick": body.nick,
+        "name": body.nick,
         "school": body.school or "국민대",
         "status": body.status,
+        "st": body.status,
         "note": note,
         "tags": tags,
         "extracted": extracted,
@@ -371,10 +469,11 @@ async def join_room(code: str, body: JoinRequest, bg: BackgroundTasks):
         "last_seen": time.time(),
         "opt_in_match": True,
     }
+    room["members"][member_id] = member_obj
 
     bg.add_task(broadcast_room_update, code)
     bg.add_task(check_matches_for_room, code)
-    return {"id": member_id, "room_code": room["code"], "member": room["members"][member_id]}
+    return member_obj
 
 
 @app.put("/room/{code}/profile")
@@ -388,9 +487,11 @@ async def update_profile(code: str, body: ProfileUpdateRequest, bg: BackgroundTa
     m = room["members"][body.id]
     if body.nick:
         m["nick"] = body.nick
+        m["name"] = body.nick
     if body.school:
         m["school"] = body.school
     m["status"] = body.status
+    m["st"] = body.status
     m["note"] = body.note or ""
     extracted = await extract_tags(m["note"], m["status"])
     m["tags"] = extracted.get("tools", [])
@@ -400,7 +501,7 @@ async def update_profile(code: str, body: ProfileUpdateRequest, bg: BackgroundTa
 
     bg.add_task(broadcast_room_update, code)
     bg.add_task(check_matches_for_room, code)
-    return {"status": "ok", "member": m}
+    return m
 
 
 @app.post("/room/{code}/status")
@@ -509,21 +610,29 @@ async def admin_summary():
     total_matches = 37
     total_likes = 24
     
-    top_topics = [
-        ("배포·CI", 9),
-        ("서비스 기획", 6),
-        ("디자인 시스템", 4),
-        ("취업·이직", 3),
+    topic_dicts = [
+        {"label": "배포·CI", "count": 9},
+        {"label": "서비스 기획", "count": 6},
+        {"label": "디자인 시스템", "count": 4},
+        {"label": "취업·이직", "count": 3},
     ]
 
     return {
+        # DashboardStats 계약 일치
+        "joined": total_joined,
+        "capacity": 90,
+        "statusSet": 41,
+        "matched": total_matches,
+        "chatted": total_likes,
+        "topics": topic_dicts,
+        # 레거시 호환 필드
         "event_title": "코쓱톤 네트워킹",
         "total_attendees": 90,
         "joined_count": total_joined,
         "status_set_count": 41,
         "matches_count": total_matches,
         "conversations_started": total_likes,
-        "top_topics": top_topics,
+        "top_topics": [("배포·CI", 9), ("서비스 기획", 6), ("디자인 시스템", 4), ("취업·이직", 3)],
         "retention_metric": "주최자 재도입 의사 100%"
     }
 

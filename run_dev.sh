@@ -16,7 +16,7 @@ BACKEND_PID=$!
 
 # 2. 프론트엔드 구동 (포트 5173)
 echo "▶ Vite 프론트엔드 실행 중 (http://localhost:5173)..."
-cd "$DIR/frontend"
+cd "$DIR/web"
 npm run dev -- --host &
 FRONTEND_PID=$!
 
