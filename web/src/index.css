@@ -121,7 +121,6 @@ svg.ic.lg { width: 22px; height: 22px; }
 .send-button { border-radius: 12px; background: var(--accent); color: #19151f; width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .send-error { font-size: 12px; color: var(--danger); padding: 8px 0; flex-shrink: 0; }
 .send-error > p + p { color: var(--text-dim); margin-top: 5px; }
-.older-button { align-self: center; }
 @media (min-width: 600px) {
   body { background: #101013; }
   #app { background: var(--bg); border-left: 1px solid #272730; border-right: 1px solid #272730; }

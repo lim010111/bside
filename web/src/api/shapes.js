@@ -1,48 +1,47 @@
-// Wire contract: docs/api-contract.md. Both adapters expose these same shapes.
-//
-// Endpoint paths in client.js are this frontend's proposal and are NOT fixed yet —
-// api-contract.md says they are pinned at implementation time with the server's
-// shared examples and OpenAPI (T00). Field names below follow that document.
+// Wire contract: docs/api-contract.md (API v0.1) and docs/openapi.yaml.
+// Both adapters expose these same shapes. Field names and paths follow that spec.
 /**
- * @typedef {{user_id:string, nickname:string, self_description:string,
- * connection_intent:string, profile_revision:number,
- * discovery_enabled:boolean, discovery_revision:number}} Me
- * @typedef {'ready'|'pending'|'unscored'|'failed'} EvaluationState
- * @typedef {{id:string, nickname:string, self_description:string, connection_intent:string,
- * profile_revision:number, last_observed_at:string}} Person
- * @typedef {{id:string, nickname:string, self_description:string, profile_revision:number,
- * last_observed_at:string, evaluation_state:EvaluationState}} NearbyBanner
- * @typedef {{state:EvaluationState, reason:string|null, viewer_profile_revision:number,
- * candidate_profile_revision:number, policy_revision:string|null}} Reason
- * @typedef {{nearby_version:number, state:'pending'|'partial'|'ready'|'failed',
- * ordered_evaluated_ids:string[]}} Recommendations
- * @typedef {{id:string, conversation_id:string, seq:number, sender_id:string,
- * client_message_id:string, text:string, created_at:string}} Message
- * @typedef {{id:string, peer:Pick<Person, 'id'|'nickname'>, peer_nearby:boolean,
- * last_seq:number, last_message:Message|null}} Conversation
- * @typedef {{items:Message[], has_more:boolean, next_after_seq:number|null,
- * next_before_seq:number|null, latest_seq:number}} MessagePage
- * @typedef {{peer_token:string, observed_at:string, rssi?:number}} Observation
+ * @typedef {{nickname:string, self_description:string, connection_intent:string}} PublicProfile
+ * @typedef {{user_id:string, profile:PublicProfile|null, discovery_enabled:boolean}} Me
+ * @typedef {{status:'unavailable'}} Recommendation  // v0.1 always 'unavailable'
+ * @typedef {{user_id:string, profile:PublicProfile, recommendation:Recommendation,
+ * last_seen_at:string, conversation_eligibility_expires_at:string}} ObservedUser
+ * @typedef {{message_id:string, conversation_id:string, sender_id:string, recipient_id:string,
+ * seq:number, text:string, created_at:string}} Message
+ * @typedef {{conversation_id:string, participant:{user_id:string, profile:PublicProfile},
+ * last_message:Message}} ConversationSummary
+ * @typedef {{messages:Message[], next_after_seq:number|null, has_more:boolean}} MessagePage
+ * @typedef {{identifier:string, issued_at:string, refresh_after:string, expires_at:string}} DiscoveryIdentifier
  *
- * Shared API — see the "API 기능 단위" table in docs/api-contract.md:
- * registerInstall(options?) -> {user_id:string|null}
- *   Install-scoped credential. The server issues and stores it; JS never holds it.
- * getMe(options?) -> Me|null                      // null before the profile exists
- * createProfile({nickname,self_description,connection_intent}, options?) -> Me
- * updateProfile({self_description,connection_intent,expected_profile_revision}, options?) -> Me
- * setDiscovery({enabled,expected_discovery_revision}, options?) -> Me
- * reportObservations({observations:Observation[]}, options?) -> {nearby_version:number}
- * getNearby(options?) -> {nearby_version,recommendation_state,items:NearbyBanner[]}
- * getPerson(id, options?) -> {person:Person,recommendation:Reason}
- * getRecommendations(options?) -> Recommendations
- * refreshRecommendations(options?) -> {nearby_version,state}
- * getConversations(options?) -> {items:Conversation[]}
- * sendMessage({recipient_id,client_message_id,text}, options?) -> {message:Message,replayed:boolean}
- * getMessages(conversationId, {after_seq?,before_seq?,limit?}, options?) -> MessagePage
- * subscribe(onEvent, onError) -> unsubscribe()
+ * Shared API — base path /api/v1, Bearer installation_credential on every call but
+ * registerInstallation:
+ * registerInstallation({installation_request_id,platform}, options?) -> {user_id,installation_credential,created_at}
+ * getMe(options?) -> Me
+ * putProfile(PublicProfile, options?) -> PublicProfile      // full replace, no partial edit
+ * setDiscovery({enabled}, options?) -> {discovery_enabled}
+ * issueIdentifier(options?) -> DiscoveryIdentifier          // native BLE layer only
+ * reportObservations({identifiers}, options?) -> {observed_users:ObservedUser[]}
+ * getConversations(options?) -> {conversations:ConversationSummary[]}
+ * sendMessage({recipient_id,client_message_id,text}, options?) -> Message
+ * getMessages(conversationId, {after_seq?,limit?}, options?) -> MessagePage
  * options.signal cancels HTTP requests; the controller also ignores obsolete results.
  *
- * There is no room, no event closure and no request/accept state. A conversation
- * starts when the first message is stored, and it outlives proximity and discovery OFF.
+ * What v0.1 deliberately does NOT have, and what that costs this frontend:
+ * - No GET /discovery/nearby. The nearby list exists only as the response to an
+ *   observation report, and only the native scanner can produce identifiers. So the
+ *   list is PUSHED from the native layer, never fetched by a screen.
+ * - No GET /users/{id}. The detail screen reads the last observation response held in
+ *   memory. That cache redraws a screen; it is not proof of proximity.
+ * - No before_seq. History is forward-only from after_seq=0, so there is no
+ *   "load older messages" control.
+ * - No SSE or WebSocket (listed as follow-up scope). Updates come from the native
+ *   observation push plus polling of conversations.
+ * - No profile_revision or discovery_revision in any public response, so there is no
+ *   client-side optimistic-concurrency check. Re-submitting identical values is a no-op.
+ *
+ * Errors are {error:{code,message,details}}. details.field names the offending field
+ * on VALIDATION_ERROR. Known codes: VALIDATION_ERROR, IDEMPOTENCY_CONFLICT,
+ * IDEMPOTENCY_REPLAY_EXPIRED, OBSERVATION_REQUIRED, DISCOVERY_DISABLED,
+ * PROFILE_REQUIRED, RECIPIENT_NOT_FOUND, CONVERSATION_NOT_FOUND.
  */
 export {};

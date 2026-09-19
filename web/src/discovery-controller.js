@@ -1,15 +1,13 @@
-import { ApiError, mergeMessages, validReason } from './lib/contracts.js';
+import { ApiError, mergeMessages } from './lib/contracts.js';
 import { UNSUPPORTED } from './lib/native.js';
 
 export const initialState = () => ({
   me: null, booting: true, bootError: null, notice: null,
   view: 'nearby', targetId: null, busy: null,
-  people: [], nearbyVersion: null, nearbyLoading: true, nearbyError: null,
-  recommendations: null, recommendationState: 'pending', recommendationError: null, retryAt: 0,
-  detail: null, detailLoading: false, detailError: null,
+  people: [], observedAt: null, nearbyLoading: true, nearbyError: null,
   conversations: [], conversationsLoading: true, conversationsError: null,
   peer: null, conversationId: null, messages: [], chatLoading: false, chatError: null,
-  hasOlder: false, loadingOlder: false, historyCursor: null, outbox: {}, drafts: {},
+  historyCursor: null, outbox: {}, drafts: {},
   connection: 'connecting', native: UNSUPPORTED,
 });
 
@@ -23,12 +21,17 @@ export function discoveryReducer(state, action) {
 }
 
 // Framework-independent controller: async ownership, retries and proximity expiry are
-// tested here. There is no room and no closure event — a service-wide end does not exist.
-export function createDiscoveryController({ api, native, route = () => ({ view: 'nearby' }), writeRoute = () => {}, now = Date.now }) {
+// tested here.
+//
+// API v0.1 has no nearby endpoint, so the list is PUSHED from the native scanner's
+// observation report. It also has no per-user endpoint, so the detail screen reads
+// the last observation response from memory — a cache for redrawing, never proof of
+// proximity. The server re-checks eligibility when the first message is saved.
+export function createDiscoveryController({ api, native, credentials, route = () => ({ view: 'nearby' }), writeRoute = () => {}, now = Date.now }) {
   let state = initialState();
   const listeners = new Set(), requests = new Map();
-  let epoch = 0, alive = false, unsubscribeEvents, unsubscribeNative, fallbackTimer, refreshTimer;
-  let refreshRunning = false, refreshAgain = false, streamReady = false;
+  let epoch = 0, alive = false, unsubscribeStatus, unsubscribeObservations, refreshTimer;
+  let refreshRunning = false, refreshAgain = false;
   let historyRunning = false, historyAgain = false;
   const emit = (action) => {
     state = discoveryReducer(state, action);
@@ -45,14 +48,13 @@ export function createDiscoveryController({ api, native, route = () => ({ view: 
     requests.delete(scope);
   }
   function disconnect() {
-    unsubscribeEvents?.(); unsubscribeEvents = null;
-    clearTimeout(fallbackTimer); clearInterval(refreshTimer);
+    clearInterval(refreshTimer);
   }
   function errorBoundary(error) {
-    if (['INSTALL_REQUIRED', 'PROFILE_REQUIRED'].includes(error.code)) {
+    if (['UNAUTHORIZED', 'INSTALL_REQUIRED'].includes(error.code)) {
       epoch++; cancelRequests(); disconnect();
       patch({ ...initialState(), booting: false, native: state.native,
-        notice: '내 소개를 다시 확인해 주세요.', connection: 'offline' });
+        notice: '설치 정보를 다시 확인해 주세요.', connection: 'offline' });
     }
   }
   // Each scope has one current request; superseded results cannot win a race.
@@ -77,70 +79,67 @@ export function createDiscoveryController({ api, native, route = () => ({ view: 
     }
   }
   function applyMe(me) {
-    if (!me) {
-      errorBoundary(new ApiError('PROFILE_REQUIRED', '내 소개를 입력해 주세요.'));
-      return;
-    }
-    if (state.me && me.profile_revision < state.me.profile_revision) return;
-    const changed = state.me && me.profile_revision !== state.me.profile_revision;
-    patch({ me, ...(changed ? { recommendations: null, recommendationState: 'pending', detail: state.detail ? { ...state.detail, recommendation: null } : null } : {}) });
+    patch({ me, connection: 'connected' });
     void syncNative(me);
   }
   // The setting is the user's intent; the radio is what is actually running. We push
   // the intent down and read the real state back rather than assuming it took effect.
   async function syncNative(me) {
     if (!native?.supported) return;
-    const status = await (me.discovery_enabled ? native.start() : native.stop());
-    if (open()) patch({ native: status });
+    const status = await (me.discovery_enabled && me.profile ? native.start() : native.stop());
+    if (!open()) return;
+    patch({ native: status });
+    if (!me.discovery_enabled) patch({ people: [], observedAt: null, nearbyLoading: false });
   }
-  async function loadNearby() {
-    await request('nearby', (options) => api.getNearby(options), (result) => {
-      if (state.nearbyVersion !== null && result.nearby_version < state.nearbyVersion) return;
-      patch({
-        people: result.items, nearbyVersion: result.nearby_version,
-        nearbyLoading: false, nearbyError: null, recommendationState: result.recommendation_state,
-        ...(result.nearby_version !== state.nearbyVersion ? { recommendations: null, detail: state.detail ? { ...state.detail, recommendation: null } : null } : {}),
-      });
-    }, (error) => patch({ nearbyLoading: false, nearbyError: error }));
+  // The only source of a nearby list in v0.1.
+  function applyObservations(result) {
+    if (!result?.observed_users) return;
+    patch({ people: result.observed_users, observedAt: now(), nearbyLoading: false, nearbyError: null });
   }
-  async function loadRecommendations() {
-    const revision = state.me?.profile_revision;
-    await request('recommendations', (options) => api.getRecommendations(options), (result) => {
-      if (state.me?.profile_revision !== revision || (state.nearbyVersion !== null && result.nearby_version !== state.nearbyVersion)) return;
-      patch({ recommendations: result, recommendationState: result.state, recommendationError: null });
-    }, (error) => patch({ recommendations: null, recommendationState: 'failed', recommendationError: error }));
+  async function scanNearby() {
+    if (!state.me?.discovery_enabled || !state.me.profile) {
+      patch({ nearbyLoading: false });
+      return;
+    }
+    if (!native?.supported) {
+      // No radio here: say so instead of showing an empty list as if nobody is around.
+      patch({ nearbyLoading: false });
+      return;
+    }
+    const result = await native.refreshObservations();
+    if (open() && result) applyObservations(result);
+    else if (open()) patch({ nearbyLoading: false });
   }
-  async function loadDetail() {
-    const id = state.targetId, revision = state.me?.profile_revision;
+  function selectDetail() {
+    const id = state.targetId;
     if (state.view !== 'detail' || !id) return;
-    await request('detail', (options) => api.getPerson(id, options), (result) => {
-      if (state.view !== 'detail' || state.targetId !== id || state.me?.profile_revision !== revision) return;
-      patch({ detail: { ...result, recommendation: validReason(result, state.me) ? result.recommendation : { ...result.recommendation, reason: null } }, detailLoading: false, detailError: null });
-    }, (error) => { if (state.targetId === id) patch({ detailLoading: false, detailError: error }); });
+    const person = state.people.find((candidate) => candidate.user_id === id) ?? null;
+    patch({ detailLoading: false, detail: person });
   }
   async function loadConversations() {
     await request('conversations', (options) => api.getConversations(options), (result) => {
-      const active = result.items.find((c) => c.peer.id === state.targetId);
-      patch({ conversations: result.items, conversationsLoading: false, conversationsError: null,
-        ...(state.view === 'chat' && active ? { conversationId: active.id, peer: active.peer } : {}) });
+      const active = result.conversations.find((c) => c.participant.user_id === state.targetId);
+      patch({ conversations: result.conversations, conversationsLoading: false, conversationsError: null,
+        ...(state.view === 'chat' && active ? { conversationId: active.conversation_id, peer: active.participant } : {}) });
     }, (error) => patch({ conversationsLoading: false, conversationsError: error }));
   }
-  // An existing conversation never depends on proximity, so the peer's name comes from
-  // the conversation. Only a not-yet-started chat has to look the person up nearby.
   async function loadChat() {
     const id = state.targetId;
     if (state.view !== 'chat' || !id) return;
     await loadConversations();
     if (state.view !== 'chat' || state.targetId !== id) return;
     if (!state.conversationId) {
-      await request('peer', (options) => api.getPerson(id, options), (result) => {
-        if (state.view === 'chat' && state.targetId === id) patch({ peer: { id: result.person.id, nickname: result.person.nickname } });
-      }, (error) => { if (state.targetId === id) patch({ chatError: error, chatLoading: false }); });
+      // No conversation yet: the name comes from the observation cache.
+      const observed = state.people.find((candidate) => candidate.user_id === id);
+      if (observed) patch({ peer: { user_id: observed.user_id, profile: observed.profile }, chatLoading: false });
+      else patch({ chatError: new ApiError('OBSERVATION_REQUIRED', '지금은 주변에 없는 사람이에요.'), chatLoading: false });
+      return;
     }
-    if (state.view === 'chat' && state.targetId === id) await syncHistory();
+    await syncHistory();
   }
-  // A watermark is advanced only by history pages, never by a send response.
-  // This avoids skipping a peer's message racing with our own send.
+  // History is forward-only: v0.1 has no before_seq, so there is no older-messages
+  // control. The watermark advances only on history pages, never on a send response,
+  // so a peer message racing with our own send is never skipped.
   async function syncHistory() {
     if (historyRunning) { historyAgain = true; return; }
     const ownEpoch = epoch;
@@ -151,25 +150,23 @@ export function createDiscoveryController({ api, native, route = () => ({ view: 
         const id = state.targetId, conversation = state.conversationId;
         if (!open() || ownEpoch !== epoch || state.view !== 'chat') break;
         if (!conversation) { patch({ chatLoading: false }); break; }
-        const cursor = state.historyCursor;
+        const cursor = state.historyCursor ?? 0;
         await request('history', async (options) => {
-          const query = cursor === null ? {} : { after_seq: cursor };
+          const query = { after_seq: cursor };
           let page = await api.getMessages(conversation, query, options);
-          let items = page.items, last = page.next_after_seq ?? cursor ?? 0;
-          const hasOlder = cursor === null ? page.has_more : state.hasOlder;
-          // Initial page starts at the latest window. Catch-up pages are exhaustive.
-          while (cursor !== null && page.has_more) {
-            if (!page.items.length || page.next_after_seq <= (query.after_seq ?? -1)) throw new ApiError('INVALID_RESPONSE', '대화 이력을 다시 불러와 주세요.');
+          let items = page.messages, last = page.next_after_seq ?? items.at(-1)?.seq ?? cursor;
+          while (page.has_more) {
+            if (!page.messages.length || page.next_after_seq <= query.after_seq) throw new ApiError('INVALID_RESPONSE', '대화 이력을 다시 불러와 주세요.');
             query.after_seq = page.next_after_seq;
             page = await api.getMessages(conversation, query, options);
-            items = mergeMessages(items, page.items);
-            last = page.next_after_seq ?? last;
+            items = mergeMessages(items, page.messages);
+            last = page.next_after_seq ?? items.at(-1)?.seq ?? last;
           }
-          return { items, last, hasOlder };
-        }, ({ items, last, hasOlder }) => {
+          return { items, last };
+        }, ({ items, last }) => {
           if (state.view !== 'chat' || state.targetId !== id || state.conversationId !== conversation) return;
           emit({ type: 'messages', peerId: id, items });
-          patch({ historyCursor: last, hasOlder, chatLoading: false, chatError: null });
+          patch({ historyCursor: last, chatLoading: false, chatError: null });
         }, (error) => { if (state.targetId === id) patch({ chatLoading: false, chatError: error }); });
       } while (historyAgain && ownEpoch === epoch);
     } finally {
@@ -185,12 +182,12 @@ export function createDiscoveryController({ api, native, route = () => ({ view: 
     try {
       do {
         refreshAgain = false;
-        await request('me', (options) => api.getMe(options), applyMe, (error) => patch({ notice: error.message }));
-        if (!state.me || !open() || ownEpoch !== epoch) break;
-        await Promise.all([loadNearby(), loadConversations()]);
+        await request('me', (options) => api.getMe(options), applyMe, (error) => patch({ notice: error.message, connection: 'offline' }));
+        if (!state.me?.profile || !open() || ownEpoch !== epoch) break;
+        await scanNearby();
         if (!open() || ownEpoch !== epoch) break;
-        await loadRecommendations();
-        if (state.view === 'detail') await loadDetail();
+        await loadConversations();
+        if (state.view === 'detail') selectDetail();
         if (state.view === 'chat') await loadChat();
       } while (refreshAgain && open() && ownEpoch === epoch);
     } finally {
@@ -198,31 +195,10 @@ export function createDiscoveryController({ api, native, route = () => ({ view: 
       if (refreshAgain && open() && state.me) { refreshAgain = false; void refreshAll(); }
     }
   }
+  // v0.1 has no SSE or WebSocket, so the visible screen polls. Scanning and
+  // observation reporting stay in the native layer, never on this timer.
   function connect() {
     disconnect();
-    streamReady = false;
-    patch({ connection: 'connecting' });
-    const onError = () => {
-      if (!open()) return;
-      streamReady = false;
-      patch({ connection: 'reconnecting' });
-    };
-    try {
-      unsubscribeEvents = api.subscribe(({ type }) => {
-        if (!open()) return;
-        if (type === 'ready') {
-          streamReady = true; clearTimeout(fallbackTimer); patch({ connection: 'connected' });
-        }
-        if (type === 'nearby.changed' || type === 'self.changed') {
-          patch({ recommendations: null, recommendationState: 'pending', detail: state.detail ? { ...state.detail, recommendation: null } : null });
-        }
-        if (streamReady) void refreshAll();
-      }, onError);
-    } catch { onError(); }
-    // If SSE cannot establish, REST remains usable and polling covers missed events.
-    fallbackTimer = setTimeout(() => { if (open() && !streamReady) { onError(); void refreshAll(); } }, 5000);
-    // Proximity ages out on its own, so the visible screen re-reads it on a cadence.
-    // Scanning and observation reporting stay in the native layer, never on this timer.
     refreshTimer = setInterval(() => {
       if (open() && globalThis.document?.visibilityState !== 'hidden') void refreshAll();
     }, 15000);
@@ -231,22 +207,30 @@ export function createDiscoveryController({ api, native, route = () => ({ view: 
     alive = true; epoch++; cancelRequests(); disconnect();
     patch({ booting: true, bootError: null });
     if (native?.supported) {
-      unsubscribeNative?.();
-      unsubscribeNative = native.subscribe((status) => { if (open()) patch({ native: status }); });
+      unsubscribeStatus?.(); unsubscribeObservations?.();
+      unsubscribeStatus = native.subscribeStatus((status) => { if (open()) patch({ native: status }); });
+      unsubscribeObservations = native.subscribeObservations((result) => { if (open()) applyObservations(result); });
       const status = await native.getStatus();
       if (open()) patch({ native: status });
     }
     await request('boot', async (options) => {
-      await api.registerInstall(options);
+      if (!(await credentials.get())) {
+        const installation = await api.registerInstallation({
+          installation_request_id: credentials.installRequestId(), platform: 'android',
+        }, options);
+        await credentials.set(installation.installation_credential);
+      }
       return api.getMe(options);
     }, (me) => {
-      patch({ me, booting: false });
-      if (me) { navigate(route().view, route().id, false); connect(); void syncNative(me); }
+      patch({ me, booting: false, connection: 'connected' });
+      if (me.profile) { navigate(route().view, route().id, false); connect(); void syncNative(me); void refreshAll(); }
+      else patch({ nearbyLoading: false });
     }, (error) => patch({ booting: false, bootError: error }));
   }
   function dispose() {
     alive = false; epoch++; cancelRequests(); disconnect();
-    unsubscribeNative?.(); unsubscribeNative = null;
+    unsubscribeStatus?.(); unsubscribeStatus = null;
+    unsubscribeObservations?.(); unsubscribeObservations = null;
   }
   function navigate(view = 'nearby', id = null, write = true) {
     if (!open()) return;
@@ -256,44 +240,44 @@ export function createDiscoveryController({ api, native, route = () => ({ view: 
     patch({ view, targetId: id, notice: null, ...(changing ? {
       detail: null, detailLoading: view === 'detail', detailError: null,
       peer: null, conversationId: null, messages: [], historyCursor: null,
-      chatLoading: view === 'chat', chatError: null, hasOlder: false,
+      chatLoading: view === 'chat', chatError: null,
     } : {}) });
     if (write) writeRoute({ view, id });
-    if (!state.me || (!streamReady && state.connection !== 'reconnecting')) return;
-    if (view === 'detail') void loadDetail();
+    if (!state.me?.profile) return;
+    if (view === 'detail') selectDetail();
     if (view === 'chat') void loadChat();
     if (view === 'conversations') void loadConversations();
   }
-  async function mutate(kind, payload) {
+  // Profile is a full replace: v0.1 has no partial edit and no expected-revision, so
+  // there is no client-side conflict to resolve. Identical values are a no-op.
+  async function saveProfile(payload) {
     if (state.busy || !open()) return { ok: false };
-    patch({ busy: kind, notice: null });
+    patch({ busy: 'saveProfile', notice: null });
     let outcome = { ok: false };
-    await request('mutation', async (options) => {
-      if (kind === 'createProfile') { await api.registerInstall(options); return api.createProfile(payload, options); }
-      if (kind === 'updateProfile') return api.updateProfile(payload, options);
-      return api.setDiscovery(payload, options);
-    }, (me) => {
-      // A pre-mutation /me response can carry the same profile revision with a stale
-      // discovery flag. Do not let it undo a completed ON/OFF.
+    await request('mutation', (options) => api.putProfile(payload, options), (profile) => {
       cancelScope('me');
-      applyMe(me); patch({ busy: null, recommendations: null, recommendationState: 'pending' });
+      const first = !state.me?.profile;
+      patch({ me: { ...state.me, profile }, busy: null });
       outcome = { ok: true };
-      if (kind === 'createProfile') { navigate('nearby'); connect(); }
-      else { if (kind === 'updateProfile') navigate('nearby'); void refreshAll(); }
-    }, (error) => {
-      patch({ busy: null });
-      outcome = { ok: false, error };
-      if (error.code === 'REVISION_CONFLICT') void request('me', (options) => api.getMe(options), applyMe);
-    });
+      navigate('nearby');
+      if (first) { connect(); void syncNative({ ...state.me, profile }); }
+      void refreshAll();
+    }, (error) => { patch({ busy: null }); outcome = { ok: false, error }; });
     return outcome;
   }
-  const setDiscovery = (enabled) => mutate('setDiscovery', { enabled, expected_discovery_revision: state.me?.discovery_revision });
-  async function retryRecommendations() {
-    if (!open() || state.busy || now() < state.retryAt) return;
-    patch({ retryAt: now() + 5000, recommendationState: 'pending', recommendationError: null });
-    await request('retry-recommendations', (options) => api.refreshRecommendations(options),
-      () => { void refreshAll(); },
-      (error) => patch({ recommendationState: 'failed', recommendationError: error, retryAt: now() + Math.max(error.retryAfter || 5, 5) * 1000 }));
+  async function setDiscovery(enabled) {
+    if (state.busy || !open()) return { ok: false };
+    patch({ busy: 'setDiscovery', notice: null });
+    let outcome = { ok: false };
+    await request('mutation', (options) => api.setDiscovery({ enabled }, options), (result) => {
+      // A pre-mutation /me response can still be in flight with the old flag.
+      cancelScope('me');
+      const me = { ...state.me, discovery_enabled: result.discovery_enabled };
+      patch({ me, busy: null });
+      outcome = { ok: true };
+      void syncNative(me).then(() => { if (open()) void refreshAll(); });
+    }, (error) => { patch({ busy: null }); outcome = { ok: false, error }; });
+    return outcome;
   }
   function setDraft(id, value) { patch({ drafts: { ...state.drafts, [id]: value } }); }
   async function send(text, retry = false) {
@@ -307,7 +291,7 @@ export function createDiscoveryController({ api, native, route = () => ({ view: 
     patch({ outbox: { ...state.outbox, [peerId]: entry } });
     await request('send:' + peerId, (options) => api.sendMessage({
       recipient_id: peerId, client_message_id: entry.client_message_id, text: entry.text,
-    }, options), ({ message }) => {
+    }, options), (message) => {
       const outbox = { ...state.outbox }; delete outbox[peerId];
       const drafts = { ...state.drafts };
       if (drafts[peerId]?.trim() === entry.text) drafts[peerId] = '';
@@ -319,29 +303,20 @@ export function createDiscoveryController({ api, native, route = () => ({ view: 
       void refreshAll();
     }, (error) => {
       patch({ outbox: { ...state.outbox, [peerId]: { ...entry, status: 'failed', error, retryAt: now() + (error.retryAfter || 0) * 1000 } } });
-      if (['OBSERVATION_EXPIRED', 'DISCOVERY_OFF'].includes(error.code)) void refreshAll();
+      if (['OBSERVATION_REQUIRED', 'DISCOVERY_DISABLED'].includes(error.code)) void refreshAll();
     });
-  }
-  async function loadOlder() {
-    if (!state.conversationId || state.loadingOlder || !state.hasOlder) return;
-    const id = state.targetId, conversation = state.conversationId;
-    patch({ loadingOlder: true });
-    await request('older', (options) => api.getMessages(conversation, { before_seq: state.messages[0].seq }, options), (page) => {
-      if (state.view !== 'chat' || state.targetId !== id) return;
-      emit({ type: 'messages', peerId: id, items: page.items });
-      patch({ loadingOlder: false, hasOlder: page.has_more });
-    }, (error) => patch({ loadingOlder: false, chatError: error }));
   }
   return {
     getState: () => state, subscribe: (listener) => { listeners.add(listener); return () => listeners.delete(listener); },
-    start, dispose, navigate, refreshAll, loadNearby, loadDetail, loadConversations, loadChat, loadOlder,
-    mutate, setDiscovery, retryRecommendations, setDraft, send,
+    start, dispose, navigate, refreshAll, scanNearby, loadConversations, loadChat,
+    saveProfile, setDiscovery, setDraft, send,
     requestNativePermission: async () => {
       if (!native?.supported) return;
       const status = await native.requestPermission();
       if (open()) patch({ native: status });
+      void refreshAll();
     },
     dismissNotice: () => patch({ notice: null }),
-    resumeConnection: () => { if (state.me && open()) { connect(); } else if (open()) void start(); },
+    resumeConnection: () => { if (state.me?.profile && open()) { connect(); void refreshAll(); } else if (open()) void start(); },
   };
 }

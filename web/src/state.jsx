@@ -1,12 +1,11 @@
 import { useEffect, useReducer, useState } from 'react';
-import { api } from './api/index.js';
+import { api, native, credentials } from './api/index.js';
 import { createDiscoveryController } from './discovery-controller.js';
-import { createNativeBridge } from './lib/native.js';
 import { DiscoveryContext } from './use-discovery.js';
 
 export function DiscoveryProvider({ children }) {
   const [controller] = useState(() => createDiscoveryController({
-    api, native: createNativeBridge(),
+    api, native, credentials,
     route: readRoute,
     writeRoute: ({ view, id }) => {
       const hash = '#' + view + (id ? '/' + encodeURIComponent(id) : '');
