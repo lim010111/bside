@@ -8,7 +8,7 @@
 - 설치 등록을 제외한 모든 API는 `Authorization: Bearer <installation_credential>`을 요구한다. 자격 증명은 설치 등록 응답에서 한 번 발급하며 Android의 보호된 저장소에 보관한다.
 - 공개 `user_id`와 BLE 임시 ID는 인증 수단이 아니다. 요청 본문의 발신자 ID도 신뢰하지 않으며 발신자는 자격 증명으로 결정한다.
 - JSON 필드는 `snake_case`다. 서버 시간은 UTC RFC 3339 문자열이다. 만료 판단은 서버 수신 시각, 메시지 정렬은 서버가 대화별로 발급한 `seq`만 사용한다. UUID나 휴대폰 시각을 순서·만료 기준으로 사용하지 않는다.
-- UUID 필드는 소문자·하이픈 표기의 UUID 문자열이며, `installation_request_id`와 `client_message_id`는 클라이언트가 새로 생성한 UUIDv4다. 중복 방지 키는 이 두 API에만 있다.
+- UUID 필드는 소문자·하이픈 표기의 UUID 문자열이다. `installation_request_id`와 `client_message_id`는 클라이언트가 생성해 재시도 동안 유지한다. 중복 방지 키는 이 두 API에만 있다.
 - 알 수 없는 JSON 필드는 거부한다. 문자열 길이는 Unicode 코드 포인트 기준이며 앞뒤 공백을 자동으로 의미 있는 내용으로 바꾸지 않는다.
 - 성공 저장 후에만 성공을 응답한다. 알림이나 향후 실시간 전달은 저장을 대신하지 않는다.
 
@@ -49,7 +49,7 @@
 
 ### `POST /api/v1/installations`
 
-인증 없이 호출한다. `installation_request_id`는 이 설치 등록 시도에서 생성한 UUIDv4이고 앱 재시도 동안 유지한다. `platform`은 현재 `android`만 허용하며 중복 판정에 포함되는 등록 내용이다.
+인증 없이 호출한다. `installation_request_id`는 이 설치 등록 시도에서 생성하고 앱 재시도 동안 유지하는 UUID다. `platform`은 현재 `android`만 허용하며 중복 판정에 포함되는 등록 내용이다.
 
 ```json
 { "installation_request_id": "3d594650-3436-4b90-a2e2-68b57325d6c9", "platform": "android" }

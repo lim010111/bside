@@ -1,5 +1,7 @@
 """The API v0.1 endpoints from docs/openapi.yaml, mounted under /api/v1."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Query, Response, status
 
 from app.deps import CurrentUser, StoreDep
@@ -129,13 +131,13 @@ async def create_message(body: CreateMessageRequest, user_id: CurrentUser, store
 
 @router.get("/conversations/{conversation_id}/messages", response_model=MessagePage, tags=["Chat"])
 async def list_messages(
-    conversation_id: str,
+    conversation_id: UUID,
     user_id: CurrentUser,
     store: StoreDep,
     after_seq: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
 ):
-    page = await store.get_messages(user_id, conversation_id, after_seq, limit)
+    page = await store.get_messages(user_id, str(conversation_id), after_seq, limit)
     if page is None:
         # Missing and non-participant conversations are the same answer, so the API
         # does not tell a stranger that a conversation exists.

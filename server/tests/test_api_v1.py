@@ -3,7 +3,7 @@
 import asyncio
 import json
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from redis.asyncio import Redis
@@ -114,6 +114,16 @@ def test_registration_rejects_a_reused_key_with_different_content(client):
     # 'ios' is not an allowed platform at all, so the field is rejected first.
     assert conflict.status_code == 422
     assert conflict.json()["error"]["details"]["field"] == "platform"
+
+
+def test_registration_rejects_a_malformed_idempotency_key(client):
+    response = client.post(
+        "/api/v1/installations",
+        json={"installation_request_id": "not-a-uuid", "platform": "android"},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert response.json()["error"]["details"]["field"] == "installation_request_id"
 
 
 def test_a_public_user_id_is_not_a_credential(client, install):
@@ -295,6 +305,17 @@ def test_the_same_client_message_id_replays_and_a_changed_one_conflicts(client, 
         assert conflict.json()["error"]["code"] == "IDEMPOTENCY_CONFLICT"
 
 
+def test_messages_reject_a_malformed_idempotency_key(client, install):
+    alice = install("앨리스")
+    response = alice.post(
+        "/api/v1/messages",
+        json={"recipient_id": str(uuid4()), "client_message_id": "not-a-uuid", "text": "안녕하세요"},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert response.json()["error"]["details"]["field"] == "client_message_id"
+
+
 def test_one_conversation_per_pair_even_when_both_send_first(client, install):
     alice, bob = install("앨리스"), install("밥")
     alice.observe(bob.identifier())
@@ -369,6 +390,15 @@ def test_only_participants_can_read_a_conversation(client, install):
     assert denied.status_code == 404
     assert denied.json()["error"]["code"] == "CONVERSATION_NOT_FOUND"
     assert alice.get(f"/api/v1/conversations/{uuid4()}/messages").status_code == 404
+
+
+def test_conversation_path_requires_a_uuid(client, install):
+    alice = install("앨리스")
+    invalid = alice.get("/api/v1/conversations/not-a-uuid/messages")
+    assert invalid.status_code == 422
+    assert invalid.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert invalid.json()["error"]["details"]["field"] == "path.conversation_id"
+    assert alice.get(f"/api/v1/conversations/{UUID(int=0)}/messages").status_code == 404
 
 
 def test_history_query_bounds(client, install):
