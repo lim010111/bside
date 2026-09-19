@@ -35,12 +35,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
 SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
+TOKEN_URI = "https://oauth2.googleapis.com/token"
 
 # FCM's answer for a token that no longer belongs to an install. The token is
 # dead for good, so it is removed rather than retried.
@@ -56,8 +58,10 @@ class FcmSender:
         self._project_id = project_id
         self._client = client or httpx.AsyncClient(timeout=10.0)
         self._owns_client = client is None
-        # google-auth refreshes over blocking sockets, and one refresh serves an
-        # hour, so it is done in a thread under a lock rather than per send.
+        self._access_token: str | None = None
+        self._expires_at = 0.0
+        # One refresh serves an hour, and concurrent sends would otherwise each
+        # mint their own on a cold start.
         self._lock = asyncio.Lock()
 
     @property
@@ -69,14 +73,48 @@ class FcmSender:
             await self._client.aclose()
 
     async def _token(self) -> str:
-        async with self._lock:
-            if not self._credentials.valid:
-                import google.auth.transport.requests
+        """Exchange a self-signed JWT for an access token, over httpx.
 
-                await asyncio.to_thread(
-                    self._credentials.refresh, google.auth.transport.requests.Request()
-                )
-            return self._credentials.token
+        google-auth's own refresh goes through ``google.auth.transport.requests``
+        and so needs the ``requests`` package and a thread to not block the loop.
+        The grant it performs is this: sign an assertion with the service
+        account key and post it. Doing it here keeps one HTTP client in the
+        server and one fewer dependency. Found by deploying: the refresh failed
+        with "The requests library is not installed".
+        """
+        async with self._lock:
+            now = time.time()
+            if self._access_token and now < self._expires_at:
+                return self._access_token
+
+            import google.auth.jwt
+
+            # .decode: jwt.encode returns bytes, and form-encoding those sends
+            # Google a repr rather than the assertion. It answers 400
+            # invalid_request, which does not say that.
+            assertion = google.auth.jwt.encode(
+                self._credentials.signer,
+                {
+                    "iss": self._credentials.service_account_email,
+                    "scope": SCOPE,
+                    "aud": TOKEN_URI,
+                    "iat": int(now),
+                    "exp": int(now) + 3600,
+                },
+            ).decode("ascii")
+            response = await self._client.post(
+                TOKEN_URI,
+                data={
+                    "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                    "assertion": assertion,
+                },
+            )
+            response.raise_for_status()
+            granted = response.json()
+            self._access_token = granted["access_token"]
+            # Expire early so a token never dies mid-request.
+            self._expires_at = now + max(60, int(granted.get("expires_in", 3600)) - 120)
+            return self._access_token
 
     async def send(self, token: str, data: dict[str, str]) -> str | None:
         """Deliver one data message. Returns a failure code, or None on success.
