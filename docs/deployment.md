@@ -55,11 +55,24 @@ ssh.exe myserver-1 "rm -rf ~/apps/bside/server && cd ~/apps/bside && tar xf /tmp
 ssh.exe myserver-1 "cd ~/apps/bside/server && sudo docker compose -p bside up -d --build --wait"
 ```
 
-`server.env`에는 `API_PORT=8100`, 운영 `CORS_ORIGINS`, AI 추천을 켤 때 필요한
-`AI_API_KEY`·`AI_BASE_URL`·`AI_MODEL`, 푸시를 켤 때 필요한 `FCM_CREDENTIALS_HOST_FILE`과
-`FCM_CREDENTIALS_FILE`을 둔다. 이 파일은 서버에만 있고 저장소에 넣지 않는다.
-`.dockerignore`가 `.env`를 이미지에서 제외하므로 이 값들은 compose 환경 변수로만 들어간다.
-셋 중 하나라도 비면 서버는 정상 기동하되 추천을 `unavailable`로 보고한다.
+`server.env`에는 `API_PORT=8100`, 운영 `CORS_ORIGINS`, **`CREDENTIAL_REPLAY_SECRET`**,
+AI 추천을 켤 때 필요한 `AI_API_KEY`·`AI_BASE_URL`·`AI_MODEL`, 푸시를 켤 때 필요한
+`FCM_CREDENTIALS_HOST_FILE`과 `FCM_CREDENTIALS_FILE`을 둔다. 이 파일은 서버에만 있고
+저장소에 넣지 않는다. `.dockerignore`가 `.env`를 이미지에서 제외하므로 이 값들은 compose
+환경 변수로만 들어간다.
+
+**`CREDENTIAL_REPLAY_SECRET`만 성격이 다르다.** 나머지는 없어도 기능만 꺼진 채 서버가
+뜨지만, 이 값은 기본값이 없고 compose가 `:?`로 하드 실패시킨다. 10분 재전송 창에 보관하는
+자격 증명을 평문으로 두지 않기 위한 키라서, 배포된 기본값을 두는 편이 없느니만 못하기
+때문이다. 값을 바꾸면 그 순간 진행 중이던 재전송 창만 만료로 보이고, 이미 발급된 자격
+증명과 로그인 상태에는 영향이 없다.
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+AI·푸시 값은 비어 있어도 서버가 정상 기동하며, 각각 추천을 `unavailable`로 보고하고
+푸시를 보내지 않을 뿐이다.
 
 ```bash
 ssh.exe myserver-1 "cd ~/apps/bside/server && sudo docker compose -p bside exec -T api printenv AI_MODEL"
@@ -87,6 +100,10 @@ ssh.exe myserver-1 "cd ~/apps/bside/server && sudo docker compose -p bside exec 
 - **푸시 알림이 운영에서 동작.** 앱을 백그라운드에 둔 단말에 메시지를 보내 `messages`
   채널 알림이 뜨는 것을, 그리고 추천이 완료될 때 `nearby` 채널 알림이 뜨는 것을 확인했다.
   메시지 알림은 보낸 사람 닉네임과 본문을, 추천 알림은 닉네임만 담고 이유는 담지 않는다.
+- **원자화된 등록·식별자 발급이 운영에서 동작.** 같은 `installation_request_id` 재전송이
+  같은 자격 증명을 돌려주고(Fernet 복호화 경로), UUID가 아닌 중복 방지 키와 `android`가
+  아닌 platform은 422, 회전 창 전의 재발급은 같은 식별자, 발견 OFF에서는 409
+  `DISCOVERY_DISABLED`, 가짜 자격 증명은 401. 이미 설치된 단말은 로그아웃되지 않았다.
 
 ### Firebase
 
