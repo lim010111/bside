@@ -1,0 +1,45 @@
+# Bside AI 추천 모듈 — 실모델 비교 (해커톤 게이트웨이 호출. 과금이 발생한다)
+#
+# 실행: npm run eval:live                     (전체)
+#       npx promptfoo eval -c promptfooconfig.live.yaml --filter-pattern 'E01|E02'
+#
+# 자격: server/.env 의 AI_API_KEY. 문서화된 게이트웨이(https://ai.cs.kookmin.ac.kr/v1) 외에는
+#       쓰지 않으며 브리지가 호스트를 검사한다. 키는 출력·기록하지 않는다.
+#
+# 예산: lib/budget.js 가 실제 배치 호출 수를 results/live-budget.json 에 누적한다.
+#       후보 6명·배치 5면 호출 2건이다. 상한은 EVAL_LIVE_CALL_CAP (기본 80).
+#
+# 모델: 2026-09-20 게이트웨이에서 실제 생성에 성공한 것만 쓴다(docs/ai-validation.md 참조).
+# 실패 주입 사례(E08)는 실호출 없이 주입 경로로 돌아간다.
+description: Bside AI 추천 — 실모델 비교
+
+prompts:
+  - '{{case_id}}'
+
+providers:
+  - id: file://providers/baseline.js
+    label: baseline:lexical
+    config:
+      kind: lexical
+  # 두 모델에 같은 설정을 명시한다. 기본값에 기대지 않는 이유는 아래 주석 참조.
+  - id: file://providers/module.js
+    label: module:claude-haiku-4-5
+    config:
+      mode: live
+      model: claude-haiku-4-5
+      settings: &live_settings
+        # 2026-09-20 측정: 기본값 1400 은 5명 배치에서 출력이 잘려(finish_reason=length)
+        # 배치 전원이 INVALID_JSON 이 됐다. 두 모델을 같은 조건에서 비교하려고 명시한다.
+        max_output_tokens: 4096
+  - id: file://providers/module.js
+    label: module:deepseek-v3.2
+    config:
+      mode: live
+      model: deepseek-v3.2
+      settings: *live_settings
+
+defaultTest:
+  options:
+    runSerially: true
+
+tests: file://tests.generated.yaml

@@ -1,0 +1,15 @@
+{
+  "models": ["grok-4.6", "claude-sonnet-5"],
+  "prompt_version": "2026-09-20.2",
+  "prompt_digest": "32db67109c375cf1",
+  "settings": {
+    "base_url": "https://ai.cs.kookmin.ac.kr/v1",
+    "batch_size": 5,
+    "max_concurrent_requests": 4,
+    "max_output_tokens": 4096,
+    "temperature": 0.2,
+    "max_attempts": 1,
+    "request_timeout_seconds": 20,
+    "total_timeout_seconds": 45
+  }
+}

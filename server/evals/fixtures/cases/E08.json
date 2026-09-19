@@ -1,0 +1,70 @@
+{
+  "case_id": "E08",
+  "set": "tuning",
+  "pool": "tuning",
+  "title": "게이트웨이 오류·시간 초과",
+  "maps_to": [
+    "E08",
+    "V10"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "jiwon",
+      "connection_intent": "GitHub Actions 배포 단계에서 권한 오류가 계속 나는데, 오늘 안에 같이 봐주실 분을 찾고 있어요."
+    },
+    "candidates": [
+      {
+        "ref": "minseo"
+      },
+      {
+        "ref": "nayeon"
+      },
+      {
+        "ref": "doyun"
+      },
+      {
+        "ref": "yeongjin"
+      },
+      {
+        "ref": "seoyeon"
+      },
+      {
+        "ref": "boram"
+      }
+    ],
+    "policy": {},
+    "fault": {
+      "kind": "gateway_timeout"
+    }
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 사람이 검토·확정한 정답이 아니다.",
+    "rationale": "게이트웨이 시간 초과를 주입한다. 실패는 실패로 보고해야 하며 낮은 점수의 성공 추천이나 지어낸 이유로 바뀌면 안 된다. 후보 6명은 모두 남아야 한다(목록·채팅은 AI 성공에 의존하지 않는다). failure_code가 원인을 구분해야 서버가 재시도·안내를 결정할 수 있다.",
+    "all_candidates_present": true,
+    "all_status_in": [
+      "FAILED"
+    ],
+    "failure_code_required": true,
+    "expected_failure_code_any_of": [
+      "GATEWAY_TIMEOUT",
+      "GATEWAY_NETWORK_ERROR",
+      "GATEWAY_HTTP_ERROR"
+    ],
+    "reason_must_be_empty_for_all": true,
+    "notification_eligible_expected": [],
+    "must_not_drop_ids": [
+      "minseo",
+      "nayeon",
+      "doyun",
+      "yeongjin",
+      "seoyeon",
+      "boram"
+    ],
+    "revision_echo": true
+  }
+}

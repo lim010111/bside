@@ -1,0 +1,62 @@
+{
+  "case_id": "N03",
+  "set": "heldout-fresh",
+  "pool": "fresh",
+  "title": "신선 보류: 상대가 대화를 원치 않는 의도 충돌",
+  "maps_to": [
+    "E04",
+    "AI-D4"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "sejun"
+    },
+    "candidates": [
+      {
+        "ref": "yuna"
+      },
+      {
+        "ref": "beomseok"
+      },
+      {
+        "ref": "harin"
+      },
+      {
+        "ref": "mirae"
+      }
+    ],
+    "policy": {},
+    "fault": null
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 프롬프트 동결(2026-09-20.2) 직후 새로 만든 보류 사례이며 조정에 쓰지 않았다.",
+    "rationale": "유나는 '지금은 말 걸지 말아 달라'고 명시했다. 조회자와의 주제 적합성과 무관하게 이는 우선순위를 낮추고 알림에서 빼야 하는 충돌이며 후보 삭제 사유는 아니다. 범석은 충돌이 없으므로 충돌로 표시하면 안 된다.",
+    "all_candidates_present": true,
+    "intent_conflict_expected": [
+      "yuna"
+    ],
+    "intent_conflict_not_expected": [
+      "beomseok"
+    ],
+    "not_in_topk": {
+      "k": 1,
+      "ids": [
+        "yuna"
+      ]
+    },
+    "must_not_drop_ids": [
+      "yuna",
+      "mirae"
+    ],
+    "notification_excluded_expected": [
+      "yuna",
+      "mirae"
+    ],
+    "revision_echo": true
+  }
+}

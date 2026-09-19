@@ -1,0 +1,16 @@
+{
+  "name": "bside-ai-evals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Independent evaluation suite for the Bside AI recommendation module (Promptfoo).",
+  "scripts": {
+    "eval:offline": "promptfoo eval -c promptfooconfig.yaml --no-cache",
+    "eval:live": "promptfoo eval -c promptfooconfig.live.yaml",
+    "bench": "cd .. && uv run python evals/bench/bench.py",
+    "view": "promptfoo view"
+  },
+  "devDependencies": {
+    "promptfoo": "^0.123.1"
+  }
+}

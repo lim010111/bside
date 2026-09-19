@@ -1,0 +1,93 @@
+{
+  "case_id": "N02",
+  "set": "heldout-fresh",
+  "pool": "fresh",
+  "title": "신선 보류: 어휘가 겹치지 않는 상보성과 인용의 정확성",
+  "maps_to": [
+    "E03",
+    "AI-D3"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "harin"
+    },
+    "candidates": [
+      {
+        "ref": "beomseok"
+      },
+      {
+        "ref": "sejun"
+      },
+      {
+        "ref": "yuna"
+      },
+      {
+        "ref": "garam"
+      }
+    ],
+    "policy": {},
+    "fault": null
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 프롬프트 동결(2026-09-20.2) 직후 새로 만든 보류 사례이며 조정에 쓰지 않았다.",
+    "rationale": "조회자는 공연 큐시트 자동화를 해줄 개발자를 찾고, 범석은 스케줄링·타임라인 도구를 두 번 만들었고 '다른 분야 문제를 찾는다'고 적었다. 두 사람의 어휘는 거의 겹치지 않으므로 글자 유사도로는 잡히지 않는 상보성이다. 세준은 예측 모델이라 큐시트 자동화와 무관하다. 이유에 원문에 없는 문구를 따옴표로 넣으면 근거 검사에서 떨어진다.",
+    "all_candidates_present": true,
+    "top1_any_of": [
+      "beomseok"
+    ],
+    "ranked_above": [
+      [
+        "beomseok",
+        "sejun"
+      ],
+      [
+        "beomseok",
+        "garam"
+      ]
+    ],
+    "not_in_topk": {
+      "k": 2,
+      "ids": [
+        "garam",
+        "yuna"
+      ]
+    },
+    "status_expected": {
+      "beomseok": [
+        "EVALUATED"
+      ],
+      "garam": [
+        "INSUFFICIENT_EVIDENCE"
+      ]
+    },
+    "reason_required_for": [
+      "beomseok"
+    ],
+    "reason_must_mention_any_of": {
+      "beomseok": [
+        "스케줄링",
+        "타임라인",
+        "백엔드",
+        "5년",
+        "도구",
+        "다른 분야"
+      ]
+    },
+    "reason_max_sentences": 2,
+    "reason_max_chars": 200,
+    "notification_eligible_expected": [
+      "beomseok"
+    ],
+    "notification_excluded_expected": [
+      "garam",
+      "yuna"
+    ],
+    "revision_echo": true
+  },
+  "notes": "E03에서 관찰한 '바꿔 쓴 표현을 인용 부호에 넣는' 문제를 새 입력으로 확인한다."
+}

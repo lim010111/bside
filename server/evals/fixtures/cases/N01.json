@@ -1,0 +1,65 @@
+{
+  "case_id": "N01",
+  "set": "heldout-fresh",
+  "pool": "fresh",
+  "title": "신선 보류: 양쪽 모두 근거가 없는 입력",
+  "maps_to": [
+    "E05",
+    "AI-D2"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "mirae"
+    },
+    "candidates": [
+      {
+        "ref": "garam"
+      },
+      {
+        "ref": "sejun"
+      },
+      {
+        "ref": "harin"
+      },
+      {
+        "ref": "yuna"
+      }
+    ],
+    "policy": {},
+    "fault": null
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 프롬프트 동결(2026-09-20.2) 직후 새로 만든 보류 사례이며 조정에 쓰지 않았다.",
+    "rationale": "조회자('그냥 시간 남아서 들렀어요' / '누구든 상관없어요')에 연결점으로 쓸 내용이 없다. 후보가 아무리 구체적이어도 조회자의 의도를 알 수 없으므로 근거 부족으로 구분해야 하고 오류나 낮은 점수의 성공 추천으로 처리하면 안 된다. 알림 대상은 하나도 없어야 하고 후보 4명은 모두 목록에 남아야 한다.",
+    "all_candidates_present": true,
+    "status_expected": {
+      "garam": [
+        "INSUFFICIENT_EVIDENCE"
+      ]
+    },
+    "min_insufficient_evidence_count": 3,
+    "forbid_status": [
+      "FAILED"
+    ],
+    "notification_eligible_expected": [],
+    "notification_excluded_expected": [
+      "garam",
+      "sejun",
+      "harin",
+      "yuna"
+    ],
+    "must_not_drop_ids": [
+      "garam",
+      "sejun",
+      "harin",
+      "yuna"
+    ],
+    "revision_echo": true
+  },
+  "notes": "E05와 같은 성질을 조정에 쓰지 않은 새 입력으로 확인한다."
+}

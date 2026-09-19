@@ -1,0 +1,81 @@
+{
+  "case_id": "H07",
+  "set": "heldout",
+  "pool": "heldout",
+  "title": "보류: 긴 한국어 입력의 이유 가독성",
+  "maps_to": [
+    "AI-D3",
+    "E03"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "longform"
+    },
+    "candidates": [
+      {
+        "ref": "settlement"
+      },
+      {
+        "ref": "seungho"
+      },
+      {
+        "ref": "woojin"
+      },
+      {
+        "ref": "yeeun"
+      }
+    ],
+    "policy": {},
+    "fault": null
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 사람이 검토·확정한 정답이 아니다.",
+    "rationale": "조회자 원문이 400자가 넘고 카프카·쿠버네티스·테스트 등 곁가지가 많다. 태오는 조회자가 가장 길게 물어본 '돈이 걸린 도메인의 실패 처리'를 4년 다뤘다. 긴 입력에서도 이유가 1~2문장·160자 안에 핵심 연결점 하나로 정리돼야 상세 화면 가독성이 유지된다. 원문을 통째로 옮겨 적으면 실패로 본다.",
+    "all_candidates_present": true,
+    "top1_any_of": [
+      "settlement"
+    ],
+    "ranked_above": [
+      [
+        "settlement",
+        "seungho"
+      ],
+      [
+        "settlement",
+        "yeeun"
+      ]
+    ],
+    "status_expected": {
+      "settlement": [
+        "EVALUATED"
+      ]
+    },
+    "reason_required_for": [
+      "settlement"
+    ],
+    "reason_must_mention_any_of": {
+      "settlement": [
+        "정산",
+        "결제",
+        "실패",
+        "보상",
+        "트랜잭션",
+        "4년"
+      ]
+    },
+    "reason_max_sentences": 2,
+    "reason_max_chars": 160,
+    "notification_eligible_expected": [
+      "settlement"
+    ],
+    "notification_excluded_expected": [
+      "yeeun"
+    ],
+    "revision_echo": true
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "case_id": "H02",
+  "set": "heldout",
+  "pool": "heldout",
+  "shuffle_group": "intent-switch-b",
+  "title": "보류: H01과 같은 자기소개, 의도 B(장기 파트너)",
+  "maps_to": [
+    "E02",
+    "AI-D1"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "hanbyul",
+      "connection_intent": "이번 행사 끝나고도 오래 같이 제품 만들 공동창업 수준의 파트너를 찾고 있어요."
+    },
+    "candidates": [
+      {
+        "ref": "seungho"
+      },
+      {
+        "ref": "narae"
+      },
+      {
+        "ref": "kyumin"
+      },
+      {
+        "ref": "dain"
+      },
+      {
+        "ref": "woojin"
+      }
+    ],
+    "policy": {},
+    "fault": null
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 사람이 검토·확정한 정답이 아니다.",
+    "rationale": "나래는 '졸업 후에도 같이 창업까지 갈 안드로이드 개발자'를 찾고 조회자가 정확히 그 사람이다(상보성). 규민은 '오래 같이 제품 만들 사람'을 찾는 같은 안드로이드 개발자다(유사성). 승호는 지금 도와주겠다는 즉석 도움 의도라 장기 파트너 의도와는 맞지 않는다. E01/E02와 어휘·도메인이 겹치지 않는 보류 사례다.",
+    "all_candidates_present": true,
+    "top1_any_of": [
+      "narae",
+      "kyumin"
+    ],
+    "topk": {
+      "k": 2,
+      "must_include_any_of": [
+        "narae",
+        "kyumin"
+      ],
+      "min_included": 2
+    },
+    "ranked_above": [
+      [
+        "narae",
+        "seungho"
+      ],
+      [
+        "kyumin",
+        "seungho"
+      ],
+      [
+        "narae",
+        "dain"
+      ]
+    ],
+    "not_in_topk": {
+      "k": 2,
+      "ids": [
+        "seungho",
+        "dain",
+        "woojin"
+      ]
+    },
+    "status_expected": {
+      "narae": [
+        "EVALUATED"
+      ],
+      "kyumin": [
+        "EVALUATED"
+      ]
+    },
+    "reason_required_for": [
+      "narae",
+      "kyumin"
+    ],
+    "reason_must_mention_any_of": {
+      "narae": [
+        "창업",
+        "기획",
+        "디자인",
+        "졸업",
+        "오래",
+        "함께",
+        "같이"
+      ],
+      "kyumin": [
+        "오래",
+        "제품",
+        "코틀린",
+        "같이",
+        "제대로"
+      ]
+    },
+    "notification_eligible_expected": [
+      "narae",
+      "kyumin"
+    ],
+    "notification_excluded_expected": [
+      "dain",
+      "woojin"
+    ],
+    "revision_echo": true,
+    "cross_case": {
+      "compare_with": "H01",
+      "viewer_inputs_differ_only_in": [
+        "connection_intent"
+      ],
+      "top1_must_change": true,
+      "candidate_set_must_be_identical": true
+    }
+  },
+  "notes": "프롬프트 조정에 사용하지 않는다. 조정 후 재사용하면 보류 성격을 잃으므로 사용 이력을 기록한다."
+}

@@ -1,0 +1,8 @@
+# Eval workspace local artifacts. Owned by the validation task; scoped to server/evals.
+node_modules/
+results/
+.promptfoo/
+*.local.json
+.env
+.env.*
+!.env.example

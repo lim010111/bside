@@ -1,0 +1,95 @@
+{
+  "case_id": "E04",
+  "set": "tuning",
+  "pool": "tuning",
+  "title": "양쪽 교류 의도가 충돌",
+  "maps_to": [
+    "E04",
+    "AI-D4"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "jiwon",
+      "connection_intent": "GitHub Actions 배포 단계에서 권한 오류가 계속 나는데, 오늘 안에 같이 봐주실 분을 찾고 있어요."
+    },
+    "candidates": [
+      {
+        "ref": "minseo"
+      },
+      {
+        "ref": "jaehyun"
+      },
+      {
+        "ref": "subin"
+      },
+      {
+        "ref": "nayeon"
+      }
+    ],
+    "policy": {},
+    "fault": null
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 사람이 검토·확정한 정답이 아니다.",
+    "rationale": "태윤 계열의 '지금은 대화하지 않겠다'는 의도는 조회자의 '오늘 안에 같이 봐줄 분' 요청과 정면으로 충돌한다. 기술 주제(Gradle·안드로이드)는 겹치지 않으므로 태그 기반 규칙은 이 충돌을 보지 못한다. 충돌은 우선순위를 낮추는 근거일 뿐 후보 삭제 근거가 아니므로 목록에는 남고 알림 대상에서는 빠져야 한다. 세부 가중치 공식은 정하지 않고 '상위 2명 밖 + 충돌 표시 + 미삭제'만 확인한다.",
+    "all_candidates_present": true,
+    "top1_any_of": [
+      "minseo"
+    ],
+    "ranked_above": [
+      [
+        "minseo",
+        "jaehyun"
+      ],
+      [
+        "nayeon",
+        "jaehyun"
+      ],
+      [
+        "minseo",
+        "subin"
+      ]
+    ],
+    "not_in_topk": {
+      "k": 2,
+      "ids": [
+        "jaehyun",
+        "subin"
+      ]
+    },
+    "status_expected": {
+      "jaehyun": [
+        "EVALUATED",
+        "INSUFFICIENT_EVIDENCE"
+      ],
+      "subin": [
+        "EVALUATED",
+        "INSUFFICIENT_EVIDENCE"
+      ]
+    },
+    "intent_conflict_expected": [
+      "jaehyun"
+    ],
+    "intent_conflict_not_expected": [
+      "minseo",
+      "nayeon"
+    ],
+    "must_not_drop_ids": [
+      "jaehyun",
+      "subin"
+    ],
+    "notification_eligible_expected": [
+      "minseo"
+    ],
+    "notification_excluded_expected": [
+      "jaehyun",
+      "subin"
+    ],
+    "revision_echo": true
+  }
+}

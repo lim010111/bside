@@ -26,7 +26,7 @@ def settings() -> Settings:
     return Settings(_env_file=None, redis_url=SCRATCH_URL)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def flush(settings: Settings):
     client = sync_redis.from_url(settings.redis_url, socket_connect_timeout=2)
     try:
@@ -40,7 +40,7 @@ def flush(settings: Settings):
 
 
 @pytest.fixture
-def client(settings: Settings):
+def client(settings: Settings, flush):
     with TestClient(create_app(settings)) as test_client:
         yield test_client
 

@@ -1,0 +1,88 @@
+{
+  "case_id": "H03",
+  "set": "heldout",
+  "pool": "heldout",
+  "title": "보류: 기술 태그가 겹치지 않는 상보성(발표 준비)",
+  "maps_to": [
+    "E03"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "junseo"
+    },
+    "candidates": [
+      {
+        "ref": "chaewon"
+      },
+      {
+        "ref": "seungho"
+      },
+      {
+        "ref": "woojin"
+      },
+      {
+        "ref": "yeeun"
+      }
+    ],
+    "policy": {},
+    "fault": null
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 사람이 검토·확정한 정답이 아니다.",
+    "rationale": "조회자는 내일 발표가 두렵고 대본을 봐줄 사람을 찾는다. 채원은 '대본 봐드릴 수 있다'고 원문에 적었다. 공유 기술 스택은 하나도 없으므로 기술 태그 매칭 방식으로는 연결되지 않는 상보성 사례다.",
+    "all_candidates_present": true,
+    "top1_any_of": [
+      "chaewon"
+    ],
+    "ranked_above": [
+      [
+        "chaewon",
+        "seungho"
+      ],
+      [
+        "chaewon",
+        "woojin"
+      ],
+      [
+        "chaewon",
+        "yeeun"
+      ]
+    ],
+    "not_in_topk": {
+      "k": 2,
+      "ids": [
+        "yeeun",
+        "woojin"
+      ]
+    },
+    "status_expected": {
+      "chaewon": [
+        "EVALUATED"
+      ]
+    },
+    "reason_required_for": [
+      "chaewon"
+    ],
+    "reason_must_mention_any_of": {
+      "chaewon": [
+        "발표",
+        "대본",
+        "리허설",
+        "수상",
+        "다섯"
+      ]
+    },
+    "notification_eligible_expected": [
+      "chaewon"
+    ],
+    "notification_excluded_expected": [
+      "yeeun"
+    ],
+    "revision_echo": true
+  }
+}
