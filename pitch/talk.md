@@ -1,5 +1,7 @@
 # 발표 대본 — 5분
 
+> **이전 행사 MVP 발표 이력:** 아래 대본과 덱은 BLE 전환 전 기준이다. 현재 발표 흐름은 [script.md](script.md)이며, 아래의 “폐기된 초안” 표현은 당시 파일에 대한 기록이다. 그대로 제출·발표하지 않는다.
+
 새 덱([deck.html](deck.html)) 10장에 맞춰 쓴 것. 기준은 [MVP 개발 기준](../docs/development-contract.md),
 [API 계약](../docs/api-contract.md), [시연 시나리오](../spec/scenario.md)다.
 `pitch/script.md`는 폐기된 초안(말문·PWA·DB 없음·5분 소멸)이므로 쓰지 않는다.

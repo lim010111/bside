@@ -1,30 +1,14 @@
-# Bside — 팀 개발 안내
+# 팀 개발 안내 — BLE MVP
 
-Bside는 기존 코드의 작업명이다. 제품 범위는 행사·밋업이며, **자기소개와 만나고 싶은 사람을 입력해 같은 행사 방에서 상대를 찾고 바로 1:1 채팅한다.** 사용자와 논의한 Q1~Q20 및 최신 main 비교 후의 기준으로 이 문서를 갱신했다.
+현재 제품은 Android BLE 발견·인터넷 서버·지속 ON·추천 목록과 자동 알림·바로 채팅·기존 대화 유지·설치 단위 복원이다. 행사에서도 같은 흐름을 쓰고 시연 데이터도 동일하게 취급한다. 제품 원본은 [B1~B14](../docs/product-direction.md), 행동은 [개발 기준](../docs/development-contract.md)을 따른다.
 
-## 먼저 읽을 문서
+## 읽는 순서
 
-| 목적 | 기준 |
-| --- | --- |
-| 제품 동작·포함/보류 범위·스택 | [MVP 개발 기준](../docs/development-contract.md) |
-| 요청·응답·세션·상태·메시지·추천 버전 | [API 계약](../docs/api-contract.md) |
-| 구현 순서·담당 경계 | [4인 팀 계획 T00~T08](../docs/team-plan.md) |
-| 실제 검증과 평가·시연 | [V01~V12, E01~E08](../docs/validation.md) |
-| 이전 main과의 차이·채택 이유 | [baea751 비교](../docs/reviews/baea751.md) |
-| 로컬 실행·OCI/Nginx 연결 | [배포 경계](../docs/deployment.md) |
+1. [PRD](PRD.md), [공통 용어](../CONTEXT.md).
+2. [개발 기준](../docs/development-contract.md), [API](../docs/api-contract.md), [Android 구성](../docs/android-design.md), [저장](../server/docs/redis.md).
+3. [화면](design.md), [프론트 작업](frontend-plan.md), [프로토콜](protocol.md), [AI 지침](prompts.md).
+4. [팀 작업](../docs/team-plan.md), [검증](../docs/validation.md), [시연](scenario.md), [배포](../docs/deployment.md).
 
-현재 구현은 React/Vite/JavaScript의 mock 화면과 FastAPI·Redis·Docker 기반이다. 실제 참가자·추천·채팅·SSE API는 아직 없으며, 기본 빌드·테스트 성공을 제품 완성으로 보지 않는다. 각 문서의 ‘구현할 것’과 현재 코드를 구분한다.
+별도 요청·수락은 B13으로 폐기했다. 행사 방·QR 입장·운영자 종료·시연 전용 삭제도 없다. 장시간 배터리 최적화와 부가 채팅 기능을 선결 조건으로 만들지 않는다.
 
-## 이번에 통일한 기준
-
-- 닉네임·자기소개·교류 의도로 입력을 마친 뒤 개인별 정보를 본다.
-- 같은 행사 방 전체를 추천한다. 유사성·상보성은 모두 가능한 관계이며 의도 충돌은 우선순위를 낮춘다.
-- 모든 참가자 배너에서 상세·채팅에 진입한다. 상세에는 자기소개·찾는 사람·추천 이유를 보여주고 숫자 점수는 보류한다.
-- 서버가 채팅을 저장한다. 앱을 닫아도 참가자·메시지를 유지하고 같은 브라우저에서 복원한다.
-- 중단·재개는 명시적인 상태 변경이고, 행사 종료는 운영자가 수동으로 수행한다.
-- React/JS·FastAPI·Redis·기존 Nginx를 사용한다. Redis AOF는 `always`, 초기 API worker는 하나다.
-- BLE·Capacitor·고정 역할 분류·5분 참가자 만료·예정 시각 자동 종료·운영진 대시보드는 이번 필수 구현에 넣지 않는다.
-
-팀은 4명이며 김성빈이 프론트를 맡는다. 나머지 역할은 팀 계획의 분업안을 적용해 정한다. 각 AI 개발 도구에 현재 개발 기준·API 계약·담당 작업·검증 ID를 제공한다. 과거 커밋의 상충하는 ‘확정’ 문구를 현재 지침으로 사용하지 않는다.
-
-공식 제출 마감은 9월 20일 12:00, 발표는 시연 포함 5분과 질의응답 5분이다. [원본 평가·제출 근거](../docs/hackathon-brief.md)를 따른다.
+선택 구성은 React/Vite + Capacitor Android + Kotlin, FastAPI·Redis다. 현재 코드는 mock/서버 기반이며 네이티브 BLE와 제품 API는 구현 전이다. 기존 구현·이력 문서가 최신 제품 계약을 덮어쓰지 않는다. 팀은 4명이고 김성빈 프론트 외 실명 배정은 미정이다. 외부 일정·평가 기준은 [해커톤 원본](../docs/hackathon-brief.md)을 따른다.

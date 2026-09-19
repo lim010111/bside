@@ -1,5 +1,9 @@
 # 리서치 근거
 
+> **2026-09-19 제품 방향 전환:** 아래 조사와 행사 MVP 평가는 당시 범위의 자료입니다. 시장 조사나 이전 추천안을 새 제품의 확정 요구사항으로 취급하지 않습니다. 현재 결정과 문서 전환 상태는 [BLE 근접 교류 전환](../docs/product-direction.md)을 먼저 확인합니다.
+
+이번 BLE MVP의 새 조사: [직접 끌 때까지 BLE 발견을 허용할 때의 비용과 제약](tech/ble-always-on.md). 배터리·OS 제약·서버/LLM 호출·알림·밀집 환경과 실기기 측정 계획을 다루며, 성능 검증 완료를 뜻하지 않습니다. B2의 지속 ON은 이후 채택됐고 최적화는 해커톤 이후로 미뤘습니다. 최신 제품은 별도 수락 없는 바로 채팅이며 시연 데이터도 동일하게 취급합니다.
+
 이 폴더는 기존 main의 조사 자산을 보존한 것이다. 이번 통합에서 아래 외부 주장·시장 수치를 전부 재검증하지 않았다. 현재 제품 범위·구현·평가는 [개발 기준](../docs/development-contract.md)과 [검증 계획](../docs/validation.md)을 따르며, 발표에 사용할 외부 수치는 실제 사용 시 원출처를 다시 확인한다.
 
 발표와 질의응답에서 인용할 숫자의 출처. 각 문서에 링크가 달려 있고, **검증 못 한 것은 미검증으로 표시**돼 있다.
@@ -36,6 +40,7 @@
 | 문서 | 내용 |
 |---|---|
 | [proximity-postmortem.md](market/proximity-postmortem.md) ★ | 근거리 서비스 실패 부검 |
+| [event-networking-lookalikes.md](market/event-networking-lookalikes.md) ★ | **전환 전 행사 MVP 기준** 유사 서비스 조사. WITR·EventHex·Brella·LineUpr 등 축별 대조 |
 | [competitive-landscape.md](market/competitive-landscape.md) | 경쟁 지형 |
 | [landscape-addendum.md](market/landscape-addendum.md) | 경쟁 지형 보론 |
 | [gtm-marketing.md](market/gtm-marketing.md) | 캠퍼스 앱 초기 성장, 콜드스타트 해법, 대학 진입 경로, 프라이버시 역풍 사례 |
