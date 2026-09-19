@@ -1,0 +1,169 @@
+/* prototype/index.html의 <style>(10~169줄)을 그대로 옮긴 것.
+   손대지 않는다 — 이미 모바일 실기기 기준으로 다듬어졌다.
+   React 전용 추가분은 파일 맨 아래, 별도 표시된 구간에만 있다. */
+:root{
+  --font:'Wanted Sans Variable','Wanted Sans','Pretendard Variable',-apple-system,system-ui,sans-serif;
+  --bg:#16161A; --surface:#202027; --surface-hi:#2A2A33;
+  --border:#32323C; --border-strong:#43434F;
+  --text:#F5F5F7; --text-dim:#8E8E9A; --text-faint:#5C5C68;
+  --looking:#F5B942; --sharing:#4ADE80; --first:#A78BFA; --open:#60A5FA;
+  --danger:#F87171; --on-color:#16161A;
+  --r-card:14px; --r-ctrl:12px; --r-pill:20px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);
+  font-size:14px;line-height:1.5;letter-spacing:-.01em;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;border:0;background:none;color:inherit;cursor:pointer;padding:0}
+input,textarea{font-family:inherit;letter-spacing:inherit}
+
+#app{max-width:420px;margin:0 auto;min-height:100dvh}
+.screen{display:none;flex-direction:column;min-height:100dvh;padding:0 16px}
+.screen.on{display:flex}
+
+/* ── type: 4 sizes only ── */
+.t-xl{font-size:19px;font-weight:600;line-height:1.3}
+.t-lg{font-size:14px;font-weight:500;line-height:1.4}
+.t-md{font-size:14px;font-weight:400;line-height:1.5}
+.t-sm{font-size:12px;font-weight:400;line-height:1.4}
+.t-num{font-size:22px;font-weight:600;line-height:1.2}
+/* 한 줄이 이 제품의 본문이다. 이름보다 크게 둔다 */
+.t-body{font-size:15px;font-weight:400;line-height:1.55}
+.dim{color:var(--text-dim)} .faint{color:var(--text-faint)}
+
+/* ── controls ── */
+.field{width:100%;height:48px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-ctrl);color:var(--text);font-size:14px;padding:0 14px;outline:none;
+  transition:border-color .15s ease-out}
+.field:focus{border-color:var(--border-strong)}
+.field::placeholder{color:var(--text-faint)}
+textarea.field{height:88px;padding:12px 14px;resize:none;line-height:1.5}
+.btn{width:100%;height:48px;border-radius:var(--r-ctrl);background:var(--text);color:var(--bg);
+  font-size:14px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:opacity .15s ease-out}
+.btn:active{opacity:.75}
+.btn[disabled]{background:var(--surface-hi);color:var(--text-faint)}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--text)}
+.err{color:var(--danger);font-size:12px;margin-top:6px;min-height:16px}
+
+/* ── status colors ── */
+.s-LOOKING_FOR{--c:var(--looking)} .s-CAN_SHARE{--c:var(--sharing)}
+.s-FIRST_TIME{--c:var(--first)} .s-OPEN{--c:var(--open)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--text-faint);flex:none}
+
+.chip{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;
+  border-radius:var(--r-pill);font-size:12px;background:color-mix(in srgb,var(--c) 13%,transparent);
+  color:var(--c);white-space:nowrap}
+.badge{font-size:11px;padding:3px 8px;border-radius:var(--r-pill);
+  background:var(--surface-hi);color:var(--text-dim);white-space:nowrap}
+
+.card{background:var(--surface);border-radius:var(--r-card);padding:13px 14px}
+.row{display:flex;align-items:center;gap:8px}
+.grow{flex:1;min-width:0}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wrap{overflow-wrap:anywhere;word-break:break-word}
+
+svg.ic{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.75;
+  stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg.ic.lg{width:22px;height:22px}
+
+/* ── 입장 화면 ── */
+.brand{font-size:26px;font-weight:600;letter-spacing:-.03em}
+.tag{color:var(--text-dim);font-size:13px;margin-top:6px}
+
+/* ── 상태 고르기 ── */
+.picks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pick{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);
+  padding:14px 12px;text-align:left;transition:border-color .15s ease-out,background .15s ease-out}
+.pick[aria-pressed="true"]{border-color:var(--c);background:color-mix(in srgb,var(--c) 9%,var(--surface))}
+.pick .ic{color:var(--c);margin-bottom:9px}
+.pick b{display:block;font-size:13px;font-weight:500}
+
+/* ── 방 목록 ── */
+.stats{font-size:12px;color:var(--text-dim);line-height:1.5}
+.mine{border:1px solid var(--c);background:color-mix(in srgb,var(--c) 7%,var(--surface))}
+.person{width:100%;text-align:left;background:var(--surface);border-radius:var(--r-card);
+  padding:13px 14px;display:block;transition:background .15s ease-out;
+  position:relative;overflow:hidden}
+.person:active{background:var(--surface-hi)}
+/* 가까운 사람이 한 단계 밝다. 색이 아니라 밝기로 가른다 */
+.person.near{background:var(--surface-hi)}
+.person.near:active{background:#34343F}
+/* 남은 시간이 카드 밑 실선 길이로 남는다. 다섯 장이 전부 다른 길이가 된다 */
+.life{position:absolute;left:0;bottom:0;height:2px;opacity:.5;
+  background:var(--c,var(--text-faint))}
+.person.near .life{opacity:.8}
+/* 방 구성을 색 띠 하나로. 목록을 읽기 전에 분위기가 먼저 잡힌다 */
+.compo{display:flex;gap:2px;height:4px;margin-bottom:9px}
+.compo i{background:var(--c);border-radius:2px;opacity:.9}
+.glabel{font-size:12px;color:var(--text-faint);margin:0;padding:7px 2px 0}
+.fresh{display:inline-block;margin-left:8px;color:var(--sharing)}
+.glabel:first-child{padding-top:0}
+
+/* signature: 만료가 가까울수록 바랜다 */
+.fade{transition:opacity 1.2s linear}
+
+.empty{text-align:center;padding:52px 20px}
+.empty .ic{width:30px;height:30px;color:var(--text-faint);margin-bottom:14px}
+
+/* ── 접점 시트 ── */
+.scrim{position:fixed;inset:0;background:rgba(10,10,12,.62);opacity:0;pointer-events:none;
+  transition:opacity .24s ease-out;z-index:20}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:50%;bottom:0;width:100%;max-width:420px;background:var(--surface);
+  border-radius:20px 20px 0 0;padding:8px 18px 22px;transform:translate(-50%,102%);
+  transition:transform .24s cubic-bezier(.32,.72,0,1);z-index:21;
+  box-shadow:0 -8px 32px rgba(0,0,0,.5);max-height:92dvh;overflow-y:auto}
+.sheet.on{transform:translate(-50%,0)}
+.grip{width:34px;height:4px;border-radius:2px;background:var(--border-strong);margin:0 auto 16px}
+
+/* 편애하는 화면: 여기만 손이 더 갔다 */
+.why{background:var(--bg);border-radius:var(--r-card);padding:15px 16px;margin:16px 0}
+.why-a,.why-b{font-size:13px;line-height:1.45}
+.why-a{color:var(--looking)} .why-b{color:var(--sharing)}
+.link-draw{display:block;margin:5px 0 5px 3px}
+.link-draw path{stroke:var(--border-strong);stroke-width:1.5;fill:none;stroke-linecap:round}
+.meter{display:flex;align-items:center;gap:7px;margin-top:13px;
+  padding-top:12px;border-top:1px solid var(--border)}
+.meter-bar{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.meter-bar i{display:block;height:100%;background:var(--text-dim);border-radius:2px}
+.quote{background:var(--bg);border-left:2px solid var(--text-dim);border-radius:0 8px 8px 0;
+  padding:12px 14px;font-size:13px;line-height:1.6;color:var(--text)}
+
+/* ── 채팅 화면 ── */
+/* 이 화면만 뷰포트 고정 높이다 — 말풍선 목록만 안에서 스크롤되고 나머지는 안 움직인다 */
+.screen-chat{height:100dvh;min-height:0}
+.bubbles{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding:14px 0}
+.b{max-width:76%;padding:9px 12px;border-radius:15px;font-size:13px;line-height:1.45}
+.b.me{align-self:flex-end;background:var(--text);color:var(--bg);border-bottom-right-radius:5px}
+.b.you{align-self:flex-start;background:var(--surface);border-bottom-left-radius:5px}
+.sysline{text-align:center;font-size:12px;color:var(--text-faint);padding:10px 24px;line-height:1.5}
+.composer{display:flex;gap:9px;align-items:center;padding:11px 0 18px;border-top:1px solid var(--border)}
+
+/* ── 운영진 대시보드 ── */
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.metric{background:var(--surface);border-radius:var(--r-card);padding:14px}
+.metric.key{background:var(--surface-hi)}
+.topic{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.topic:last-child{border:0}
+
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+
+/* ════════════════════════════════════════════════════════════
+   여기서부터 React 이식 과정에서 새로 추가한 것.
+   프로토타입에 없던 규칙만 여기 둔다 — 위 구간과 섞지 않는다.
+   ════════════════════════════════════════════════════════════ */
+
+/* 섹션 라벨 행 (내 상태 / 접점). 카드 배경 없이 실선 구분만 쓴다.
+   목록의 사람 카드(.person)와 다른 층위라는 걸 구조로 보여준다.
+   사용자 레퍼런스 반영: "내 상태 ── 수정" 형태 */
+.section{padding:14px 0 16px;border-bottom:1px solid var(--border)}
+.section-head{display:flex;justify-content:space-between;align-items:baseline}
+.link{font-size:12px;color:var(--text);text-decoration:underline;text-underline-offset:2px}
+.link:active{opacity:.7}
+
+/* 접점 진입 행 — 매칭되면 방 화면에 상시 남는다.
+   시트를 닫아도 여기로 다시 들어갈 수 있다 (기존 프로토타입엔 없던 재진입 경로) */
+.touchpoint-entry{width:100%;text-align:left;padding:2px 0;display:flex;
+  align-items:center;justify-content:space-between;gap:10px}
+.touchpoint-entry .ic{color:var(--text-dim)}

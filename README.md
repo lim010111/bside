@@ -43,6 +43,8 @@ cd prototype && python -m http.server 8777
 | [MASTER.md](spec/MASTER.md) | **전체 총정리.** 여기서 시작 |
 | [PRD.md](spec/PRD.md) | 기능 명세, P0/P1/P2, 수용 기준 |
 | [protocol.md](spec/protocol.md) | **JSON 규격.** 이것만 지키면 셋이 서로 안 기다린다 |
+| [frontend-plan.md](spec/frontend-plan.md) | **프론트 작업 순서.** 코드 쓰기 전에 읽을 것 |
+| [web/README.md](web/README.md) | 프론트 진행 상황 — 0~4단계 완성, 실기기에서 잡은 버그 네 개 |
 | [prompts.md](spec/prompts.md) | LLM 프롬프트 전문 + 검증기 규칙 + 호출 수 관리 |
 | [scenario.md](spec/scenario.md) | 시연 영상 컷 대본 + 5분 발표 대본 + 예상 질문 |
 | [roadmap.md](spec/roadmap.md) | v0.1 ~ v1.0 버전 로드맵 |
