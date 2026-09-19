@@ -23,7 +23,7 @@
 
 ## 구현·검증 상태
 
-통합 기준 `main`(`a85292f`)에는 API v0.1을 사용하는 React/Capacitor 화면, FastAPI·Redis의 설치 인증·프로필·발견 관측·채팅, Kotlin BLE 네이티브 계층이 구현돼 있습니다. Android 실기기 두 대에서 BLE 발견부터 메시지 왕복까지 확인한 기존 결과는 [실기기 검증 기록](web/VERIFICATION.md)에 있습니다. 공용 HTTPS 배포 환경과 백그라운드·화면 꺼짐 상태의 발견은 별도 검증이 남아 있습니다.
+통합 기준 `main`(`05afb68`)에는 API v0.1을 사용하는 React/Capacitor 화면, FastAPI·Redis의 설치 인증·프로필·발견 관측·채팅, Kotlin BLE 네이티브 계층이 구현돼 있습니다. Android 실기기 두 대에서 BLE 발견부터 메시지 왕복까지 확인한 기존 결과는 [실기기 검증 기록](web/VERIFICATION.md)에 있습니다. [서버 API의 공개 HTTPS 배포](docs/deployment.md#배포-현황)는 완료됐지만, 그 운영 주소를 사용하는 APK 두 대의 왕복과 백그라운드·화면 꺼짐 상태의 발견은 별도 검증이 남아 있습니다.
 
 AI 추천은 `server/app/ai/`의 독립 모듈로 구현했고 **Haiku(`claude-haiku-4-5`)로 진행**합니다. [모델 비교 결과](server/docs/ai-model-comparison.md)에 근거해 선택했으며, 20명 첫 평가의 5초 목표는 아직 미달입니다. API v0.1 응답은 계속 `recommendation.status: unavailable`이고 AI 모듈의 HTTP·Android 연결과 실제 추천 알림은 후속 작업입니다.
 

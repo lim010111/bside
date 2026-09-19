@@ -26,6 +26,8 @@
 
 `origin/main`의 `a85292f`(API v0.1, Android 실기기 T07 기록, Capacitor CORS 수정)를 통합했다. API 계약·서버 README 충돌은 최신 엔드포인트·공개 스키마를 보존하고 독립 AI 모듈 경계를 추가해 해결했다. 루트 README의 API·Android 미구현 설명도 갱신했다.
 
+PR 준비 중 추가된 `main`의 `05afb68`도 통합했다. 서버 배포 기록과 Compose의 `restart: unless-stopped`·`REDIS_PORT` 설정을 그대로 보존했다. 공개 HTTPS 서버 배포는 기존 팀 작업이며 이번 PR에서 배포한 것은 아니다. 추가된 두 파일은 앱 코드 변경이 없어 앞선 서버 테스트를 반복하지 않았다.
+
 API·웹·Android 제품 코드와 OpenAPI는 `main`과 동일하다. 관측 응답은 여전히 `recommendation.status: unavailable`이다. 서버에 내부 프로필·발견 참여 버전 관리가 없으므로 AI 입력 스냅샷·완료 후 재검사·공개 응답 어댑터·추천 알림은 후속 작업이다. 배포에서도 `AI_MODEL=claude-haiku-4-5`를 명시한다.
 
 `server/tests/conftest.py`의 Redis 초기화는 API용 `client` fixture만 의존하도록 조정했다. Astra low 검증 담당이 별도 임시 Redis 7.0.15로 전체 **261 passed·0 skipped**, Redis 없이 **232 passed·29 skipped(API만)**, AI 테스트만 **227 passed·0 skipped**를 확인했다. 평가 JS·gateway 종료 검사도 통과했다. 임시 Redis는 종료했고 유료 모델 호출은 추가하지 않았다. 이전 231개는 통합 전 서버 테스트 전체 개수다.
