@@ -42,7 +42,9 @@ from app.security import (
     unseal_credential,
 )
 
-_SCRIPT = (Path(__file__).parent / "scripts" / "send_message.lua").read_text(encoding="utf-8")
+_SCRIPTS = Path(__file__).parent / "scripts"
+_SEND_SCRIPT = (_SCRIPTS / "send_message.lua").read_text(encoding="utf-8")
+_INSTALL_SCRIPT = (_SCRIPTS / "register_installation.lua").read_text(encoding="utf-8")
 
 PROFILE_FIELDS = ("nickname", "self_description", "connection_intent")
 
@@ -76,50 +78,45 @@ class Store:
 
     async def register_installation(self, request_id: str, platform: str) -> tuple[str, dict[str, Any]]:
         """Return (outcome, payload) where outcome is created/replayed/conflict/expired."""
-        link = await self.redis.get(f"install:link:{request_id}")
-        replay = await self.redis.get(f"install:replay:{request_id}")
-        if link:
-            registration = json.loads(link)
-            if registration["platform"] != platform:
-                return "conflict", {}
-            # Unmarked values are legacy JSON containing a plaintext credential.
-            if not replay or not replay.startswith("v1:"):
-                return "expired", {}
-            try:
-                credential = unseal_credential(
-                    replay.removeprefix("v1:"),
-                    self.settings.credential_replay_secret.get_secret_value(),
-                )
-            except ValueError:
-                return "expired", {}
-            return "replayed", {
-                "user_id": registration["user_id"],
-                "installation_credential": credential,
-                "created_at": registration["created_at"],
-            }
-
         user_id = str(uuid4())
         credential = generate_credential()
         created_at = to_rfc3339(now_ms())
-        payload = {
-            "user_id": user_id,
-            "installation_credential": credential,
-            "created_at": created_at,
-        }
         encrypted_replay = "v1:" + seal_credential(
             credential,
             self.settings.credential_replay_secret.get_secret_value(),
         )
-        pipe = self.redis.pipeline()
-        pipe.hset(f"user:{user_id}", mapping={"discovery_enabled": "0", "created_at": created_at})
-        pipe.set(derive_credential_key(credential), user_id)
-        pipe.set(f"install:replay:{request_id}", encrypted_replay, ex=self.settings.installation_replay_seconds)
-        pipe.set(
+        result = await self.redis.eval(
+            _INSTALL_SCRIPT,
+            4,
             f"install:link:{request_id}",
-            json.dumps({"user_id": user_id, "platform": platform, "created_at": created_at}),
+            f"install:replay:{request_id}",
+            f"user:{user_id}",
+            derive_credential_key(credential),
+            platform,
+            user_id,
+            encrypted_replay,
+            created_at,
+            str(self.settings.installation_replay_seconds),
         )
-        await pipe.execute()
-        return "created", payload
+        outcome = result[0]
+        if outcome in ("conflict", "expired"):
+            return outcome, {}
+        try:
+            returned_credential = (
+                credential
+                if outcome == "created"
+                else unseal_credential(
+                    result[2].removeprefix("v1:"),
+                    self.settings.credential_replay_secret.get_secret_value(),
+                )
+            )
+        except ValueError:
+            return "expired", {}
+        return outcome, {
+            "user_id": result[1],
+            "installation_credential": returned_credential,
+            "created_at": result[3],
+        }
 
     async def user_for_credential(self, credential: str) -> str | None:
         user_id = await self.redis.get(derive_credential_key(credential))
@@ -236,7 +233,7 @@ class Store:
     async def send_message(self, sender: str, recipient: str, client_message_id: str, text: str) -> SendResult:
         moment = now_ms()
         raw = await self.redis.eval(
-            _SCRIPT,
+            _SEND_SCRIPT,
             0,
             sender,
             recipient,

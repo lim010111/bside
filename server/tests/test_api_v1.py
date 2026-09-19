@@ -1,10 +1,15 @@
 """API v0.1 behaviour: docs/api-contract.md and docs/openapi.yaml."""
 
+import asyncio
 import json
 
 from uuid import uuid4
 
 import pytest
+from redis.asyncio import Redis
+
+from app.security import derive_credential_key
+from app.store import Store
 
 
 def message_body(recipient: str, text: str = "안녕하세요") -> dict:
@@ -76,6 +81,30 @@ def test_legacy_plaintext_replay_expires_without_replacing_its_credential(client
     assert replay.json()["error"]["code"] == "IDEMPOTENCY_REPLAY_EXPIRED"
     assert store.get(f"install:replay:{request_id}").startswith("{")
     store.close()
+
+
+@pytest.mark.asyncio
+async def test_registration_converges_under_concurrency(settings, flush):
+    redis = Redis.from_url(settings.redis_url, decode_responses=True)
+    store = Store(redis, settings)
+    request_id = str(uuid4())
+    start = asyncio.Event()
+
+    async def register():
+        await start.wait()
+        return await store.register_installation(request_id, "android")
+
+    tasks = [asyncio.create_task(register()) for _ in range(20)]
+    start.set()
+    results = await asyncio.gather(*tasks)
+    payloads = [payload for _, payload in results]
+
+    assert [outcome for outcome, _ in results].count("created") == 1
+    assert all(payload == payloads[0] for payload in payloads)
+    assert len(await redis.keys("user:*")) == 1
+    assert len(await redis.keys("cred:*")) == 1
+    assert await redis.get(derive_credential_key(payloads[0]["installation_credential"])) == payloads[0]["user_id"]
+    await redis.aclose()
 
 
 def test_registration_rejects_a_reused_key_with_different_content(client):
