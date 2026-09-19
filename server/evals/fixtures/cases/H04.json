@@ -1,0 +1,78 @@
+{
+  "case_id": "H04",
+  "set": "heldout",
+  "pool": "heldout",
+  "title": "보류: 상대가 대화를 원치 않는 의도 충돌",
+  "maps_to": [
+    "E04",
+    "AI-D4"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "gunwoo"
+    },
+    "candidates": [
+      {
+        "ref": "taeyun"
+      },
+      {
+        "ref": "seungho"
+      },
+      {
+        "ref": "dain"
+      },
+      {
+        "ref": "woojin"
+      }
+    ],
+    "policy": {},
+    "fault": null
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 사람이 검토·확정한 정답이 아니다.",
+    "rationale": "태윤은 Gradle 경험이 있어 주제는 정확히 맞지만 '오늘은 대화를 나중에 하고 싶다'고 썼다. 주제 적합성만 보면 1순위가 되는 함정이다. 충돌은 순위를 낮추고 알림에서 제외하는 근거이지 목록에서 지우는 근거가 아니다.",
+    "all_candidates_present": true,
+    "top1_any_of": [
+      "seungho"
+    ],
+    "ranked_above": [
+      [
+        "seungho",
+        "taeyun"
+      ],
+      [
+        "seungho",
+        "dain"
+      ]
+    ],
+    "not_in_topk": {
+      "k": 1,
+      "ids": [
+        "taeyun"
+      ]
+    },
+    "intent_conflict_expected": [
+      "taeyun"
+    ],
+    "intent_conflict_not_expected": [
+      "seungho"
+    ],
+    "must_not_drop_ids": [
+      "taeyun"
+    ],
+    "notification_eligible_expected": [
+      "seungho"
+    ],
+    "notification_excluded_expected": [
+      "taeyun",
+      "dain",
+      "woojin"
+    ],
+    "revision_echo": true
+  }
+}

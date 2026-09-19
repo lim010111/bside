@@ -1,0 +1,82 @@
+{
+  "case_id": "E07",
+  "set": "tuning",
+  "pool": "tuning",
+  "shuffle_group": "intent-switch-a",
+  "title": "입력 수정 후 오래된 평가 방지",
+  "maps_to": [
+    "E07",
+    "V08"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "jiwon",
+      "connection_intent": "대회 끝나고도 계속 같이 사이드프로젝트를 이어갈 동료를 찾고 있어요.",
+      "profile_revision": 2
+    },
+    "candidates": [
+      {
+        "ref": "minseo"
+      },
+      {
+        "ref": "nayeon"
+      },
+      {
+        "ref": "doyun"
+      },
+      {
+        "ref": "yeongjin"
+      },
+      {
+        "ref": "seoyeon"
+      },
+      {
+        "ref": "boram"
+      }
+    ],
+    "policy": {},
+    "fault": null
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 사람이 검토·확정한 정답이 아니다.",
+    "rationale": "E01과 같은 조회자·같은 후보지만 의도를 고쳐 profile_revision이 2가 됐다. 결과의 viewer_profile_revision은 2여야 하고 후보별 candidate_profile_revision도 요청값과 같아야 한다. E01 결과가 캐시에서 재사용되면 배포 중심 순위(민서 1위)가 그대로 나오므로, 상위 2명이 도윤·영진으로 바뀌는지와 버전 반향을 함께 본다. 별도 캐시 키 검사는 acceptance test에서 직접 확인한다.",
+    "all_candidates_present": true,
+    "revision_echo": true,
+    "expected_viewer_profile_revision": 2,
+    "top1_any_of": [
+      "doyun",
+      "yeongjin"
+    ],
+    "not_in_topk": {
+      "k": 2,
+      "ids": [
+        "minseo",
+        "nayeon"
+      ]
+    },
+    "status_expected": {
+      "doyun": [
+        "EVALUATED"
+      ],
+      "yeongjin": [
+        "EVALUATED"
+      ]
+    },
+    "cross_case": {
+      "compare_with": "E01",
+      "viewer_inputs_differ_only_in": [
+        "connection_intent",
+        "profile_revision"
+      ],
+      "candidate_set_must_be_identical": true,
+      "cache_must_not_serve_from": "E01",
+      "top1_must_change": true
+    },
+    "revision_echo_per_candidate": true
+  }
+}

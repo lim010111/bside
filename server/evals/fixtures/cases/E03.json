@@ -1,0 +1,111 @@
+{
+  "case_id": "E03",
+  "set": "tuning",
+  "pool": "tuning",
+  "title": "유사성과 상보성을 모두 해석",
+  "maps_to": [
+    "E03"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "sua"
+    },
+    "candidates": [
+      {
+        "ref": "eunchae"
+      },
+      {
+        "ref": "sehyun"
+      },
+      {
+        "ref": "jiho"
+      },
+      {
+        "ref": "subin"
+      },
+      {
+        "ref": "boram"
+      }
+    ],
+    "policy": {},
+    "fault": null
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 사람이 검토·확정한 정답이 아니다.",
+    "rationale": "은채는 조회자가 막힌 바로 그 일을 2년 운영한 상보적 상대다(요청↔제공). 세현은 같은 지점에서 같이 막힌 유사성 상대이며 '같은 고민을 나눈다'는 연결도 유효하다. 둘 다 EVALUATED로 남아야 하고, 태그가 전혀 겹치지 않는 지호·수빈·보람보다 위여야 한다. 동일 태그만으로 판단하면 세현을 놓치거나 은채만 남긴다.",
+    "all_candidates_present": true,
+    "top1_any_of": [
+      "eunchae"
+    ],
+    "topk": {
+      "k": 2,
+      "must_include_any_of": [
+        "eunchae",
+        "sehyun"
+      ],
+      "min_included": 2
+    },
+    "ranked_above": [
+      [
+        "eunchae",
+        "jiho"
+      ],
+      [
+        "sehyun",
+        "subin"
+      ],
+      [
+        "eunchae",
+        "boram"
+      ]
+    ],
+    "not_in_topk": {
+      "k": 2,
+      "ids": [
+        "jiho",
+        "subin",
+        "boram"
+      ]
+    },
+    "status_expected": {
+      "eunchae": [
+        "EVALUATED"
+      ],
+      "sehyun": [
+        "EVALUATED"
+      ]
+    },
+    "reason_required_for": [
+      "eunchae",
+      "sehyun"
+    ],
+    "reason_must_mention_any_of": {
+      "eunchae": [
+        "토큰",
+        "디자인 시스템",
+        "운영",
+        "2년"
+      ],
+      "sehyun": [
+        "토큰",
+        "디자인 시스템",
+        "같은",
+        "비슷",
+        "함께"
+      ]
+    },
+    "notification_eligible_expected": [
+      "eunchae"
+    ],
+    "notification_excluded_expected": [
+      "subin",
+      "boram"
+    ],
+    "revision_echo": true
+  }
+}

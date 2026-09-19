@@ -1,0 +1,46 @@
+{
+  "_note": "신선 보류(fresh hold-out) 참가자 풀. 2026-09-20 프롬프트 동결 후 새로 작성했다. 조정용 풀·기존 보류 풀과 인물이 겹치지 않는다. 프롬프트 조정에 사용하지 않는다.",
+  "_fields": "participants.json 과 같은 필드 계약.",
+  "mirae": {
+    "user_id": "mirae",
+    "nickname": "미래",
+    "self_description": "그냥 시간 남아서 들렀어요.",
+    "connection_intent": "누구든 상관없어요.",
+    "profile_revision": 1
+  },
+  "garam": {
+    "user_id": "garam",
+    "nickname": "가람",
+    "self_description": "몰라요 아직.",
+    "connection_intent": "글쎄요.",
+    "profile_revision": 1
+  },
+  "sejun": {
+    "user_id": "sejun",
+    "nickname": "세준",
+    "self_description": "물류 스타트업에서 재고 예측 모델을 2년 만들었어요. 수요가 튀는 시즌마다 예측이 무너져서 고생했습니다.",
+    "connection_intent": "비슷하게 수요 예측 하시는 분과 시즌성 처리 어떻게 하셨는지 얘기하고 싶어요.",
+    "profile_revision": 1
+  },
+  "harin": {
+    "user_id": "harin",
+    "nickname": "하린",
+    "self_description": "저는 무대 조명 감독이에요. 공연 큐시트를 짜고 현장에서 콘솔을 잡습니다. 코딩은 전혀 못 해요.",
+    "connection_intent": "공연 큐시트를 자동화해 줄 개발자분을 만나고 싶어요. 매번 엑셀로 손수 짭니다.",
+    "profile_revision": 1
+  },
+  "beomseok": {
+    "user_id": "beomseok",
+    "nickname": "범석",
+    "self_description": "백엔드 5년 했고 스케줄링·타임라인 도구를 두 번 만들어봤어요. 공연이나 방송 쪽은 해본 적 없습니다.",
+    "connection_intent": "제 경험이 쓸모 있을 만한 다른 분야 문제를 찾고 있어요.",
+    "profile_revision": 1
+  },
+  "yuna": {
+    "user_id": "yuna",
+    "nickname": "유나",
+    "self_description": "아이들 대상 코딩 교육을 3년 했어요. 커리큘럼을 직접 짭니다.",
+    "connection_intent": "지금은 대화보다 혼자 자료 정리를 하려고 해요. 말 걸지 말아 주세요.",
+    "profile_revision": 1
+  }
+}

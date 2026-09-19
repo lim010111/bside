@@ -1,0 +1,99 @@
+{
+  "case_id": "H01",
+  "set": "heldout",
+  "pool": "heldout",
+  "shuffle_group": "intent-switch-b",
+  "title": "보류: 같은 자기소개, 의도 A(당장의 빌드 문제)",
+  "maps_to": [
+    "E01",
+    "AI-D1"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "hanbyul",
+      "connection_intent": "내일 제출인데 릴리즈 빌드가 계속 깨져서, 지금 옆에서 같이 봐주실 분을 찾고 있어요."
+    },
+    "candidates": [
+      {
+        "ref": "seungho"
+      },
+      {
+        "ref": "narae"
+      },
+      {
+        "ref": "kyumin"
+      },
+      {
+        "ref": "dain"
+      },
+      {
+        "ref": "woojin"
+      }
+    ],
+    "policy": {},
+    "fault": null
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 사람이 검토·확정한 정답이 아니다.",
+    "rationale": "승호만 '빌드 깨지는 건 잡는다'고 원문에 적었고 조회자의 당장의 문제와 맞는다. 규민은 같은 코틀린 개발자지만 스토어 경험이 없어 지금 문제를 풀어줄 수 없다. 나래는 개발을 못 한다고 직접 썼다.",
+    "all_candidates_present": true,
+    "top1_any_of": [
+      "seungho"
+    ],
+    "ranked_above": [
+      [
+        "seungho",
+        "narae"
+      ],
+      [
+        "seungho",
+        "kyumin"
+      ],
+      [
+        "seungho",
+        "dain"
+      ]
+    ],
+    "not_in_topk": {
+      "k": 2,
+      "ids": [
+        "dain",
+        "woojin"
+      ]
+    },
+    "status_expected": {
+      "seungho": [
+        "EVALUATED"
+      ],
+      "dain": [
+        "EVALUATED",
+        "INSUFFICIENT_EVIDENCE"
+      ]
+    },
+    "reason_required_for": [
+      "seungho"
+    ],
+    "reason_must_mention_any_of": {
+      "seungho": [
+        "빌드",
+        "Gradle",
+        "심사",
+        "안드로이드",
+        "3년"
+      ]
+    },
+    "notification_eligible_expected": [
+      "seungho"
+    ],
+    "notification_excluded_expected": [
+      "dain",
+      "woojin"
+    ],
+    "revision_echo": true
+  }
+}

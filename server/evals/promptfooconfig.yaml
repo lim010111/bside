@@ -1,0 +1,37 @@
+# Bside AI 추천 모듈 — 오프라인 평가 (네트워크·모델 인증 없이 실행된다)
+#
+# 실행: npm run eval:offline      (server/evals 에서)
+#
+# 제공자
+#   baseline:rule     web/src/api/mock.js 규칙 추천기를 그대로 옮긴 기준선. 한계는 lib/baseline_rule.js 주석 참조.
+#   baseline:lexical  평가용으로 따로 명세한 단순 결정론적 기준선(자소 2-gram + 방향 보너스).
+#   module:scripted   운영 모듈 server/app/ai 를 결정론적 가짜 게이트웨이로 돌린 것.
+#                     **모델 호출이 아니다.** 모듈의 배치·파싱·근거 검증·정책·캐시 경로를
+#                     오프라인에서 실행하기 위한 것이며 AI 품질의 근거가 아니다.
+#
+# 여기의 통과/실패는 '검증 담당이 모델 출력을 보기 전에 쓴 가설과 일치하는가'이다.
+# 사람이 검토·확정한 정답과의 일치가 아니다.
+description: Bside AI 추천 — E01~E08 및 보류 사례 (오프라인)
+
+prompts:
+  - '{{case_id}}'
+
+providers:
+  - id: file://providers/baseline.js
+    label: baseline:rule
+    config:
+      kind: rule
+  - id: file://providers/baseline.js
+    label: baseline:lexical
+    config:
+      kind: lexical
+  - id: file://providers/module.js
+    label: module:scripted
+    config:
+      mode: scripted
+
+defaultTest:
+  options:
+    runSerially: true
+
+tests: file://tests.generated.yaml

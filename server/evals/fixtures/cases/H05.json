@@ -1,0 +1,76 @@
+{
+  "case_id": "H05",
+  "set": "heldout",
+  "pool": "heldout",
+  "title": "보류: 후보 쪽 정보 부족",
+  "maps_to": [
+    "E05",
+    "AI-D2"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "gunwoo"
+    },
+    "candidates": [
+      {
+        "ref": "dain"
+      },
+      {
+        "ref": "yeeun"
+      },
+      {
+        "ref": "sion"
+      },
+      {
+        "ref": "seungho"
+      }
+    ],
+    "policy": {},
+    "fault": null
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 사람이 검토·확정한 정답이 아니다.",
+    "rationale": "조회자 입력은 구체적인데 후보 셋의 글에 근거가 없다. 이때 근거 부족을 '적합성 낮음'이나 오류가 아니라 INSUFFICIENT_EVIDENCE로 구분해야 한다. 근거가 있는 승호 한 명만 EVALUATED·알림 대상이다. E05는 조회자 쪽이 모호한 사례였고 여기서는 방향이 반대다.",
+    "all_candidates_present": true,
+    "status_expected": {
+      "dain": [
+        "INSUFFICIENT_EVIDENCE"
+      ],
+      "yeeun": [
+        "INSUFFICIENT_EVIDENCE"
+      ],
+      "sion": [
+        "INSUFFICIENT_EVIDENCE"
+      ],
+      "seungho": [
+        "EVALUATED"
+      ]
+    },
+    "min_insufficient_evidence_count": 3,
+    "forbid_status": [
+      "FAILED"
+    ],
+    "top1_any_of": [
+      "seungho"
+    ],
+    "must_not_drop_ids": [
+      "dain",
+      "yeeun",
+      "sion"
+    ],
+    "notification_eligible_expected": [
+      "seungho"
+    ],
+    "notification_excluded_expected": [
+      "dain",
+      "yeeun",
+      "sion"
+    ],
+    "revision_echo": true
+  }
+}

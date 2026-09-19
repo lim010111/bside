@@ -1,0 +1,127 @@
+# 생성 파일. scripts/generate_tests.js 가 fixtures/cases 에서 만든다. 직접 고치지 않는다.
+- description: "E01 — 같은 자기소개, 의도 A: 배포 문제 해결"
+  vars:
+    case_id: E01
+    set: tuning
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "E02 — E01과 같은 자기소개, 의도 B: 사이드프로젝트 동료"
+  vars:
+    case_id: E02
+    set: tuning
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "E03 — 유사성과 상보성을 모두 해석"
+  vars:
+    case_id: E03
+    set: tuning
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "E04 — 양쪽 교류 의도가 충돌"
+  vars:
+    case_id: E04
+    set: tuning
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "E05 — 정보 부족·모호한 입력"
+  vars:
+    case_id: E05
+    set: tuning
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "E06 — 입력 안의 지시문(프롬프트 주입)"
+  vars:
+    case_id: E06
+    set: tuning
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "E07 — 입력 수정 후 오래된 평가 방지"
+  vars:
+    case_id: E07
+    set: tuning
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "E08 — 게이트웨이 오류·시간 초과"
+  vars:
+    case_id: E08
+    set: tuning
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "H01 — 보류: 같은 자기소개, 의도 A(당장의 빌드 문제)"
+  vars:
+    case_id: H01
+    set: heldout
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "H02 — 보류: H01과 같은 자기소개, 의도 B(장기 파트너)"
+  vars:
+    case_id: H02
+    set: heldout
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "H03 — 보류: 기술 태그가 겹치지 않는 상보성(발표 준비)"
+  vars:
+    case_id: H03
+    set: heldout
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "H04 — 보류: 상대가 대화를 원치 않는 의도 충돌"
+  vars:
+    case_id: H04
+    set: heldout
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "H05 — 보류: 후보 쪽 정보 부족"
+  vars:
+    case_id: H05
+    set: heldout
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "H06 — 보류: 정중한 문장에 숨긴 지시문"
+  vars:
+    case_id: H06
+    set: heldout
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "H07 — 보류: 긴 한국어 입력의 이유 가독성"
+  vars:
+    case_id: H07
+    set: heldout
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "N01 — 신선 보류: 양쪽 모두 근거가 없는 입력"
+  vars:
+    case_id: N01
+    set: heldout-fresh
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "N02 — 신선 보류: 어휘가 겹치지 않는 상보성과 인용의 정확성"
+  vars:
+    case_id: N02
+    set: heldout-fresh
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js
+- description: "N03 — 신선 보류: 상대가 대화를 원치 않는 의도 충돌"
+  vars:
+    case_id: N03
+    set: heldout-fresh
+  assert:
+    - type: javascript
+      value: file://asserts/checks.js

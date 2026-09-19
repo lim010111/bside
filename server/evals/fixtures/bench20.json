@@ -1,0 +1,152 @@
+{
+  "_note": "20명 성능 벤치마크 전용 입력. 추천 품질 판정에 쓰지 않는다. 문장은 web/src/api/seeds.js 의 데모 참가자에서 가져왔다.",
+  "viewer": {
+    "user_id": "bench_viewer",
+    "nickname": "벤치",
+    "self_description": "국민대 소프트웨어학부 3학년이고, React로 동아리 프로젝트를 세 번 만들었어요. 교내 공모전 기획도 두 번 해봤습니다.",
+    "connection_intent": "GitHub Actions 배포 단계에서 권한 오류가 계속 나는데, 오늘 안에 같이 봐주실 분을 찾고 있어요.",
+    "profile_revision": 1
+  },
+  "candidates": [
+    {
+      "user_id": "bench_00",
+      "nickname": "민서",
+      "self_description": "작년에 도커로 CI 파이프라인 구축해봤어요",
+      "connection_intent": "비슷한 걸 겪고 있거나 막힌 분이 있으면 편하게 물어봐 주세요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_01",
+      "nickname": "예린",
+      "self_description": "React 상태관리로 삽질 오래 했어요. 물어보셔도 돼요",
+      "connection_intent": "비슷한 걸 겪고 있거나 막힌 분이 있으면 편하게 물어봐 주세요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_02",
+      "nickname": "태현",
+      "self_description": "혼자 왔어요. 기획하다가 백엔드가 궁금해졌어요",
+      "connection_intent": "이 자리에 익숙한 분이랑 얘기하면서 분위기를 좀 알고 싶어요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_03",
+      "nickname": "수아",
+      "self_description": "디자인 시스템 토큰 잡아보신 분 계실까요",
+      "connection_intent": "지금 막힌 걸 같이 풀어줄 수 있는 분과 편하게 얘기하고 싶어요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_04",
+      "nickname": "준호",
+      "self_description": "커피 들고 서 있어요. 아무나 오세요",
+      "connection_intent": "꼭 정해진 주제 아니어도 편하게 대화할 사람이면 좋아요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_05",
+      "nickname": "지훈",
+      "self_description": "백엔드 한 분만 더 필요해요. 팀 아직 3명이에요",
+      "connection_intent": "지금 막힌 걸 같이 풀어줄 수 있는 분과 편하게 얘기하고 싶어요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_06",
+      "nickname": "하윤",
+      "self_description": "작년에 이 대회 나갔어요. 심사 분위기 궁금하면 물어보세요",
+      "connection_intent": "비슷한 걸 겪고 있거나 막힌 분이 있으면 편하게 물어봐 주세요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_07",
+      "nickname": "서연",
+      "self_description": "해커톤 처음이라 뭐부터 해야 할지 모르겠어요",
+      "connection_intent": "이 자리에 익숙한 분이랑 얘기하면서 분위기를 좀 알고 싶어요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_08",
+      "nickname": "도윤",
+      "self_description": "밥 같이 드실 분",
+      "connection_intent": "꼭 정해진 주제 아니어도 편하게 대화할 사람이면 좋아요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_09",
+      "nickname": "지우",
+      "self_description": "피그마 프로토타입까지 해보신 분 있나요",
+      "connection_intent": "지금 막힌 걸 같이 풀어줄 수 있는 분과 편하게 얘기하고 싶어요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_10",
+      "nickname": "은채",
+      "self_description": "피그마 오토레이아웃은 좀 합니다",
+      "connection_intent": "비슷한 걸 겪고 있거나 막힌 분이 있으면 편하게 물어봐 주세요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_11",
+      "nickname": "시우",
+      "self_description": "1학년이고 아직 할 줄 아는 게 별로 없어요. 구경하러 왔어요",
+      "connection_intent": "이 자리에 익숙한 분이랑 얘기하면서 분위기를 좀 알고 싶어요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_12",
+      "nickname": "나연",
+      "self_description": "AWS 프리티어로 배포까지 해봤어요",
+      "connection_intent": "비슷한 걸 겪고 있거나 막힌 분이 있으면 편하게 물어봐 주세요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_13",
+      "nickname": "건우",
+      "self_description": "안드로이드 빌드 에러 같이 봐주실 분",
+      "connection_intent": "지금 막힌 걸 같이 풀어줄 수 있는 분과 편하게 얘기하고 싶어요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_14",
+      "nickname": "유진",
+      "self_description": "자판기 앞에 있어요",
+      "connection_intent": "꼭 정해진 주제 아니어도 편하게 대화할 사람이면 좋아요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_15",
+      "nickname": "채원",
+      "self_description": "발표 많이 해봤어요. 대본 봐드릴 수 있어요",
+      "connection_intent": "비슷한 걸 겪고 있거나 막힌 분이 있으면 편하게 물어봐 주세요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_16",
+      "nickname": "현우",
+      "self_description": "소켓 통신 해보신 분 5분만 시간 내주실 수 있나요",
+      "connection_intent": "지금 막힌 걸 같이 풀어줄 수 있는 분과 편하게 얘기하고 싶어요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_17",
+      "nickname": "다은",
+      "self_description": "팀 없이 왔는데 괜찮을까요",
+      "connection_intent": "이 자리에 익숙한 분이랑 얘기하면서 분위기를 좀 알고 싶어요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_18",
+      "nickname": "정민",
+      "self_description": "타입스크립트 제네릭 헷갈리시면 오세요",
+      "connection_intent": "비슷한 걸 겪고 있거나 막힌 분이 있으면 편하게 물어봐 주세요",
+      "profile_revision": 1
+    },
+    {
+      "user_id": "bench_19",
+      "nickname": "소율",
+      "self_description": "아무 얘기나 좋아요. 코딩 얘기 아니어도 됩니다",
+      "connection_intent": "꼭 정해진 주제 아니어도 편하게 대화할 사람이면 좋아요",
+      "profile_revision": 1
+    }
+  ]
+}

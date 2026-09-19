@@ -1,0 +1,77 @@
+{
+  "case_id": "E05",
+  "set": "tuning",
+  "pool": "tuning",
+  "title": "정보 부족·모호한 입력",
+  "maps_to": [
+    "E05",
+    "AI-D2"
+  ],
+  "request": {
+    "viewer": {
+      "ref": "hayun"
+    },
+    "candidates": [
+      {
+        "ref": "hoyeon"
+      },
+      {
+        "ref": "minseo"
+      },
+      {
+        "ref": "seoyeon"
+      },
+      {
+        "ref": "boram"
+      }
+    ],
+    "policy": {},
+    "fault": null
+  },
+  "expectations": {
+    "status": "provisional-hypothesis",
+    "human_reviewed": false,
+    "authored_by": "validation-claude",
+    "authored_at": "2026-09-20",
+    "authored_before_any_model_output": true,
+    "note": "검증 담당 Claude가 모델 출력을 보기 전에 작성한 전문가 가설이다. 사람이 검토·확정한 정답이 아니다.",
+    "rationale": "조회자('그냥 왔어요' / '아무나요')와 시온 양쪽 모두 근거로 쓸 내용이 없다. 이때 결과는 FAILED(오류)나 낮은 점수의 성공 추천이 아니라 INSUFFICIENT_EVIDENCE여야 하고, 그래야 선택적 입력 보완 안내에 쓸 수 있다. 정보가 없으므로 어떤 후보도 알림 대상이 되어서는 안 되고, 네 명 모두 목록에 남아야 한다. 민서처럼 후보 쪽 글이 구체적인 경우는 조회자 의도를 모르므로 EVALUATED도 INSUFFICIENT_EVIDENCE도 허용한다.",
+    "all_candidates_present": true,
+    "status_expected": {
+      "hoyeon": [
+        "INSUFFICIENT_EVIDENCE"
+      ],
+      "seoyeon": [
+        "INSUFFICIENT_EVIDENCE",
+        "EVALUATED"
+      ],
+      "minseo": [
+        "INSUFFICIENT_EVIDENCE",
+        "EVALUATED"
+      ],
+      "boram": [
+        "INSUFFICIENT_EVIDENCE",
+        "EVALUATED"
+      ]
+    },
+    "min_insufficient_evidence_count": 2,
+    "forbid_status": [
+      "FAILED"
+    ],
+    "must_not_drop_ids": [
+      "hoyeon",
+      "minseo",
+      "seoyeon",
+      "boram"
+    ],
+    "notification_eligible_expected": [],
+    "notification_excluded_expected": [
+      "hoyeon",
+      "minseo",
+      "seoyeon",
+      "boram"
+    ],
+    "reason_required_for": [],
+    "revision_echo": true
+  }
+}
