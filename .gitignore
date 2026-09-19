@@ -10,3 +10,18 @@ Thumbs.db
 # Tooling scratch output (web fetch / pdf rendering)
 pdfs/
 pdfout/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+
+# Node & Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm
