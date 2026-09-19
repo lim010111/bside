@@ -211,7 +211,7 @@ Mentimeter도 참가자 리텐션 없이 2025년 순매출 SEK 598M을 흑자로
 | **앱 래핑** | **Capacitor** | 웹 코드 그대로 안드로이드 빌드. 웹 폴백 무료로 확보 |
 | **BLE** | `@capgo/capacitor-bluetooth-low-energy` | peripheral 지원. 안 되면 아래 대안 |
 | **백엔드** | **FastAPI + uvicorn** | SSE 몇 줄, OpenAI SDK 그대로 |
-| **상태 저장** | **메모리 dict. DB 없음** | 저장하지 않는 게 약속이 아니라 구조 |
+| **상태 저장** | **Redis (AOF 영속화)** | 서버 장애 대응과 수평 확장을 위해 Redis에 저장 |
 | **실시간** | **SSE** | 웹소켓 불필요 |
 | **LLM** | **ai.cs.kookmin.ac.kr** | OpenAI 호환. base_url만 교체 |
 | **배포** | **OCI + Caddy + nip.io** | 터널 불필요, 인증서 자동 |

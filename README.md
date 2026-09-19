@@ -97,7 +97,7 @@ cd prototype && python -m http.server 8777
 | 앱 래핑 | Capacitor (안드로이드) |
 | BLE | `@capgo/capacitor-bluetooth-low-energy` |
 | 백엔드 | FastAPI + uvicorn |
-| 상태 | 메모리 dict (**DB 없음**) |
+| 상태 | Redis (AOF + named volume) |
 | 실시간 | SSE |
 | LLM | `ai.cs.kookmin.ac.kr` (OpenAI 호환) |
 | 배포 | OCI + Caddy + nip.io |
