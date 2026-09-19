@@ -1,6 +1,11 @@
 services:
   api:
     build: .
+    # Survive a host reboot and a Docker restart. Without this the stack comes back
+    # only if someone runs compose again, which a deployed API cannot rely on.
+    # `unless-stopped` rather than `always`: an explicit `docker compose stop` stays
+    # stopped, so maintenance does not fight the restart policy.
+    restart: unless-stopped
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     environment:
@@ -18,8 +23,12 @@ services:
 
   redis:
     image: redis:8.10.1
+    restart: unless-stopped
     ports:
-      - "127.0.0.1:6379:6379"
+      # Published for local tests, which talk to 127.0.0.1:6379. The API itself
+      # reaches Redis over the compose network, not through this port. REDIS_PORT
+      # moves it if a host already has something on 6379.
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     command: ["redis-server", "--appendonly", "yes", "--appendfsync", "always"]
     volumes:
       - redis-data:/data
