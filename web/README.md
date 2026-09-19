@@ -1,28 +1,63 @@
 # Bside — 프론트엔드
 
-React + Vite + JavaScript/JSX. main에서 가져온 화면·CSS와 mock 흐름이다. **현재 제품 요구를 전부 구현한 앱은 아니다.** 바꿀 파일과 순서는 [프론트 작업 계획](../spec/frontend-plan.md), 공통 동작·응답은 [개발 기준](../docs/development-contract.md)과 [API 계약](../docs/api-contract.md)을 따른다.
+React + Vite + JavaScript/JSX. **2026-09-19 전면 개편 반영판** — `docs/development-contract.md`,
+`docs/api-contract.md`, `docs/team-plan.md`(T01=김성빈)를 따른다. 예전 spec/*(상태 4종·소속·
+5분 만료·BLE·ends_at 자동 종료) 기반 코드는 전부 걷어냈다.
 
-## 실행과 확인
+## 실행
 
 ```bash
-cd web
-npm ci
+npm install
 npm run dev
-npm run build
-npm run lint
 ```
 
-`?r=KOSS26` 또는 `?r=FEMEETUP`으로 기존 가상 행사 화면을 볼 수 있다. 기본은 mock이다. `VITE_USE_MOCK=0`은 아직 미구현 오류를 던지는 `src/api/client.js`를 선택하므로 실제 서비스 모드가 아니다. `?view=dashboard`는 고정 집계의 기존 시각 자산이며 현재 MVP에서 보류한다.
+`?r=KOSS26`(기본) 또는 `?r=FEMEETUP`으로 방을 바꾼다. `?view=dashboard`는 운영진 대시보드
+(개발 우선순위 아님, team-plan.md). `.env`에 `VITE_USE_MOCK=0`을 두면 `src/api/client.js`
+(T05 전까지 미구현 에러)로 넘어간다.
 
-## 현재 구현과 한계
+## 뭐가 됐는지 — 실기기로 눌러서 확인함
 
-- 입장·수정·목록·추천 시트·채팅·종료 화면이 mock으로 연결되어 있다.
-- 입력은 아직 소속·상태·한 줄이고, 목록에는 5분 만료·가상 거리 그룹이 있다. 두 자유 입력과 전체 참가자 추천으로 바꿀 대상이다.
-- 추천은 고정 상대·이유·숫자이며 실제 모델 호출이 아니다. 모든 참가자 상세 진입·수정 후 추천 갱신이 필요하다.
-- `lib/bleChat.js`는 자동 답장 mock이다. 실제 BLE·서버 전송·대화 이력 저장·두 사용자 통신은 없다.
-- `sessionStorage` 복원은 같은 탭의 mock이다. 탭 간 상태가 공유되지 않으며 행사 종료까지 브라우저 복원을 구현한 것이 아니다.
-- 예정 시각·5분 만료·‘남은 기록 없음’ 카피는 이전 정책이다. 운영자 수동 종료와 실제 정리 계약에 맞춰 교체한다.
+**입장 → 목록(배너, 추천순) → 상세(자기소개·찾는 사람·추천 이유) → 채팅 → 내 정보 수정 →
+참여 중단, 전체 경로가 목 데이터로 동작한다.**
 
-`api/` 경계와 기존 구성요소는 유지하며 채팅도 실제 API 경계로 옮긴다. `/api` 상대 경로와 같은 출처 연결을 사용한다. 기존 OCI/Nginx 주소와 개발 프록시의 적용 조건은 [배포 기준](../docs/deployment.md)에 있으며, 주소가 문서에 있다고 프론트 연결이 완료된 것은 아니다.
+- 입력: 닉네임 + 자기소개(1~500자) + 교류 의도(1~500자). 상태 선택·소속 없음
+- 목록: 전체 참가자, 간결한 배너만(이름+자기소개 한 줄). 추천된 사람은 "추천" 표시
+- 상세: 배너 클릭 → 자기소개 전문·찾는 사람·**현재 조회자를 위한 추천 이유**·채팅 시작
+- 추천: intent/self_description의 키워드로 "도움 필요"↔"도와줄 수 있음"을 대충 상보적으로
+  짝짓는다(`mock.js`의 `reasonFor`). **정확한 문자열 일치가 아니라 키워드 검사다** — 처음엔
+  정확 일치로 짰다가 실제 자유 입력에서 항상 추천 0건만 나오는 버그를 실기기로 잡았다
+- 채팅: `lib/bleChat.js`(여전히 mock). "서버에 남지 않는다" 안내 제거 — 이제 서버 저장 채팅이
+  기본 전제다(BLE 아님)
+- 내 정보 수정: 닉네임은 못 고친다(계약에 없음). 자기소개·교류 의도만. 참여 중단 버튼 포함
+- 새로고침 복원: `sessionStorage`에 id만 두고 `getMe()`로 재확인. 영속 쿠키(계약)까지는
+  아니고 세션 수준 — 실제 수명은 T02(서버)가 정한다
+- 종료: 운영자 수동 종료만. `room.status: 'open'|'closed'`. 예정 시각·자동 타이머 없음
 
-고정 main `baea751` 검증에서 빌드 성공, 린트 종료 코드 0과 `state.jsx:145`의 export 경고 1개를 확인했다. 이번 작업에서 실제 브라우저·두 기기·AI·운영 서버는 검증하지 않았다. [비교·검증 기록](../docs/reviews/baea751.md)
+## 안 된 것 / 다음 (T05~T06)
+
+- 서버 API 연결. `server/`는 아직 health check만 있어서 지금은 전부 mock
+- 실제 AI 추천(T03). 지금 `reasonFor()`는 키워드 휴리스틱이지 모델 호출이 아니다
+- SSE 실시간 갱신, 부재 중 메시지 복원(V05), 두 실기기 검증(V04)
+- 대시보드는 옛 mock 숫자 그대로 — team-plan.md가 우선순위에서 뺐다
+
+## 구조
+
+```
+src/
+  api/
+    shapes.js    데이터 계약 요약 (원본은 docs/api-contract.md)
+    mock.js      목 구현. sessionStorage에 저장소를 얹어 새로고침 복원을 흉내낸다
+    client.js    진짜 백엔드 스텁 (T05)
+    index.js     스위치
+  lib/bleChat.js 채팅 mock. 서버 저장 채팅으로 옮길 때(T06) 이 파일만 API 호출로 바뀐다
+  state.jsx      useReducer + Context
+  screens/
+    Entry.jsx    입장 + 내 정보 수정 겸용
+    Room.jsx     목록 (배너, 추천순)
+    Detail.jsx   참가자 상세 + 추천 이유 + 채팅 시작
+    Chat.jsx
+    Dashboard.jsx, Ended.jsx
+```
+
+CSS(`src/index.css`)는 이전 상태색·근접·만료 관련 클래스가 일부 안 쓰인 채 남아있다 —
+동작엔 지장 없지만 정리는 나중 순위.

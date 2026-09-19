@@ -1,69 +1,54 @@
 // 데이터 계약. mock.js와 client.js는 이 모양을 똑같이 맞춘다.
-// 여기가 협상 지점이다 — 화면 코드는 이 모양만 알면 되고, mock/client 어느 쪽이
-// 응답하는지는 몰라도 된다. 백엔드(담당 3)에게 그대로 전달할 것.
+// 원본은 docs/api-contract.md — 여기는 그 문서를 프론트 코드 관점으로 옮긴 요약이다.
+// 필드·한도·오류 코드가 바뀌면 저 문서를 먼저 고치고 여기를 따라 고친다.
 //
-// 서버 쪽 원본 모델은 spec/protocol.md 1번. 상태 코드는 같은 문서 2번
-// (LOOKING_FOR / CAN_SHARE / FIRST_TIME / OPEN, 이번 제출의 유일한 세트).
+// 2026-09-19 전면 개편: 상태 선택(LOOKING_FOR 등 4종)·소속·5분 만료·BLE 채팅·
+// 시각 기반 자동 종료를 전부 걷어냈다. 팀 Q1~Q20 합의 사항이며 되돌리지 않는다.
+// 자세한 이유는 docs/development-contract.md.
 
 /**
  * @typedef {Object} RoomMeta
  * @property {string} code
  * @property {string} title
- * @property {string} when
- * @property {{label:string, options:string[]|null, placeholder:string}} aff
- *   options가 null이면 자유 입력. 행사마다 다르다 (protocol.md 2-2번) — 코드에 박지 않는다.
- * @property {number} endsAt   운영진이 방 만들 때 한 번 정한 종료 시각(ms epoch).
- *   사람이 그 순간 누르는 버튼이 아니라 시각 비교로만 판단한다 — protocol.md 0-1번
- * @property {boolean} ended   now > endsAt. true면 참가자 화면을 아무것도 못 연다
+ * @property {'open'|'closed'} status   운영자가 수동으로만 바꾼다. 예정 종료 시각 없음
+ * @property {string|null} closedAt
  */
 
 /**
- * @typedef {Object} Member
+ * @typedef {Object} Participant
  * @property {string} id
- * @property {string} name
- * @property {string} school   실제로는 "소속" — 행사에 따라 학교/회사/팀 등 무엇이든 될 수 있다
- * @property {'LOOKING_FOR'|'CAN_SHARE'|'FIRST_TIME'|'OPEN'} st
- * @property {string} note     자유 입력 한 줄, 140자
- * @property {boolean} near    BLE로 닿는 거리인지 (지금은 mock 고정값)
- * @property {number} age      방에 들어온 뒤 지난 시간(초). 만료 계산의 기준값
+ * @property {string} nickname            1~20자
+ * @property {string} self_description    1~500자. "나는 이런 사람"
+ * @property {string} connection_intent   1~500자. "이런 사람을 만나고 싶다"
+ * @property {'active'|'stopped'} participation_status
+ * @property {number} profile_version     자기소개·교류의도를 실제로 바꿀 때만 증가
+ * @property {string} joined_at
  */
 
 /**
- * @typedef {Object} Match
- * @property {string} personId       members 배열의 id를 가리킨다
- * @property {string} leadSubject    소개 문장용 명사구 ("배포·CI 경험")
- * @property {string} leadDetail     소개 문장용 서술 ("작년에 구축해보셨어요")
- * @property {string} reasonMine     "왜 이어드렸나" 도표 — 내 쪽 ("배포·CI 경험을 찾는 중")
- * @property {string} reasonTheirs   "왜 이어드렸나" 도표 — 상대 쪽 ("작년에 CI 파이프라인 구축")
- * @property {number} overlapWords   겹치는 단어 수 — 상보성 증거로 일부러 0을 보여준다
- * @property {number} score          0~1
- * @property {string} opener         추천 첫마디
+ * @typedef {Object} Recommendation
+ * @property {string} candidate_id
+ * @property {number} rank                낮을수록 상위. 평가 안 된 후보는 아예 없음(목록에서 빠짐, 삭제 아님)
+ * @property {string|null} reason         "ready"일 때만 문자열. 그 외엔 null
+ * @property {'ready'|'pending'|'unscored'|'failed'|'unavailable'} state
  */
 
 /**
- * @typedef {Object} DashboardStats
- * @property {number} joined         입장 인원
- * @property {number} capacity       참가자 정원 (등록 인원 등)
- * @property {number} statusSet      상태를 올린 인원
- * @property {number} matched        접점 발견 건수
- * @property {number} chatted        대화 시작 건수("좋아요" 누른 수)
- * @property {{label:string, count:number}[]} topics   많이 나온 주제. 최대 4개 정도
- */
-
-/**
- * api 표면. mock.js와 client.js가 이 이름·모양을 지킨다.
+ * api 표면. mock.js와 client.js가 이 이름·모양을 지킨다. 화면 코드는 항상
+ * api/index.js를 통해서만 부른다.
  *
- * getRoom(code)                          -> Promise<RoomMeta>
- * join(code, {nick, school, status, note}) -> Promise<{id, name, school, st, note}>
- * updateStatus(code, id, {nick, school, status, note}) -> Promise<{id, name, school, st, note}>
- *   수정도 닉네임·소속을 포함해 전체를 다시 받는다 (편집 화면이 입장 화면 재사용이라서)
- * getMembers(code)                       -> Promise<Member[]>   (나를 제외한 목록)
- * getMatch(code, id)                     -> Promise<Match|null>
- * heartbeat(code, id)                    -> Promise<void>        (7단계에서 실제로 호출 시작)
- * getDashboard(code)                     -> Promise<DashboardStats>
- *   숫자 하드코딩 허용(PRD F5). 운영진 전용 — 참가자 화면과 같은 join 없이 조회한다
- * getMe(code, id)                        -> Promise<(Member & {joinedAt:number})|null>
- *   새로고침 복원용. sessionStorage에 남은 내 id로 "나 아직 여기 있던 사람 맞아?"를
- *   묻는다. 이미 5분 만료됐으면 null — 그러면 화면은 새로 입장한 것처럼 처리한다
+ * getRoom(code)                                  -> Promise<RoomMeta>
+ * join(code, {nickname, self_description, connection_intent})
+ *                                                 -> Promise<Participant>  (기존 참가자면 덮어쓰지 않고 그대로 반환)
+ * getMe(code, id)                                -> Promise<Participant|null>   새로고침 복원용
+ * updateMe(code, id, {self_description, connection_intent, expected_profile_version})
+ *                                                 -> Promise<Participant>
+ * stop(code, id)   / resume(code, id)             -> Promise<Participant>
+ * getParticipants(code)                          -> Promise<Participant[]>   나를 제외한, participation_status active만
+ * getParticipant(code, viewerId, targetId)        -> Promise<{participant: Participant, recommendation: Recommendation}>
+ * getRecommendations(code, viewerId)              -> Promise<Recommendation[]>   순위 목록 (배너 정렬용)
+ * getChatMessages(code, conversationId)           -> Promise<Message[]>
+ * sendMessage(code, {recipientId, clientMessageId, text}) -> Promise<Message>
+ * getDashboard(code)                              -> Promise<DashboardStats>   개발 우선순위 아님(team-plan.md), 있으면 씀
  */
 export {};

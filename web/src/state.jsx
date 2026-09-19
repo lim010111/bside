@@ -1,15 +1,16 @@
-// 전역 상태. 화면이 둘뿐이라 라이브러리 없이 useReducer + Context로 충분하다.
-// (spec/frontend-plan.md 2번 결정 — Redux/Zustand 도입 금지)
+// 전역 상태. 화면이 몇 개 안 되니 라이브러리 없이 useReducer + Context로 충분하다.
+// 2026-09-19 전면 개편: 상태 선택·소속·접점 매칭(1명) 개념을 걷어내고 자기소개/
+// 교류 의도, 전체 참가자 순위(recommendations), 상세 화면, 참여 중단/재개로 바꿨다.
 import { createContext, useContext, useReducer, useCallback } from 'react';
 import { api } from './api/index.js';
 import * as bleChat from './lib/bleChat.js';
 
 const ROOM_CODE = new URLSearchParams(window.location.search).get('r') || 'KOSS26';
 
-// 새로고침해도 내가 누구였는지 잊지 않는다 — 딱 이것만 sessionStorage에 둔다(id
-// 하나). 탭·앱을 완전히 닫으면 sessionStorage 자체가 없어진다. 새 탭에서 같은
-// 링크를 열어도 별개 세션이라 새 사람 취급된다 — "브라우저 세션마다 새로
-// 생성"(protocol.md 116번)을 이제 이 규칙으로 정확히 정의한다.
+// 새로고침해도 내가 누구였는지 잊지 않는다 — id 하나만 sessionStorage에 둔다.
+// 탭·앱을 완전히 닫으면 사라진다. 새 탭에서 같은 링크를 열어도 별개 세션이다.
+// (실제 서버는 영속 쿠키를 쓴다 — docs/api-contract.md 세션 2번. 여기선 세션
+// 수준까지만 흉내내고 정확한 쿠키 수명은 T02가 정한다)
 const SESSION_KEY = `bside:${ROOM_CODE}:me`;
 function rememberMe(id) { sessionStorage.setItem(SESSION_KEY, id); }
 function forgetMe() { sessionStorage.removeItem(SESSION_KEY); }
@@ -17,18 +18,17 @@ function recalledId() { return sessionStorage.getItem(SESSION_KEY); }
 
 const initial = {
   code: ROOM_CODE,
-  room: null, // RoomMeta | null — getRoom() 응답
-  me: null, // 내가 올린 상태. null이면 아직 입장 전
-  editing: false, // true면 입장 화면이 "수정" 모드 (이미 me가 있는 상태에서 재진입)
-  members: [], // 나를 제외한 목록
-  t0: null, // 내가 방에 들어온 시각. 만료 계산의 기준
-  match: null, // Match | null
-  matchLoading: false,
-  matchChecked: false, // 한 번 조회했으면 다시 안 한다 (편집 취소로 Room이 재마운트돼도)
-  chatWith: null, // Member | null — 채팅 중인 상대. null이면 방 화면
+  room: null, // RoomMeta | null
+  me: null, // Participant | null. null이면 아직 입장 전
+  editing: false, // true면 입장 화면이 "내 정보 수정" 모드
+  participants: [], // 나를 제외한 active 참가자 전체 (배너용 원본 데이터)
+  recommendations: [], // [{candidate_id, reason, state}] 순위 순서
+  recommendationsLoading: false,
+  selectedId: null, // 상세 화면에서 보고 있는 참가자 id
+  selected: null, // {participant, recommendation} | null
+  chatWith: null, // Participant | null
   chatMessages: [],
-  bleConnected: true, // 9단계 전까진 항상 true. 실제 BLE 상태 감지는 Capacitor에서
-  restoring: true, // sessionStorage 복원 시도가 끝나기 전엔 Entry를 깜빡 보여주지 않는다
+  restoring: true,
 };
 
 function reducer(state, action) {
@@ -36,29 +36,29 @@ function reducer(state, action) {
     case 'ROOM_LOADED':
       return { ...state, room: action.room };
     case 'JOINED':
-      return { ...state, me: action.me, editing: false, t0: Date.now(), match: null };
-    case 'STATUS_UPDATED':
-      // prototype의 saveStatus()는 수정 때도 S.t0 = Date.now()를 다시 찍는다.
-      // 수정도 "아직 여기 있다"는 신호라서 내 만료 시계가 5분으로 되돌아간다.
-      return { ...state, me: action.me, editing: false, t0: Date.now() };
+      return { ...state, me: action.me, editing: false };
+    case 'ME_UPDATED':
+      return { ...state, me: action.me, editing: false };
     case 'SESSION_RESTORED':
-      // 새로고침 복원. t0는 Date.now()가 아니라 서버가 들고 있던 joinedAt이다 —
-      // 안 그러면 새로고침할 때마다 만료 시계가 부당하게 5분으로 늘어난다
-      return { ...state, me: action.me, t0: action.me.joinedAt, restoring: false };
+      return { ...state, me: action.me, restoring: false };
     case 'RESTORE_DONE':
       return { ...state, restoring: false };
-    case 'MEMBERS_LOADED':
-      return { ...state, members: action.members };
+    case 'PARTICIPANTS_LOADED':
+      return { ...state, participants: action.participants };
+    case 'RECS_LOADING':
+      return { ...state, recommendationsLoading: true };
+    case 'RECS_LOADED':
+      return { ...state, recommendationsLoading: false, recommendations: action.recommendations };
     case 'START_EDIT':
       return { ...state, editing: true };
     case 'CANCEL_EDIT':
       return { ...state, editing: false };
-    case 'MATCH_LOADING':
-      return { ...state, matchLoading: true, matchChecked: true };
-    case 'MATCH_LOADED':
-      return { ...state, matchLoading: false, match: action.match };
+    case 'PARTICIPANT_SELECTED':
+      return { ...state, selectedId: action.id, selected: action.data };
+    case 'PARTICIPANT_DESELECTED':
+      return { ...state, selectedId: null, selected: null };
     case 'CHAT_OPENED':
-      return { ...state, chatWith: action.member, chatMessages: action.messages };
+      return { ...state, chatWith: action.participant, chatMessages: action.messages };
     case 'CHAT_CLOSED':
       return { ...state, chatWith: null, chatMessages: [] };
     case 'CHAT_MESSAGE_ADDED':
@@ -79,65 +79,80 @@ export function RoomProvider({ children }) {
     return room;
   }, [state.code]);
 
-  const loadMembers = useCallback(async () => {
-    const members = await api.getMembers(state.code);
-    dispatch({ type: 'MEMBERS_LOADED', members });
-    return members;
-  }, [state.code]);
+  const loadParticipants = useCallback(async () => {
+    const participants = await api.getParticipants(state.code, state.me?.id);
+    dispatch({ type: 'PARTICIPANTS_LOADED', participants });
+    return participants;
+  }, [state.code, state.me]);
+
+  const loadRecommendations = useCallback(async () => {
+    if (!state.me) return;
+    dispatch({ type: 'RECS_LOADING' });
+    const recommendations = await api.getRecommendations(state.code, state.me.id);
+    dispatch({ type: 'RECS_LOADED', recommendations });
+    return recommendations;
+  }, [state.code, state.me]);
 
   const join = useCallback(async (payload) => {
     const me = await api.join(state.code, payload);
     rememberMe(me.id);
     dispatch({ type: 'JOINED', me });
-    await loadMembers();
     return me;
-  }, [state.code, loadMembers]);
+  }, [state.code]);
 
-  const updateStatus = useCallback(async (payload) => {
-    const me = await api.updateStatus(state.code, state.me.id, payload);
-    dispatch({ type: 'STATUS_UPDATED', me });
+  const updateMe = useCallback(async (payload) => {
+    const me = await api.updateMe(state.code, state.me.id, payload);
+    dispatch({ type: 'ME_UPDATED', me });
     return me;
   }, [state.code, state.me]);
 
-  // 새로고침 복원. App.jsx가 마운트 시 한 번만 부른다. sessionStorage에 id가
-  // 없거나, 있어도 서버가 이미 만료 처리했으면(getMe -> null) 그냥 처음 온
-  // 사람으로 둔다 — 남아있던 낡은 sessionStorage 키는 지운다.
+  const stopParticipating = useCallback(async () => {
+    const me = await api.stop(state.code, state.me.id);
+    dispatch({ type: 'ME_UPDATED', me });
+    return me;
+  }, [state.code, state.me]);
+
+  const resumeParticipating = useCallback(async () => {
+    const me = await api.resume(state.code, state.me.id);
+    dispatch({ type: 'ME_UPDATED', me });
+    return me;
+  }, [state.code, state.me]);
+
+  // 새로고침 복원. App.jsx가 마운트 시 한 번만 부른다.
   const restoreSession = useCallback(async () => {
     const id = recalledId();
     if (!id) { dispatch({ type: 'RESTORE_DONE' }); return; }
     const me = await api.getMe(state.code, id);
     if (!me) { forgetMe(); dispatch({ type: 'RESTORE_DONE' }); return; }
     dispatch({ type: 'SESSION_RESTORED', me });
-    await loadMembers();
-  }, [state.code, loadMembers]);
+  }, [state.code]);
 
   const startEdit = useCallback(() => dispatch({ type: 'START_EDIT' }), []);
   const cancelEdit = useCallback(() => dispatch({ type: 'CANCEL_EDIT' }), []);
 
-  const loadMatch = useCallback(async () => {
-    dispatch({ type: 'MATCH_LOADING' });
-    const match = await api.getMatch(state.code, state.me.id);
-    dispatch({ type: 'MATCH_LOADED', match });
-    return match;
+  const selectParticipant = useCallback(async (id) => {
+    const data = await api.getParticipant(state.code, state.me.id, id);
+    dispatch({ type: 'PARTICIPANT_SELECTED', id, data });
   }, [state.code, state.me]);
+  const deselectParticipant = useCallback(() => dispatch({ type: 'PARTICIPANT_DESELECTED' }), []);
 
-  const openChat = useCallback(async (member) => {
+  const openChat = useCallback(async (participant) => {
     const messages = await bleChat.getInitialMessages();
-    dispatch({ type: 'CHAT_OPENED', member, messages });
+    dispatch({ type: 'CHAT_OPENED', participant, messages });
   }, []);
   const closeChat = useCallback(() => dispatch({ type: 'CHAT_CLOSED' }), []);
 
   const sendChatMessage = useCallback(async (text) => {
     const mine = await bleChat.sendMessage(text);
     dispatch({ type: 'CHAT_MESSAGE_ADDED', message: mine });
-    // 실제 BLE라면 상대 기기가 알아서 보낸다 — 여긴 데모용 자동 응답
     const reply = await bleChat.fakeReply();
     dispatch({ type: 'CHAT_MESSAGE_ADDED', message: reply });
   }, []);
 
   const value = {
-    state, loadRoom, loadMembers, join, updateStatus, startEdit, cancelEdit, loadMatch,
-    openChat, closeChat, sendChatMessage, restoreSession,
+    state, loadRoom, loadParticipants, loadRecommendations, join, updateMe,
+    stopParticipating, resumeParticipating, restoreSession, startEdit, cancelEdit,
+    selectParticipant, deselectParticipant, openChat, closeChat, sendChatMessage,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -1,14 +1,14 @@
-// 채팅 화면. prototype의 S5(257~291줄) + toChat/paintBt/btOn/renderChat/send(807~832줄)를 옮긴 것.
-//
-// 여기서 오가는 메시지는 서버를 거치지 않는다는 게 제품의 핵심 주장이다
-// (spec/protocol.md 0번). 그래서 메시지 전송은 api/가 아니라 lib/bleChat.js를 쓴다 —
-// 9단계에서 그 파일만 실제 BLE GATT 호출로 바뀌고, 이 화면 코드는 안 바뀐다.
+// 채팅 화면. 2026-09-19 전면 개편으로 BLE 직접 채팅을 걷어내고 서버 저장
+// 채팅(REST + SSE)으로 바꿨다 — "실제 채팅은 서버가 저장하므로 '서버에 메시지가
+// 남지 않는다'고 안내하지 않는다"(spec/protocol.md). 지금은 lib/bleChat.js가
+// 여전히 메시지를 들고 있는 mock이고, T06에서 실제 서버 저장·SSE로 옮긴다 —
+// 그때도 이 화면의 마크업은 거의 안 바뀐다, sendChatMessage 안쪽만 API 호출로 바뀐다.
 import { useEffect, useRef, useState } from 'react';
 import { useRoom } from '../state.jsx';
 
 export default function Chat() {
   const { state, closeChat, sendChatMessage } = useRoom();
-  const { chatWith: peer, chatMessages, bleConnected } = state;
+  const { chatWith: peer, chatMessages } = state;
 
   const [draft, setDraft] = useState('');
   const bubblesRef = useRef(null);
@@ -33,44 +33,29 @@ export default function Chat() {
           <svg className="ic lg"><use href="#i-back" /></svg>
         </button>
         <div className="grow">
-          <div className="t-lg">{peer.name}</div>
-          <div className="t-sm faint">{peer.school}</div>
+          <div className="t-lg">{peer.nickname}</div>
         </div>
-        {bleConnected && (
-          <span className="badge">
-            <svg className="ic" style={{ width: 12, height: 12, verticalAlign: -2 }}><use href="#i-bt" /></svg> 직접 연결
-          </span>
-        )}
       </header>
 
-      {!bleConnected ? (
-        <div className="empty">
-          <svg className="ic"><use href="#i-btoff" /></svg>
-          <p className="t-md" style={{ margin: '0 0 6px' }}>블루투스가 꺼져 있어요</p>
-          <p className="t-sm dim" style={{ margin: '0 0 18px', lineHeight: 1.6 }}>대화는 기기끼리 직접 주고받습니다.</p>
-          <p className="t-sm faint" style={{ margin: '18px 0 0', lineHeight: 1.6 }}>꺼져 있어도 방 목록은 그대로 보입니다.</p>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <p className="sysline">행사가 끝날 때까지 대화가 남아있어요. 앱을 닫아도 사라지지 않아요.</p>
+        <div className="bubbles" ref={bubblesRef}>
+          {chatMessages.map((m, i) => (
+            <div key={i} className={`b ${m.me ? 'me' : 'you'}`}>{m.t}</div>
+          ))}
         </div>
-      ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <p className="sysline">방을 나가면 사라집니다.</p>
-          <div className="bubbles" ref={bubblesRef}>
-            {chatMessages.map((m, i) => (
-              <div key={i} className={`b ${m.me ? 'me' : 'you'}`}>{m.t}</div>
-            ))}
-          </div>
-          <div className="composer">
-            <input
-              className="field" style={{ height: 44 }} placeholder="메시지" autoComplete="off"
-              value={draft} onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-            />
-            <button type="button" onClick={submit} aria-label="보내기"
-              style={{ width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg className="ic lg"><use href="#i-send" /></svg>
-            </button>
-          </div>
+        <div className="composer">
+          <input
+            className="field" style={{ height: 44 }} placeholder="메시지" autoComplete="off"
+            value={draft} onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+          />
+          <button type="button" onClick={submit} aria-label="보내기"
+            style={{ width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg className="ic lg"><use href="#i-send" /></svg>
+          </button>
         </div>
-      )}
+      </div>
     </section>
   );
 }

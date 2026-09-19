@@ -1,159 +1,97 @@
-// 입장 화면. prototype의 S2(193~237줄) + renderPreview/renderAff/affPick/affValue/
-// pick/noteTyped/saveStatus/restoreAff(562~725줄)를 컴포넌트로 옮긴 것.
-//
-// 미리보기 화면은 없다. 닉네임·소속·상태·한 줄이 이 한 화면에 있고, 올려야 방이 열린다.
-// 매칭은 내 한 줄이 있어야 성립하므로 구경만 하는 사람을 만들지 않는다.
+// 입장 / 내 정보 수정 화면. 닉네임 + 자기소개 + 교류 의도, 자유 입력 두 개.
+// docs/api-contract.md: nickname 1~20자, self_description·connection_intent 1~500자.
+// 수정 모드에서는 닉네임을 못 바꾼다 — "닉네임 수정은 이번 API에서 다루지 않고
+// 두 자유 입력만 수정한다"(development-contract.md). 참여 중단(stop)도 여기서.
 import { useEffect, useRef, useState } from 'react';
 import { useRoom } from '../state.jsx';
-import { STATUSES } from '../api/index.js';
-import StatusPicker from '../components/StatusPicker.jsx';
-import { Stats } from '../components/Composition.jsx';
-
-const OTHER = '__other';
 
 export default function Entry() {
-  const { state, join, updateStatus, cancelEdit } = useRoom();
-  const { room, members, me, editing } = state;
+  const { state, join, updateMe, cancelEdit, stopParticipating } = useRoom();
+  const { room, me, editing } = state;
 
   const nickRef = useRef(null);
-  const [nick, setNick] = useState(me?.name ?? '');
-  const [status, setStatus] = useState(me?.st ?? null);
-  const [note, setNote] = useState(me?.note ?? '');
+  const [nickname, setNickname] = useState(me?.nickname ?? '');
+  const [selfDesc, setSelfDesc] = useState(me?.self_description ?? '');
+  const [intent, setIntent] = useState(me?.connection_intent ?? '');
   const [error, setError] = useState('');
-
-  // 소속: <select>가 있는 방(학교 목록)과 자유 입력만 있는 방(회사 등)을 나눈다.
-  // room.aff.options가 배열이면 select, null이면 곧바로 자유 입력.
-  const hasOptions = !!room?.aff?.options;
-  const initialSelect = hasOptions
-    ? (me && room.aff.options.includes(me.school) ? me.school : (me ? OTHER : room.aff.options[0]))
-    : '';
-  const [affSelect, setAffSelect] = useState(initialSelect);
-  const [affOther, setAffOther] = useState(hasOptions && me && !room.aff.options.includes(me.school) ? me.school : '');
-  const [affFree, setAffFree] = useState(!hasOptions ? (me?.school ?? '') : '');
-
-  const affValue = hasOptions ? (affSelect === OTHER ? affOther.trim() : affSelect) : affFree.trim();
 
   useEffect(() => {
     nickRef.current?.focus();
   }, []);
 
-  if (!room) return null; // getRoom() 응답 대기. 3~4단계에서 로딩 스켈레톤을 쓴다면 여기
-
-  function pick(k) {
-    setStatus(k);
-    if (error) setError('');
-  }
-
-  function noteChanged(v) {
-    setNote(v);
-    if (v.trim() && error) setError('');
-  }
+  if (!room) return null;
 
   async function submit() {
-    const n = nick.trim();
-    if (!n) { setError('닉네임을 입력해 주세요'); nickRef.current?.focus(); return; }
-    if (!affValue) { setError(`${room.aff.label}을 입력해 주세요`); return; }
-    if (!status) { setError('상태를 하나 골라주세요'); return; }
-    const v = note.trim();
-    if (!v) { setError('한 줄만 적어주세요. 이게 있어야 이어드릴 수 있어요'); return; }
+    const n = nickname.trim();
+    const s = selfDesc.trim();
+    const i = intent.trim();
+    if (!editing && !n) { setError('닉네임을 입력해 주세요'); nickRef.current?.focus(); return; }
+    if (!s) { setError('자기소개를 한 줄이라도 적어 주세요'); return; }
+    if (!i) { setError('어떤 사람을 만나고 싶은지 적어 주세요'); return; }
     setError('');
-    const payload = { nick: n, school: affValue, status, note: v };
-    if (editing) await updateStatus(payload);
-    else await join(payload);
+    if (editing) await updateMe({ self_description: s, connection_intent: i });
+    else await join({ nickname: n, self_description: s, connection_intent: i });
   }
-
-  const statusLabel = status ? STATUSES.find((s) => s.k === status) : null;
 
   return (
     <section className="screen on">
       <header style={{ padding: '16px 0 12px' }}>
         <div className="row" style={{ justifyContent: 'space-between', minHeight: 22 }}>
-          {me ? (
-            <button
-              type="button"
-              className="row"
-              style={{ gap: 4, fontSize: 12, color: 'var(--text-dim)' }}
-              onClick={cancelEdit}
-            >
+          {editing ? (
+            <button type="button" className="row" style={{ gap: 4, fontSize: 12, color: 'var(--text-dim)' }} onClick={cancelEdit}>
               <svg className="ic" style={{ width: 14, height: 14 }}><use href="#i-back" /></svg>
-              방으로
+              목록으로
             </button>
           ) : (
             <span className="t-sm faint" style={{ fontWeight: 500, letterSpacing: '-.02em' }}>Bside</span>
           )}
-          <span className="t-sm faint">{room.when.split(' · ').pop()}</span>
         </div>
         <h1 className="t-xl" style={{ margin: '10px 0 0' }}>{room.title}</h1>
         <p className="t-sm dim" style={{ margin: '5px 0 0' }}>
-          {members.length ? `지금 ${members.length}명이 상태를 올려뒀어요` : '아직 아무도 없어요'}
+          {editing ? '자기소개와 찾는 사람을 고치면 추천도 다시 계산됩니다.' : '닉네임과 두 줄을 적으면 같은 방 사람들이 볼 수 있어요.'}
         </p>
       </header>
 
-      <Stats list={members} />
+      <div style={{ borderTop: '1px solid var(--border)', margin: '10px 0 16px' }} />
 
-      {/* 누가 있는지는 알려주되 무슨 말을 했는지는 올린 뒤에 보여준다 */}
-      <p className="t-sm faint" style={{ margin: '10px 0 0', lineHeight: 1.55 }}>
-        {members.length
-          ? `한 줄을 올리면 ${members.length}명이 뭘 찾고 있는지 보입니다.`
-          : '아직 아무도 없어요. 첫 번째로 올려보세요.'}
-      </p>
-
-      <div style={{ borderTop: '1px solid var(--border)', margin: '16px 0 2px' }} />
-
-      <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
-        <div className="grow">
-          <label className="t-sm dim" htmlFor="nick">닉네임</label>
+      {!editing && (
+        <div style={{ marginBottom: 14 }}>
+          <label className="t-sm dim" htmlFor="nickname">닉네임</label>
           <input
-            id="nick" ref={nickRef} className="field" style={{ marginTop: 5 }}
-            maxLength={12} placeholder="지원" autoComplete="off"
-            value={nick} onChange={(e) => setNick(e.target.value)}
-          />
-        </div>
-        <div className="grow">
-          <label className="t-sm dim" htmlFor="aff">{room.aff.label}</label>
-          <div style={{ marginTop: 5 }}>
-            {hasOptions ? (
-              <select id="aff" className="field" value={affSelect} onChange={(e) => setAffSelect(e.target.value)}>
-                {room.aff.options.map((o) => <option key={o} value={o}>{o}</option>)}
-                <option value={OTHER}>직접 입력</option>
-              </select>
-            ) : (
-              <input
-                id="aff" className="field" maxLength={20} autoComplete="off"
-                placeholder={room.aff.placeholder} value={affFree}
-                onChange={(e) => setAffFree(e.target.value)}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-      {hasOptions && affSelect === OTHER && (
-        <div style={{ marginTop: 8 }}>
-          <input
-            className="field" maxLength={20} autoComplete="off" autoFocus
-            placeholder={room.aff.placeholder} value={affOther}
-            onChange={(e) => setAffOther(e.target.value)}
+            id="nickname" ref={nickRef} className="field" style={{ marginTop: 5 }}
+            maxLength={20} placeholder="지원" autoComplete="off"
+            value={nickname} onChange={(e) => setNickname(e.target.value)}
           />
         </div>
       )}
 
-      <p className="t-sm dim" style={{ margin: '18px 0 7px' }}>지금 무엇을 찾고 계세요?</p>
-      <StatusPicker value={status} onChange={pick} />
+      <label className="t-sm dim" htmlFor="self">자기소개 — 어떤 사람인가요</label>
+      <textarea
+        id="self" className="field" style={{ marginTop: 5, height: 84 }} maxLength={500}
+        placeholder="퇴근 후 작은 앱을 만드는 프론트엔드 개발자입니다."
+        value={selfDesc} onChange={(e) => setSelfDesc(e.target.value)}
+      />
+      <p className="t-sm faint" style={{ textAlign: 'right', margin: '4px 0 0' }}>{selfDesc.length} / 500</p>
 
       <div style={{ marginTop: 14 }}>
+        <label className="t-sm dim" htmlFor="intent">어떤 사람을 만나고 싶나요</label>
         <textarea
-          className="field" maxLength={140}
-          placeholder={statusLabel?.ph ?? '배포·CI 경험 있으신 분 찾아요'}
-          value={note} onChange={(e) => noteChanged(e.target.value)}
+          id="intent" className="field" style={{ marginTop: 5, height: 84 }} maxLength={500}
+          placeholder="사이드 프로젝트를 만드는 사람과 시행착오를 나누고 싶어요."
+          value={intent} onChange={(e) => setIntent(e.target.value)}
         />
-        <div className="row" style={{ justifyContent: 'space-between', marginTop: 4 }}>
-          <span className="err" style={{ margin: 0 }}>{error}</span>
-          <span className="t-sm faint">{note.length} / 140</span>
-        </div>
+        <p className="t-sm faint" style={{ textAlign: 'right', margin: '4px 0 0' }}>{intent.length} / 500</p>
       </div>
 
+      <p className="err" style={{ marginTop: 8 }}>{error}</p>
+
       <div style={{ marginTop: 'auto', paddingBottom: 20 }}>
-        <button type="button" className="btn" onClick={submit}>올리기</button>
+        <button type="button" className="btn" onClick={submit}>{editing ? '저장' : '들어가기'}</button>
+        {editing && me?.participation_status === 'active' && (
+          <button type="button" className="btn btn-ghost" style={{ marginTop: 9 }} onClick={stopParticipating}>
+            참여 중단하기
+          </button>
+        )}
       </div>
     </section>
   );
