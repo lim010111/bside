@@ -15,8 +15,15 @@ import pytest
 import redis as sync_redis
 from fastapi.testclient import TestClient
 
-from app.config import Settings
-from app.main import create_app
+# CREDENTIAL_REPLAY_SECRET has no default, on purpose: a shipped default secret is
+# worse than a missing one. That makes it required here too, and `app.main` builds
+# an app at import time, so it has to be set before that import rather than in a
+# fixture. Setting it here also keeps the suite from depending on a developer's
+# own server/.env, which is what it was quietly doing.
+os.environ.setdefault("CREDENTIAL_REPLAY_SECRET", "test-only-credential-replay-secret")
+
+from app.config import Settings  # noqa: E402
+from app.main import create_app  # noqa: E402
 
 SCRATCH_URL = os.environ.get("TEST_REDIS_URL", "redis://127.0.0.1:6379/15")
 

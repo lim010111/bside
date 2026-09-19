@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Bside FastAPI server"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "cryptography>=50.0.1",
     "fastapi[standard]",
     "pydantic-settings",
     "redis>=8.1.0",

@@ -356,8 +356,7 @@ components:
         installation_request_id:
           type: string
           format: uuid
-          description: Client-generated UUIDv4 retained across retries of this registration.
-          pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+          description: Client-generated UUID retained across retries of this registration.
         platform:
           type: string
           enum: [android]
@@ -529,8 +528,7 @@ components:
         client_message_id:
           type: string
           format: uuid
-          description: Client-generated UUIDv4 retained across retries of this message.
-          pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+          description: Client-generated UUID retained across retries of this message.
         text:
           type: string
           minLength: 1

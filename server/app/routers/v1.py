@@ -1,6 +1,7 @@
 """The API v0.1 endpoints from docs/openapi.yaml, mounted under /api/v1."""
 
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request, Response, status
 
@@ -95,12 +96,12 @@ async def put_push_token(body: PushTokenRequest, user_id: CurrentUser, store: St
 
 @router.post("/discovery/identifiers", response_model=DiscoveryIdentifierResponse, tags=["Discovery"])
 async def issue_identifier(user_id: CurrentUser, store: StoreDep):
-    user = await store.get_user(user_id)
-    if store.profile_of(user) is None:
+    outcome, identifier = await store.issue_identifier(user_id)
+    if outcome == "PROFILE_REQUIRED":
         raise ApiError(status.HTTP_409_CONFLICT, "PROFILE_REQUIRED", "A complete profile is required.")
-    if user.get("discovery_enabled") != "1":
+    if outcome == "DISCOVERY_DISABLED":
         raise ApiError(status.HTTP_409_CONFLICT, "DISCOVERY_DISABLED", "Discovery is turned off.")
-    return DiscoveryIdentifierResponse(**await store.issue_identifier(user_id))
+    return DiscoveryIdentifierResponse(**identifier)
 
 
 def get_recommendations(request: Request) -> Recommendations:
@@ -207,13 +208,13 @@ async def create_message(
 
 @router.get("/conversations/{conversation_id}/messages", response_model=MessagePage, tags=["Chat"])
 async def list_messages(
-    conversation_id: str,
+    conversation_id: UUID,
     user_id: CurrentUser,
     store: StoreDep,
     after_seq: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
 ):
-    page = await store.get_messages(user_id, conversation_id, after_seq, limit)
+    page = await store.get_messages(user_id, str(conversation_id), after_seq, limit)
     if page is None:
         # Missing and non-participant conversations are the same answer, so the API
         # does not tell a stranger that a conversation exists.
