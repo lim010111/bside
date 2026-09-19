@@ -10,6 +10,7 @@ services:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     environment:
       REDIS_URL: redis://redis:6379/0
+      CREDENTIAL_REPLAY_SECRET: ${CREDENTIAL_REPLAY_SECRET:?CREDENTIAL_REPLAY_SECRET is required}
       CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5173","http://127.0.0.1:5173","https://localhost"]}
       # .dockerignore keeps server/.env out of the image, so the AI settings have
       # to arrive here. Compose reads them from server/.env on the host. Leaving

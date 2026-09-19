@@ -1,8 +1,15 @@
 """API v0.1 behaviour: docs/api-contract.md and docs/openapi.yaml."""
 
-from uuid import uuid4
+import asyncio
+import json
+
+from uuid import UUID, uuid4
 
 import pytest
+from redis.asyncio import Redis
+
+from app.security import derive_credential_key
+from app.store import Store
 
 
 def message_body(recipient: str, text: str = "안녕하세요") -> dict:
@@ -31,6 +38,75 @@ def test_registration_is_idempotent_and_its_replay_window_expires(client, settin
     store.close()
 
 
+def test_registration_stores_only_an_encrypted_replay(client, settings):
+    import redis as sync_redis
+
+    request_id = str(uuid4())
+    response = client.post(
+        "/api/v1/installations",
+        json={"installation_request_id": request_id, "platform": "android"},
+    )
+    assert response.status_code == 201
+
+    store = sync_redis.from_url(settings.redis_url, decode_responses=True)
+    replay = store.get(f"install:replay:{request_id}")
+    link = store.get(f"install:link:{request_id}")
+    credential = response.json()["installation_credential"]
+    assert replay.startswith("v1:")
+    assert credential not in replay
+    assert credential not in link
+    assert set(json.loads(link)) == {"user_id", "platform", "created_at"}
+    store.close()
+
+
+def test_legacy_plaintext_replay_expires_without_replacing_its_credential(client, settings):
+    import redis as sync_redis
+
+    request_id = str(uuid4())
+    first = client.post(
+        "/api/v1/installations",
+        json={"installation_request_id": request_id, "platform": "android"},
+    )
+    store = sync_redis.from_url(settings.redis_url, decode_responses=True)
+    store.set(
+        f"install:replay:{request_id}",
+        json.dumps({"installation_credential": first.json()["installation_credential"]}),
+    )
+
+    replay = client.post(
+        "/api/v1/installations",
+        json={"installation_request_id": request_id, "platform": "android"},
+    )
+    assert replay.status_code == 409
+    assert replay.json()["error"]["code"] == "IDEMPOTENCY_REPLAY_EXPIRED"
+    assert store.get(f"install:replay:{request_id}").startswith("{")
+    store.close()
+
+
+@pytest.mark.asyncio
+async def test_registration_converges_under_concurrency(settings, flush):
+    redis = Redis.from_url(settings.redis_url, decode_responses=True)
+    store = Store(redis, settings)
+    request_id = str(uuid4())
+    start = asyncio.Event()
+
+    async def register():
+        await start.wait()
+        return await store.register_installation(request_id, "android")
+
+    tasks = [asyncio.create_task(register()) for _ in range(20)]
+    start.set()
+    results = await asyncio.gather(*tasks)
+    payloads = [payload for _, payload in results]
+
+    assert [outcome for outcome, _ in results].count("created") == 1
+    assert all(payload == payloads[0] for payload in payloads)
+    assert len(await redis.keys("user:*")) == 1
+    assert len(await redis.keys("cred:*")) == 1
+    assert await redis.get(derive_credential_key(payloads[0]["installation_credential"])) == payloads[0]["user_id"]
+    await redis.aclose()
+
+
 def test_registration_rejects_a_reused_key_with_different_content(client):
     request = {"installation_request_id": str(uuid4()), "platform": "android"}
     assert client.post("/api/v1/installations", json=request).status_code == 201
@@ -38,6 +114,16 @@ def test_registration_rejects_a_reused_key_with_different_content(client):
     # 'ios' is not an allowed platform at all, so the field is rejected first.
     assert conflict.status_code == 422
     assert conflict.json()["error"]["details"]["field"] == "platform"
+
+
+def test_registration_rejects_a_malformed_idempotency_key(client):
+    response = client.post(
+        "/api/v1/installations",
+        json={"installation_request_id": "not-a-uuid", "platform": "android"},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert response.json()["error"]["details"]["field"] == "installation_request_id"
 
 
 def test_a_public_user_id_is_not_a_credential(client, install):
@@ -119,6 +205,76 @@ def test_identifiers_need_a_profile_and_discovery_on(client, install):
 def test_the_identifier_is_stable_until_its_rotation_time(client, install):
     alice = install("앨리스")
     assert alice.identifier() == alice.identifier()
+
+
+@pytest.mark.asyncio
+async def test_identifier_rejects_an_empty_profile_field(settings, flush):
+    from redis.asyncio import Redis
+
+    from app.store import Store
+
+    redis = Redis.from_url(settings.redis_url, decode_responses=True)
+    user_id = str(uuid4())
+    await redis.hset(
+        f"user:{user_id}",
+        mapping={
+            "nickname": "",
+            "self_description": "소개",
+            "connection_intent": "대화",
+            "discovery_enabled": "1",
+        },
+    )
+    outcome, identifier = await Store(redis, settings).issue_identifier(user_id)
+    assert (outcome, identifier) == ("PROFILE_REQUIRED", None)
+    assert await redis.exists(f"ident:current:{user_id}") == 0
+    await redis.aclose()
+
+
+@pytest.mark.asyncio
+async def test_identifier_rotation_is_atomic_and_keeps_the_old_mapping_until_ttl(settings, flush):
+    from redis.asyncio import Redis
+
+    from app.store import Store, now_ms
+
+    redis = Redis.from_url(settings.redis_url, decode_responses=True)
+    store = Store(redis, settings)
+    user_id = str(uuid4())
+    await redis.hset(
+        f"user:{user_id}",
+        mapping={
+            "nickname": "동시성",
+            "self_description": "소개",
+            "connection_intent": "대화",
+            "discovery_enabled": "1",
+        },
+    )
+    outcome, first = await store.issue_identifier(user_id)
+    assert outcome == "ok"
+    current_key = f"ident:current:{user_id}"
+    record = json.loads(await redis.get(current_key))
+    moment = now_ms()
+    record["issued_at_ms"] = moment - 240_000
+    record["refresh_after_ms"] = moment - 1
+    record["expires_at_ms"] = moment + 60_000
+    await redis.set(current_key, json.dumps(record), px=60_000)
+    await redis.pexpire(f"ident:map:{first['identifier']}", 60_000)
+
+    start = asyncio.Event()
+
+    async def rotate():
+        await start.wait()
+        return await store.issue_identifier(user_id)
+
+    tasks = [asyncio.create_task(rotate()) for _ in range(20)]
+    await asyncio.sleep(0)
+    start.set()
+    results = await asyncio.gather(*tasks)
+    identifiers = {value[1]["identifier"] for value in results}
+    assert len(identifiers) == 1
+    assert first["identifier"] not in identifiers
+    assert await redis.get(f"ident:map:{first['identifier']}") == user_id
+    assert 0 < await redis.pttl(f"ident:map:{first['identifier']}") <= 60_000
+    await redis.aclose()
 
 
 # --- observations -----------------------------------------------------------
@@ -221,6 +377,17 @@ def test_the_same_client_message_id_replays_and_a_changed_one_conflicts(client, 
         assert conflict.json()["error"]["code"] == "IDEMPOTENCY_CONFLICT"
 
 
+def test_messages_reject_a_malformed_idempotency_key(client, install):
+    alice = install("앨리스")
+    response = alice.post(
+        "/api/v1/messages",
+        json={"recipient_id": str(uuid4()), "client_message_id": "not-a-uuid", "text": "안녕하세요"},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert response.json()["error"]["details"]["field"] == "client_message_id"
+
+
 def test_one_conversation_per_pair_even_when_both_send_first(client, install):
     alice, bob = install("앨리스"), install("밥")
     alice.observe(bob.identifier())
@@ -295,6 +462,15 @@ def test_only_participants_can_read_a_conversation(client, install):
     assert denied.status_code == 404
     assert denied.json()["error"]["code"] == "CONVERSATION_NOT_FOUND"
     assert alice.get(f"/api/v1/conversations/{uuid4()}/messages").status_code == 404
+
+
+def test_conversation_path_requires_a_uuid(client, install):
+    alice = install("앨리스")
+    invalid = alice.get("/api/v1/conversations/not-a-uuid/messages")
+    assert invalid.status_code == 422
+    assert invalid.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert invalid.json()["error"]["details"]["field"] == "path.conversation_id"
+    assert alice.get(f"/api/v1/conversations/{UUID(int=0)}/messages").status_code == 404
 
 
 def test_history_query_bounds(client, install):

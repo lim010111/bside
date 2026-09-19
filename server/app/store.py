@@ -23,7 +23,6 @@ replaced value overlaps for at most one minute".
 
 from __future__ import annotations
 
-import hashlib
 import json
 import secrets
 from base64 import urlsafe_b64encode
@@ -36,10 +35,19 @@ from uuid import uuid4
 from redis.asyncio import Redis
 
 from app.config import Settings
+from app.security import (
+    derive_credential_key,
+    generate_credential,
+    seal_credential,
+    unseal_credential,
+)
 
-_SEND_SCRIPT = (Path(__file__).parent / "scripts" / "send_message.lua").read_text(encoding="utf-8")
-_PROFILE_SCRIPT = (Path(__file__).parent / "scripts" / "put_profile.lua").read_text(encoding="utf-8")
-_PUSH_TOKEN_SCRIPT = (Path(__file__).parent / "scripts" / "put_push_token.lua").read_text(encoding="utf-8")
+_SCRIPTS = Path(__file__).parent / "scripts"
+_SEND_SCRIPT = (_SCRIPTS / "send_message.lua").read_text(encoding="utf-8")
+_INSTALL_SCRIPT = (_SCRIPTS / "register_installation.lua").read_text(encoding="utf-8")
+_IDENTIFIER_SCRIPT = (_SCRIPTS / "issue_identifier.lua").read_text(encoding="utf-8")
+_PROFILE_SCRIPT = (_SCRIPTS / "put_profile.lua").read_text(encoding="utf-8")
+_PUSH_TOKEN_SCRIPT = (_SCRIPTS / "put_push_token.lua").read_text(encoding="utf-8")
 
 PROFILE_FIELDS = ("nickname", "self_description", "connection_intent")
 
@@ -58,16 +66,6 @@ def new_identifier() -> str:
     return urlsafe_b64encode(secrets.token_bytes(16)).decode().rstrip("=")
 
 
-def new_credential() -> str:
-    return "ic_" + secrets.token_urlsafe(32)
-
-
-def credential_key(credential: str) -> str:
-    # The raw bearer secret is never stored, so a dump of Redis does not hand out
-    # working credentials.
-    return "cred:" + hashlib.sha256(credential.encode()).hexdigest()
-
-
 @dataclass(frozen=True)
 class SendResult:
     status: str
@@ -83,39 +81,48 @@ class Store:
 
     async def register_installation(self, request_id: str, platform: str) -> tuple[str, dict[str, Any]]:
         """Return (outcome, payload) where outcome is created/replayed/conflict/expired."""
-        replay = await self.redis.get(f"install:replay:{request_id}")
-        link = await self.redis.get(f"install:link:{request_id}")
-        if replay:
-            stored = json.loads(replay)
-            if stored["platform"] != platform:
-                return "conflict", {}
-            return "replayed", stored
-        if link:
-            stored = json.loads(link)
-            if stored["platform"] != platform:
-                return "conflict", {}
-            # The key is still known but its credential is past the replay window.
-            return "expired", {}
-
         user_id = str(uuid4())
-        credential = new_credential()
+        credential = generate_credential()
         created_at = to_rfc3339(now_ms())
-        payload = {
-            "user_id": user_id,
-            "installation_credential": credential,
-            "created_at": created_at,
-            "platform": platform,
+        encrypted_replay = "v1:" + seal_credential(
+            credential,
+            self.settings.credential_replay_secret.get_secret_value(),
+        )
+        result = await self.redis.eval(
+            _INSTALL_SCRIPT,
+            4,
+            f"install:link:{request_id}",
+            f"install:replay:{request_id}",
+            f"user:{user_id}",
+            derive_credential_key(credential),
+            platform,
+            user_id,
+            encrypted_replay,
+            created_at,
+            str(self.settings.installation_replay_seconds),
+        )
+        outcome = result[0]
+        if outcome in ("conflict", "expired"):
+            return outcome, {}
+        try:
+            returned_credential = (
+                credential
+                if outcome == "created"
+                else unseal_credential(
+                    result[2].removeprefix("v1:"),
+                    self.settings.credential_replay_secret.get_secret_value(),
+                )
+            )
+        except ValueError:
+            return "expired", {}
+        return outcome, {
+            "user_id": result[1],
+            "installation_credential": returned_credential,
+            "created_at": result[3],
         }
-        pipe = self.redis.pipeline()
-        pipe.hset(f"user:{user_id}", mapping={"discovery_enabled": "0", "created_at": created_at})
-        pipe.set(credential_key(credential), user_id)
-        pipe.set(f"install:replay:{request_id}", json.dumps(payload), ex=self.settings.installation_replay_seconds)
-        pipe.set(f"install:link:{request_id}", json.dumps({"user_id": user_id, "platform": platform}))
-        await pipe.execute()
-        return "created", payload
 
     async def user_for_credential(self, credential: str) -> str | None:
-        user_id = await self.redis.get(credential_key(credential))
+        user_id = await self.redis.get(derive_credential_key(credential))
         if not user_id or not await self.redis.exists(f"user:{user_id}"):
             return None
         return user_id
@@ -164,27 +171,24 @@ class Store:
 
     # --- identifiers ---------------------------------------------------------
 
-    async def issue_identifier(self, user_id: str) -> dict[str, str]:
+    async def issue_identifier(self, user_id: str) -> tuple[str, dict[str, str] | None]:
         moment = now_ms()
-        current = await self.redis.get(f"ident:current:{user_id}")
-        if current:
-            record = json.loads(current)
-            if moment < record["refresh_after_ms"]:
-                return self._identifier_view(record)
-
         identifier = new_identifier()
-        record = {
-            "identifier": identifier,
-            "issued_at_ms": moment,
-            "refresh_after_ms": moment + self.settings.identifier_refresh_after_seconds * 1000,
-            "expires_at_ms": moment + self.settings.identifier_ttl_seconds * 1000,
-        }
-        pipe = self.redis.pipeline()
-        # The replaced identifier keeps its own TTL, which is the overlap window.
-        pipe.set(f"ident:map:{identifier}", user_id, ex=self.settings.identifier_ttl_seconds)
-        pipe.set(f"ident:current:{user_id}", json.dumps(record), ex=self.settings.identifier_ttl_seconds)
-        await pipe.execute()
-        return self._identifier_view(record)
+        result = await self.redis.eval(
+            _IDENTIFIER_SCRIPT,
+            3,
+            f"user:{user_id}",
+            f"ident:current:{user_id}",
+            f"ident:map:{identifier}",
+            user_id,
+            identifier,
+            str(moment),
+            str(self.settings.identifier_refresh_after_seconds * 1000),
+            str(self.settings.identifier_ttl_seconds * 1000),
+        )
+        if result[0] != "ok":
+            return result[0], None
+        return "ok", self._identifier_view(json.loads(result[1]))
 
     @staticmethod
     def _identifier_view(record: dict[str, Any]) -> dict[str, str]:
