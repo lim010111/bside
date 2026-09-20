@@ -1,0 +1,958 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bside 최종 발표</title>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css');
+
+:root {
+  --font: 'Wanted Sans Variable', 'Wanted Sans', 'Pretendard Variable', -apple-system, system-ui, sans-serif;
+
+  --bg: #FFFFFF;
+  --surface: #F8F7F5;
+  --surface-alt: #F1EFEA;
+  --line: #E4E1DC;
+  --line-strong: #CFCBC4;
+
+  --ink: #1F1F24;
+  --ink-mid: #6B6B73;
+  --ink-soft: #9A9AA2;
+
+  --accent: #B45309;
+  --accent-soft: #FDF4E7;
+  --accent-border: #F59E0B;
+
+  --success: #15803D;
+  --success-soft: #DCFCE7;
+
+  --r: 14px;
+  --r-sm: 8px;
+
+  --t-title: 42px;
+  --t-body: 22px;
+  --t-cap: 16px;
+}
+
+* { box-sizing: border-box; }
+p, h2, h3, h4, figure { margin: 0; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #111114;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--t-body);
+  line-height: 1.5;
+  letter-spacing: -0.015em;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+#stage { position: fixed; inset: 0; display: grid; place-items: center; background: #111114; }
+#frame {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+  background: var(--bg);
+  overflow: hidden;
+  transform: scale(var(--scale, 1));
+  transform-origin: center center;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  padding: 64px 84px 52px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  display: none;
+  grid-template-rows: auto 1fr;
+  background: var(--bg);
+}
+.slide.on { display: grid; }
+
+.slide > header { min-height: 110px; padding-bottom: 20px; }
+.slide > .content { align-self: center; min-height: 0; }
+.slide.center { grid-template-rows: 1fr; }
+.slide.center > .content { align-self: center; }
+
+h2 {
+  font-size: var(--t-title);
+  font-weight: 600;
+  line-height: 1.25;
+  text-wrap: balance;
+  color: var(--ink);
+}
+.sub { font-size: var(--t-cap); color: var(--ink-soft); margin-top: 8px; font-weight: 500; }
+
+.num {
+  position: absolute;
+  right: 84px;
+  bottom: 36px;
+  font-size: 15px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* 다크 테마 */
+.slide { --ac: #B45309; --ac-soft: #FDF4E7; --paper: var(--bg); --fg: var(--ink); --fg-mid: var(--ink-mid); --fg-soft: var(--ink-soft); --edge: var(--line); }
+.slide.dark {
+  --ac: #F5B942;
+  --ac-soft: rgba(245, 185, 66, 0.12);
+  --paper: #16161A;
+  --fg: #F5F5F7;
+  --fg-mid: #9E9EA8;
+  --fg-soft: #6A6A78;
+  --edge: #2E2E38;
+  background: #16161A;
+  color: #F5F5F7;
+}
+.slide.dark h2, .slide.dark .wordmark { color: var(--fg); }
+.slide.dark .sub { color: var(--fg-mid); }
+.slide.dark .num { color: var(--fg-soft); }
+
+/* 폰 목업 프레임 */
+.phone {
+  border-radius: 20px;
+  border: 4px solid var(--ink);
+  overflow: hidden;
+  background: #16161A;
+  box-shadow: 0 10px 30px rgba(31, 31, 36, 0.16);
+}
+.slide.dark .phone { border-color: #2E2E38; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4); }
+.phone img { display: block; width: 100%; height: auto; }
+/* 폰 목업은 폭으로만 크기가 정해진다. 칸을 fr 로 두면 높이가 슬라이드를 넘어 잘린다. */
+.phone { max-width: 240px; margin-left: auto; margin-right: auto; }
+
+/* 1 표지 */
+.cover-grid { display: grid; grid-template-columns: 1fr 240px; gap: 60px; align-items: center; }
+.wordmark { font-size: 96px; font-weight: 700; line-height: 1; letter-spacing: -0.04em; color: var(--fg); }
+.tagline { font-size: 24px; color: var(--ac); margin-top: 12px; font-weight: 600; letter-spacing: -0.01em; }
+.oneliner { font-size: 32px; font-weight: 600; margin-top: 36px; max-width: 780px; line-height: 1.35; color: var(--fg); }
+.cover-desc { font-size: 20px; color: var(--fg-mid); margin-top: 14px; max-width: 740px; line-height: 1.45; }
+.cover-pillars { display: flex; gap: 12px; margin-top: 28px; }
+.pillar-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255, 255, 255, 0.07); border: 1px solid var(--edge);
+  border-radius: 20px; padding: 6px 14px; font-size: 14px; color: var(--fg-mid);
+}
+.pillar-badge b { color: var(--ac); font-weight: 600; }
+.cover-meta { font-size: var(--t-cap); color: var(--fg-soft); margin-top: 36px; }
+
+/* 2 문제 정의 (현실 + 공식 통계 통합) */
+.prob-split { display: grid; grid-template-columns: 1fr 1.05fr; gap: 44px; align-items: stretch; }
+.prob-col { display: flex; flex-direction: column; justify-content: space-between; }
+.prob-box {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 24px 28px; height: 100%; display: flex; flex-direction: column; justify-content: space-between;
+}
+.prob-tag { font-size: 14px; font-weight: 600; color: var(--accent); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 12px; }
+.prob-head { font-size: 24px; font-weight: 600; color: var(--ink); margin-bottom: 18px; line-height: 1.3; }
+.facts-mini { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 20px; }
+.fact-item { border-top: 2px solid var(--line-strong); padding-top: 10px; }
+.fact-item.zero { border-top-color: var(--accent); }
+.fact-item .fn { font-size: 40px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.fact-item.zero .fn { color: var(--accent); }
+.fact-item .fl { font-size: 15px; color: var(--ink-mid); margin-top: 6px; }
+.prob-note { font-size: 17px; color: var(--ink); line-height: 1.45; background: #FFF; padding: 14px 18px; border-radius: var(--r-sm); border-left: 3px solid var(--accent); }
+
+.stat-card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.stat-card {
+  background: #FFF; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 18px 20px;
+}
+.stat-card .sn { font-size: 48px; font-weight: 700; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
+.stat-card .sl { font-size: 16px; font-weight: 600; color: var(--ink); margin-top: 8px; line-height: 1.3; }
+.stat-card .sd { font-size: 13px; color: var(--ink-soft); margin-top: 6px; line-height: 1.35; }
+.stat-card .src { font-size: 12px; color: var(--accent); margin-top: 8px; font-weight: 500; }
+.data-summary { font-size: 16px; color: var(--ink-mid); line-height: 1.45; margin-top: 6px; }
+
+/* 3 솔루션 3단계 */
+.step-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.step-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 26px 24px; display: flex; flex-direction: column; justify-content: space-between; min-height: 380px;
+}
+.step-card.active { border-color: var(--accent); background: var(--accent-soft); }
+.step-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.step-idx { font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 0.08em; }
+.step-en { font-size: 13px; color: var(--ink-soft); font-weight: 500; }
+.step-title { font-size: 24px; font-weight: 600; line-height: 1.3; color: var(--ink); margin-bottom: 8px; }
+.step-sub { font-size: 16px; color: var(--ink-mid); font-weight: 500; margin-bottom: 18px; }
+.step-list { list-style: none; padding: 0; margin: 0 0 20px; display: grid; gap: 10px; }
+.step-list li { font-size: 16px; color: var(--ink-mid); line-height: 1.4; display: flex; gap: 8px; }
+.step-list li::before { content: "•"; color: var(--accent); font-weight: bold; }
+.step-badge {
+  display: inline-block; align-self: flex-start; background: #FFF; border: 1px solid var(--line-strong);
+  border-radius: 12px; padding: 4px 12px; font-size: 13px; font-weight: 600; color: var(--accent);
+}
+
+/* 4 추천 원리 (상보성) */
+.rec-split { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.rec-box {
+  background: #1C1C22; border: 1px solid var(--edge); border-radius: var(--r);
+  padding: 26px 28px; display: flex; flex-direction: column; justify-content: space-between; min-height: 390px;
+}
+.rec-box.good { border-color: var(--ac); background: rgba(245, 185, 66, 0.05); }
+.rec-tag { font-size: 14px; font-weight: 600; letter-spacing: 0.05em; color: var(--fg-soft); margin-bottom: 10px; }
+.rec-box.good .rec-tag { color: var(--ac); }
+.rec-head { font-size: 24px; font-weight: 600; margin-bottom: 16px; color: var(--fg); }
+.sim-flow {
+  background: #141418; border: 1px solid var(--edge); border-radius: var(--r-sm);
+  padding: 16px 18px; margin-bottom: 16px; display: grid; gap: 12px;
+}
+.sim-user { display: flex; justify-content: space-between; font-size: 16px; align-items: baseline; }
+.sim-user b { color: var(--fg); }
+.sim-user span { font-size: 14px; color: var(--fg-mid); }
+.sim-arrow { text-align: center; color: var(--fg-soft); font-size: 18px; line-height: 1; }
+.sim-res { font-size: 15px; color: #E05252; font-weight: 500; border-top: 1px dashed var(--edge); padding-top: 8px; }
+.rec-box.good .sim-res { color: var(--ac); font-weight: 600; }
+.rec-desc { font-size: 16px; color: var(--fg-mid); line-height: 1.45; }
+.rec-note { font-size: 14px; color: var(--fg-soft); margin-top: 10px; }
+
+/* 5 시연 영상 45초 */
+.video-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 48px; align-items: center; }
+.video-player {
+  aspect-ratio: 16 / 9;
+  border: 2px solid var(--ac);
+  border-radius: 16px;
+  background: #141418;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  position: relative; overflow: hidden; padding: 24px; text-align: center;
+}
+.video-play-btn {
+  width: 80px; height: 80px; border-radius: 50%;
+  border: 2px solid var(--ac); background: rgba(245, 185, 66, 0.1);
+  display: grid; place-items: center; margin-bottom: 18px;
+}
+.video-play-btn i {
+  width: 0; height: 0;
+  border-left: 20px solid var(--ac);
+  border-top: 13px solid transparent;
+  border-bottom: 13px solid transparent;
+  margin-left: 5px;
+}
+.video-file-name { font-size: 16px; font-weight: 600; color: var(--fg); }
+.video-badge { font-size: 13px; color: var(--ac); margin-top: 6px; letter-spacing: 0.05em; font-weight: 600; }
+.video-tc { font-size: 14px; color: var(--fg-soft); margin-top: 10px; font-family: monospace; }
+.video-caption { font-size: 13px; color: var(--fg-soft); margin-top: 14px; max-width: 400px; line-height: 1.35; }
+
+.timeline-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+.timeline-item {
+  background: #1C1C22; border: 1px solid var(--edge); border-radius: var(--r-sm);
+  padding: 14px 18px; display: grid; grid-template-columns: 110px 1fr; gap: 14px; align-items: baseline;
+}
+.timeline-time { font-size: 14px; color: var(--ac); font-weight: 600; font-variant-numeric: tabular-nums; }
+.timeline-body h4 { font-size: 17px; font-weight: 600; color: var(--fg); margin-bottom: 4px; }
+.timeline-body p { font-size: 14px; color: var(--fg-mid); line-height: 1.35; }
+
+/* 6 시스템 구성도 (아키텍처) */
+.sys-arch { display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
+.arch-flow {
+  display: grid;
+  grid-template-columns: 1fr 64px 1.05fr 64px 1fr;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.arch-box {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 18px 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 252px;
+}
+.arch-box.active { border-color: var(--accent); background: var(--accent-soft); }
+.arch-tag { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+.arch-h { font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+.arch-list { list-style: none; padding: 0; margin: 0 0 14px; display: grid; gap: 8px; font-size: 13.5px; color: var(--ink-mid); line-height: 1.35; }
+.arch-list li b { color: var(--ink); }
+.arch-sub {
+  font-size: 11.5px; font-weight: 600; color: var(--ink-soft); background: #FFF; border: 1px solid var(--line);
+  border-radius: 6px; padding: 3px 8px; align-self: flex-start;
+}
+.arch-box.active .arch-sub { border-color: var(--accent-border); color: var(--accent); }
+
+.arch-conn { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 2px; }
+.conn-lbl { font-size: 10.5px; font-weight: 700; color: var(--accent); }
+.conn-arr { font-size: 22px; color: var(--accent); line-height: 1; font-weight: bold; }
+.conn-txt { font-size: 10.5px; color: var(--ink-soft); line-height: 1.25; }
+
+.arch-pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.arch-pill-item {
+  background: #FFF; border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;
+}
+.arch-pill-item b { font-size: 14.5px; color: var(--ink); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.arch-pill-item span { font-size: 12.5px; color: var(--ink-mid); line-height: 1.3; }
+
+/* 7 비즈니스 및 제품 원칙 */
+.biz-split { display: grid; grid-template-columns: 1.15fr 1fr; gap: 36px; }
+.biz-col { display: flex; flex-direction: column; gap: 16px; }
+.biz-stat-box {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px 26px;
+}
+.biz-n { font-size: 54px; font-weight: 700; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.biz-t { font-size: 18px; font-weight: 600; color: var(--ink); margin-top: 10px; }
+.biz-d { font-size: 14px; color: var(--ink-mid); line-height: 1.45; margin-top: 6px; }
+.biz-src { font-size: 13px; color: var(--ink-soft); margin-top: 8px; font-weight: 500; }
+.biz-rows { display: grid; gap: 10px; margin-top: 10px; }
+.biz-row { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 8px; font-size: 15px; }
+.biz-row b { color: var(--ink); }
+.biz-row span { color: var(--ink-mid); }
+
+.principles-list { display: grid; gap: 12px; }
+.principle-card {
+  background: #FFF; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 14px 18px;
+}
+.principle-card h4 { font-size: 17px; font-weight: 600; color: var(--ink); margin-bottom: 4px; display: flex; align-items: baseline; gap: 8px; }
+.principle-card h4 span { font-size: 13px; color: var(--accent); font-weight: 700; }
+.principle-card p { font-size: 14px; color: var(--ink-mid); line-height: 1.4; }
+
+/* 8 시장 확장성 */
+.exp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+.exp-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 20px 24px; display: flex; flex-direction: column; justify-content: space-between;
+}
+.exp-v { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 6px; }
+.exp-h { font-size: 21px; font-weight: 600; color: var(--ink); margin-bottom: 10px; }
+.exp-body { font-size: 15px; color: var(--ink-mid); line-height: 1.4; margin-bottom: 12px; }
+.exp-val {
+  font-size: 13px; background: #FFF; border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 8px 12px; color: var(--ink); font-weight: 500;
+}
+.exp-val b { color: var(--accent); }
+
+/* 9 로드맵 */
+.road-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.road-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 24px 22px; display: flex; flex-direction: column; justify-content: space-between; min-height: 380px;
+}
+.road-card.done { border-color: var(--accent); background: var(--accent-soft); }
+.road-tag { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 6px; }
+.road-h { font-size: 21px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
+.road-sub { font-size: 14px; color: var(--ink-mid); font-weight: 500; margin-bottom: 16px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.road-list { list-style: none; padding: 0; margin: 0 0 16px; display: grid; gap: 10px; }
+.road-list li { font-size: 15px; color: var(--ink-mid); line-height: 1.35; display: flex; gap: 8px; }
+.road-card.done .road-list li { color: var(--ink); }
+.road-status {
+  font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 8px; text-align: center;
+  background: #FFF; border: 1px solid var(--line-strong); color: var(--ink-mid);
+}
+.road-card.done .road-status { background: var(--accent); color: #FFF; border-color: var(--accent); }
+
+/* 10 결론 및 마무리 */
+.close-grid { display: grid; grid-template-columns: 1fr 220px; gap: 56px; align-items: center; }
+.close-quote { font-size: 32px; font-weight: 600; line-height: 1.35; color: var(--fg); letter-spacing: -0.02em; margin-bottom: 20px; }
+.close-subquote { font-size: 19px; color: var(--ac); font-weight: 500; margin-bottom: 32px; }
+.close-links { display: grid; gap: 10px; font-size: 15px; color: var(--fg-mid); }
+.close-links b { color: var(--fg); }
+
+/* 하단 진행 바 */
+#rail { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; z-index: 10; }
+#rail i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 150ms ease-out; }
+@media (prefers-reduced-motion: reduce) { #rail i { transition: none; } }
+
+/* 인쇄 모드 */
+@page { size: 1280px 720px; margin: 0; }
+@media print {
+  html, body { overflow: visible; height: auto; background: var(--bg); }
+  #stage { position: static; display: block; background: var(--bg); }
+  #frame { width: 1280px; height: auto; transform: none; overflow: visible; }
+  #rail { display: none; }
+  .slide { display: none !important; }
+  .slide.inplay { display: grid !important; position: relative; height: 720px; }
+  .slide.inplay + .slide.inplay { break-before: page; page-break-before: always; }
+}
+
+/* 6 AI 설계 — 왜 모델에 맡겼고 어디부터 코드가 잡는가 */
+.ai-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 26px; align-items: start; }
+.ai-tag { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 10px; }
+.ai-lead { font-size: 21px; font-weight: 600; line-height: 1.35; margin-bottom: 14px; }
+.ai-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 9px; }
+.ai-case { display: grid; gap: 8px; }
+.ai-person { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 13px; background: var(--surface); position: relative; }
+.ai-p-who { position: absolute; top: 10px; right: 13px; font-size: 12px; font-weight: 700; color: var(--ink-soft); letter-spacing: 0.08em; }
+.ai-p-line { font-size: 14px; line-height: 1.4; color: var(--ink); padding-right: 18px; }
+.ai-p-line.dim { color: var(--ink-mid); margin-top: 3px; }
+.ai-verdict { font-size: 14px; line-height: 1.4; color: var(--ink-mid); margin-top: 9px; padding-left: 11px; border-left: 2px solid var(--accent); }
+.ai-verdict.bad { border-left-color: var(--line-strong); }
+.ai-verdict b { color: var(--ink); font-weight: 600; }
+.ai-list li { font-size: 15px; color: var(--ink-mid); line-height: 1.4; display: flex; gap: 8px; }
+.ai-list li::before { content: "—"; color: var(--accent); flex: none; }
+.ai-split { display: grid; grid-template-columns: 1fr 1.15fr; gap: 14px; }
+.ai-col { border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px; background: var(--surface); }
+.ai-col.llm { border-color: var(--accent-border); background: var(--accent-soft); }
+.ai-col-h { font-size: 17px; font-weight: 700; margin-bottom: 12px; }
+.ai-col.llm .ai-col-h { color: var(--accent); }
+.ai-col ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.ai-col li { font-size: 15px; color: var(--ink-mid); line-height: 1.4; }
+.ai-proof { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 20px; }
+.ai-quote { border: 1px solid var(--line); border-left: 3px solid var(--line-strong); border-radius: var(--r-sm); padding: 13px 16px; background: #FFF; }
+.ai-quote.good { border-left-color: var(--success); }
+.ai-q-tag { font-size: 13px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; }
+.ai-quote.good .ai-q-tag { color: var(--success); }
+.ai-q-body { font-size: 15px; line-height: 1.45; color: var(--ink); }
+.ai-foot { font-size: 14px; color: var(--ink-soft); margin-top: 12px; }
+</style>
+</head>
+<body>
+<div id="stage">
+<div id="frame">
+
+  <!-- 1 표지 -->
+  <section class="slide center dark on">
+    <div class="content cover-grid">
+      <div>
+        <p class="wordmark">Bside</p>
+        <p class="tagline">Connect with who&#39;s beside you.</p>
+        <p class="oneliner">내 곁에 머무는 사람과 서로의 의도로 자연스럽게 연결됩니다.</p>
+        <div class="cover-pillars">
+          <div class="pillar-badge"><b>01</b> 30초 무가입 진입</div>
+          <div class="pillar-badge"><b>02</b> 상보적 대화 명분</div>
+          <div class="pillar-badge"><b>03</b> 수락 없는 즉시 연결</div>
+        </div>
+        <p class="cover-meta">코쓱톤 2026 &nbsp;|&nbsp; 3조 Clauding</p>
+      </div>
+      <div class="phone"><img src="assets/w2-room.png" alt="Bside 참가자 목록 화면"></div>
+    </div>
+  </section>
+
+  <!-- 2 문제 정의 & 공식 데이터 -->
+  <section class="slide">
+    <header>
+      <h2>같은 공간에 머물러도, 왜 대화는 시작되지 못할까요?</h2>
+      <p class="sub">01. PROBLEM &amp; DATA · 참가자와 주최자 모두가 겪는 오프라인 네트워킹의 이중 장벽</p>
+    </header>
+    <div class="content">
+      <div class="prob-split">
+        <div class="prob-col">
+          <div class="prob-box">
+            <div>
+              <p class="prob-tag">참가자의 딜레마</p>
+              <p class="prob-head">교류를 원하지만 선뜻 다가서지 못하는 현장</p>
+              <div class="stat-card-row">
+                <div class="stat-card">
+                  <p class="sn" style="color: var(--accent);">78%</p>
+                  <p class="sl">참가 목적 1순위</p>
+                  <p class="sd">오프라인 행사의 최대 목적은 '새로운 네트워킹'</p>
+                  <p class="src">Bizzabo State of Events</p>
+                </div>
+                <div class="stat-card">
+                  <p class="sn" style="color: var(--accent);">30%</p>
+                  <p class="sl">실제 체감 만족</p>
+                  <p class="sd">유의미한 대화를 나눴다고 느낀 참가자 비율</p>
+                  <p class="src">Bizzabo Networking Benchmark</p>
+                </div>
+              </div>
+            </div>
+            <p class="prob-note">소극적이어서가 아닙니다. <b>무슨 말을 건넬지 '대화의 명분'이 없기 때문</b>입니다.</p>
+          </div>
+        </div>
+        <div class="prob-col">
+          <div class="prob-box">
+            <div>
+              <p class="prob-tag">주최자의 딜레마</p>
+              <p class="prob-head">막대한 비용을 들여도 저조한 행사 네트워킹</p>
+              <div class="stat-card-row">
+                <div class="stat-card">
+                  <p class="sn">15%</p>
+                  <p class="sl">주최자 만족도</p>
+                  <p class="sd">자사 행사 네트워킹이 효과적이었다고 답한 비율</p>
+                  <p class="src">Converve 2026 Benchmark</p>
+                </div>
+                <div class="stat-card">
+                  <p class="sn">58%</p>
+                  <p class="sl">전용 앱 설치율</p>
+                  <p class="sd">사전 가입 및 프로필 문턱으로 절반 가까이 미설치</p>
+                  <p class="src">Brella TechBBQ Case Study</p>
+                </div>
+              </div>
+            </div>
+            <p class="data-summary">사전 프로필과 일정 조율은 <b>현장의 즉흥적 대화</b>로 이어지기에 너무 무거웠습니다.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="num">2</p>
+  </section>
+
+  <!-- 3 솔루션 3단계 -->
+  <section class="slide">
+    <header>
+      <h2>Bside — 현장에서 부담 없이 연결되는 3단계 솔루션</h2>
+      <p class="sub">02. SOLUTION &amp; UTILITY · 방 개설도 수락 대기도 없는 가장 가벼운 오프라인 연결</p>
+    </header>
+    <div class="content">
+      <div class="step-cards">
+        <div class="step-card">
+          <div>
+            <div class="step-header">
+              <span class="step-idx">STEP 01</span>
+              <span class="step-en">No Sign-up Intent</span>
+            </div>
+            <p class="step-title">가입 없는 빠른 시작</p>
+            <p class="step-sub">닉네임 + 나눌 점 + 찾는 상대</p>
+            <ul class="step-list">
+              <li>회원가입·인증 없이 30초 완료</li>
+              <li>오늘 나눌 이야기와 고민 2줄 입력</li>
+              <li>단말 자격증명으로 세션 즉시 복원</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="step-card active">
+          <div>
+            <div class="step-header">
+              <span class="step-idx">STEP 02</span>
+              <span class="step-en">Effortless Presence</span>
+            </div>
+            <p class="step-title">AI 기반 상대 자동 탐색</p>
+            <p class="step-sub">주머니 속 폰으로 자동 감지</p>
+            <ul class="step-list">
+              <li>화면 꺼짐에도 상대방 감지</li>
+              <li>나와 맞는 상대 출현 시 백그라운드 푸시</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div>
+            <div class="step-header">
+              <span class="step-idx">STEP 03</span>
+              <span class="step-en">Zero-hesitation Chat</span>
+            </div>
+            <p class="step-title">부담 없는 편안한 대화</p>
+            <p class="step-sub">AI 대화 명분 확인 후 Direct Chat</p>
+            <ul class="step-list">
+              <li>수락 대기 및 거절 두려움 없이 즉시 전송</li>
+              <li>AI가 짚어준 대화 명분으로 첫인사</li>
+              <li>거리에서 벗어난 뒤에도 기존 대화 유지</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="num">3</p>
+  </section>
+
+  <!-- 4 추천 원리 (상보성) -->
+  <section class="slide dark">
+    <header>
+      <h2>핵심 효용 — 어색한 침묵을 깨는 '상보성' 매칭</h2>
+      <p class="sub">03. RECOMMENDATION · 단순 직무 일치가 아닌, 결핍과 경험이 맞닿는 오프라인 대화의 명분</p>
+    </header>
+    <div class="content">
+      <div class="rec-split">
+        <div class="rec-box">
+          <div>
+            <p class="rec-tag">기존 단순 직무 매칭</p>
+            <p class="rec-head">같은 직무끼리 만났을 때의 한계</p>
+            <div class="sim-flow">
+              <div class="sim-user"><b>참가자 A (React 개발자)</b> <span>고민: 배포 인프라</span></div>
+              <div class="sim-arrow">↔</div>
+              <div class="sim-user"><b>참가자 B (React 개발자)</b> <span>고민: 배포 인프라</span></div>
+              <p class="sim-res">결과: 둘 다 답을 몰라 어색한 침묵</p>
+            </div>
+            <p class="rec-desc">동일 직무로만 묶으면 결핍이 겹쳐 대화가 단절됩니다.</p>
+          </div>
+          <p class="rec-note">단순 키워드 겹침은 오프라인 대화의 명분이 되지 못함</p>
+        </div>
+
+        <div class="rec-box good">
+          <div>
+            <p class="rec-tag">Bside 상보적 추천</p>
+            <p class="rec-head">경험과 결핍이 교차하는 상호 보완 연결</p>
+            <div class="sim-flow">
+              <div class="sim-user"><b>참가자 A (웹 프론트)</b> <span>나눌 점: UI / 고민: Docker</span></div>
+              <div class="sim-arrow">⇄ 상호 보완 연결</div>
+              <div class="sim-user"><b>참가자 B (인프라)</b> <span>나눌 점: Docker / 고민: 웹 대시보드</span></div>
+              <p class="sim-res">결과: 상대의 고민과 나의 경험이 맞닿는 '대화 명분' 제시</p>
+            </div>
+            <p class="rec-desc">점수 줄세우기 없이, <b>Claude Haiku가 검증된 대화 명분(Icebreaker)</b>을 직접 짚어줍니다.</p>
+          </div>
+          <p class="rec-note">근거를 못 찾으면 unscored로 비워둠 · 대화 성공률은 도입 뒤 측정</p>
+        </div>
+      </div>
+    </div>
+    <p class="num">4</p>
+  </section>
+
+  <!-- 5 시연 영상 (54초) -->
+  <section class="slide dark">
+    <header>
+      <h2>제품 시연 — 실기기 2대의 상호 작용 (승제 ⇄ 우현)</h2>
+      <p class="sub">04. DEMONSTRATION · 승제(하네스 고수)와 우현(배우고 싶음)의 BLE 실시간 탐색 및 AI 상호 보완 매칭</p>
+    </header>
+    <div class="content">
+      <div class="video-grid">
+        <div class="video-player">
+          <div class="video-play-btn"><i></i></div>
+          <p class="video-file-name">Bside_Demonstration_Seungjae_Woohyeon.mp4</p>
+          <p class="video-badge">실기기 2대 교차 검증 (좌: 승제 ⇄ 우: 우현)</p>
+          <p class="video-tc">00:28 / 00:54</p>
+          <p class="video-caption">우현의 "배우고 싶다"와 승제의 "고수" 전문성이 연결되어, BLE 실시간 탐색과 AI 상보성 추천을 통해 실제 대화로 이어지는 54초 시연</p>
+        </div>
+        <div>
+          <ul class="timeline-list">
+            <li class="timeline-item">
+              <span class="timeline-time">00:00 ~ 00:13</span>
+              <div class="timeline-body">
+                <h4>01. 프로필 설정 &amp; 관심사 입력</h4>
+                <p>승제: '하네스 고수' ⇄ 우현: '하네스 배우고 싶어요!' 입력 후 시작</p>
+              </div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-time">00:14 ~ 00:25</span>
+              <div class="timeline-body">
+                <h4>02. 주변 발견 활성화 &amp; AI 매칭 감지</h4>
+                <p>BLE 탐색 켜자마자 상단 푸시 알림 수신 및 상호 추천 카드 즉각 감지</p>
+              </div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-time">00:26 ~ 00:37</span>
+              <div class="timeline-body">
+                <h4>03. AI 추천 이유 확인 &amp; 첫 메시지</h4>
+                <p>'알고 싶어하는 분야를 직접 다룸' 사유 확인 후 수락 없이 1:1 메시지 전송</p>
+              </div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-time">00:38 ~ 00:54</span>
+              <div class="timeline-body">
+                <h4>04. 실시간 답장 수신 &amp; 현장 만남 약속</h4>
+                <p>실시간 알림 및 '일단 자주스 앞에서 만나실래요?' 답장으로 즉각 오프라인 연결</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <p class="num">5</p>
+  </section>
+
+  <!-- 6 AI 설계 -->
+  <section class="slide">
+    <header>
+      <h2>AI에 맡긴 판단과 코드가 보장하는 것</h2>
+      <p class="sub">05. AI DESIGN · 규칙으로 쓸 수 없는 판단만 모델에 맡기고, 정확해야 하는 곳은 코드가 잡는다</p>
+    </header>
+    <div class="content">
+      <div class="ai-grid">
+        <div>
+          <p class="ai-tag">왜 AI여야 했나</p>
+          <div class="ai-case">
+            <div class="ai-person">
+              <p class="ai-p-who">A</p>
+              <p class="ai-p-line">무대 조명 감독</p>
+              <p class="ai-p-line dim">공연 큐시트를 자동화해 줄 개발자를 만나고 싶음</p>
+            </div>
+            <div class="ai-person">
+              <p class="ai-p-who">B</p>
+              <p class="ai-p-line">백엔드 5년. 스케줄링·타임라인 도구를 두 번 만듦. 공연 쪽은 해본 적 없음</p>
+              <p class="ai-p-line dim">내 경험이 쓸모 있을 다른 분야 문제를 찾는 중</p>
+            </div>
+          </div>
+          <p class="ai-verdict bad"><b>겹치는 단어 0개.</b> 태그·키워드로 묶으면 이 둘은 서로를 영원히 못 봄</p>
+          <p class="ai-verdict"><b>큐시트는 곧 타임라인 문제.</b> 문장을 읽어야만 보이는 연결</p>
+        </div>
+        <div class="ai-split">
+          <div class="ai-col llm">
+            <p class="ai-col-h">LLM이 판단</p>
+            <ul>
+              <li>양쪽 의도를 읽고 추천 순서 결정</li>
+              <li>원문을 근거로 이유 생성</li>
+            </ul>
+          </div>
+          <div class="ai-col">
+            <p class="ai-col-h">코드가 보장</p>
+            <ul>
+              <li>후보 범위와 근접 관측 유효성</li>
+              <li>조회자·후보의 원문 버전 검증</li>
+              <li>참가자 입력은 데이터로만 취급</li>
+              <li>숫자 점수는 응답에 넣지 않음</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="ai-proof">
+        <div class="ai-quote good">
+          <p class="ai-q-tag">근거를 찾았을 때</p>
+          <p class="ai-q-body">BLE 광고와 스캔을 직접 구현해봤고 안드로이드 권한 문제까지 경험했으므로, <b>블루투스 스캔이 끊기는 문제를 해결하는 데 도움을 줄 수 있습니다.</b></p>
+        </div>
+        <div class="ai-quote">
+          <p class="ai-q-tag">근거가 없을 때</p>
+          <p class="ai-q-body">다만 이 분이 원하는 야구 관심사와 당신의 배경 사이에는 <b>직접적인 연결점이 보이지 않습니다.</b></p>
+        </div>
+      </div>
+      <p class="ai-foot">둘 다 실기기에서 그대로 받은 응답. 없는 관계를 지어내지 않고, 평가하지 못한 사람은 비워 둔다</p>
+    </div>
+    <p class="num">6</p>
+  </section>
+
+  <!-- 7 시스템 구성도 (아키텍처 & 신뢰 설계) -->
+  <section class="slide">
+    <header>
+      <h2>단말·서버·AI를 나눈 3-Tier 구성</h2>
+      <p class="sub">06. SYSTEM ARCHITECTURE · 단말 엣지, 코어 클라우드, AI 분석 파이프라인의 유기적 분리와 신뢰 설계</p>
+    </header>
+    <div class="content">
+      <div class="sys-arch">
+        <div class="arch-flow">
+          <!-- Tier 1: Client Edge -->
+          <div class="arch-box">
+            <div>
+              <p class="arch-tag">Client Edge (단말)</p>
+              <h3 class="arch-h">Android 실기기</h3>
+              <ul class="arch-list">
+                <li><b>BLE 비콘 광고/스캔</b> (15초 간헐 탐색)</li>
+                <li><b>Foreground Service</b> 앞에 둔 상태로 검증</li>
+                <li><b>GPS 좌표 미사용</b> 16바이트 회전 식별자</li>
+              </ul>
+            </div>
+            <span class="arch-sub">간헐 스캔 · 참여 지속</span>
+          </div>
+
+          <!-- Connector 1 -->
+          <div class="arch-conn">
+            <span class="conn-lbl">HTTPS REST</span>
+            <span class="conn-arr">⇄</span>
+            <span class="conn-txt">15초 관측 보고<br>1:1 실시간 대화</span>
+          </div>
+
+          <!-- Tier 2: Core Cloud -->
+          <div class="arch-box active">
+            <div>
+              <p class="arch-tag">Core Cloud (서버)</p>
+              <h3 class="arch-h">FastAPI + Redis</h3>
+              <ul class="arch-list">
+                <li><b>체류 판정 알고리즘</b> (단순 스침 필터링)</li>
+                <li><b>Redis AOF</b> 재시작 뒤 대화·세션 복원</li>
+                <li><b>무가입 단말 자격증명</b> 세션 핸들링</li>
+              </ul>
+            </div>
+            <span class="arch-sub">실시간 동기화 · 대화 보존</span>
+          </div>
+
+          <!-- Connector 2 -->
+          <div class="arch-conn">
+            <span class="conn-lbl">Async Call</span>
+            <span class="conn-arr">⇄</span>
+            <span class="conn-txt">스마트 캐싱<br>FCM HTTP v1</span>
+          </div>
+
+          <!-- Tier 3: AI & Notification -->
+          <div class="arch-box">
+            <div>
+              <p class="arch-tag">AI &amp; Push Service</p>
+              <h3 class="arch-h">Claude + FCM</h3>
+              <ul class="arch-list">
+                <li><b>Claude Haiku 4.5</b> 상보성 대화 명분 생성</li>
+                <li><b>원문 인용 검증</b> 환각 방지 무점수 안내</li>
+                <li><b>Google FCM</b> 주머니 속 즉시 푸시 알림</li>
+              </ul>
+            </div>
+            <span class="arch-sub">AI 실패 시에도 목록·채팅 유지</span>
+          </div>
+        </div>
+
+        <!-- 3 Pillars Footer -->
+        <div class="arch-pillars">
+          <div class="arch-pill-item">
+            <b>⚡ 저전력 간헐 스캔</b>
+            <span>15초 간격으로 끊어 스캔하도록 설계. 장시간 배터리 측정은 아직 하지 않음</span>
+          </div>
+          <div class="arch-pill-item">
+            <b>🔒 위치를 쓰지 않음</b>
+            <span>GPS 좌표와 이동 동선을 수집하지 않고, 16바이트 난수 식별자를 회전시킴</span>
+          </div>
+          <div class="arch-pill-item">
+            <b>🛡️ 서비스 가용성 &amp; 보존</b>
+            <span>AI가 실패해도 목록과 1:1 대화는 그대로 동작하고, 거리 이탈 뒤에도 대화가 남음</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="num">7</p>
+  </section>
+
+  <!-- 8 비즈니스 모델 & 수익성 -->
+  <section class="slide">
+    <header>
+      <h2>참가자는 무료, 돈은 행사 주최자가 낸다</h2>
+      <p class="sub">07. BUSINESS MODEL · 참가자 무료, 주최자 B2B 과금. 1인당 추론 원가가 낮아 성립하는 구조</p>
+    </header>
+    <div class="content">
+      <div class="biz-split">
+        <div class="biz-col">
+          <div class="biz-stat-box">
+            <p class="prob-tag">단위 경제학 (UNIT ECONOMICS)</p>
+            <p class="biz-n">20~30원</p>
+            <p class="biz-t">참가자 1인당 추론 원가. 서버·인건비는 별도</p>
+            <p class="biz-d">같은 의미의 입력은 캐시를 재사용해 중복 평가를 막음. 게이트웨이 단가는 확인 전</p>
+            <div class="biz-rows">
+              <div class="biz-row"><b>참가자 비용</b><span>무료 · 가입 절차 없음</span></div>
+              <div class="biz-row"><b>200명 행사</b><span>서빙 원가 5천 원 ⇄ 건당 40만 원 수주</span></div>
+              <div class="biz-row"><b>기존 업체</b><span>€700 ~ $18,000 · 업체별 연간 또는 행사당</span></div>
+              <div class="biz-row"><b>Bside 과금</b><span>행사당 30~40만 원 · 참가자 부담 없음</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="biz-col">
+          <div class="biz-stat-box" style="padding: 16px 20px;">
+            <p class="prob-tag" style="margin-bottom: 4px;">개인 리텐션 없는 흑자 선례</p>
+            <p class="biz-n" style="font-size: 40px;">750억 원</p>
+            <p class="biz-t" style="margin-top: 4px; font-size: 16px;">Mentimeter 연매출 흑자 입증 (SEK 598M)</p>
+            <p class="biz-d" style="font-size: 13px; margin-top: 2px;">개인 가입 없이 주최자 B2B 과금만으로 성공한 글로벌 비즈니스 모델</p>
+          </div>
+          <div class="principles-list">
+            <div class="principle-card">
+              <h4><span>01</span> 네트워킹 만족도는 도입 뒤 측정할 지표</h4>
+              <p>첫 대화 명분을 제시해 만족도와 재추천 의향이 오르는지 파일럿에서 확인</p>
+            </div>
+            <div class="principle-card">
+              <h4><span>02</span> 주최자가 준비할 것이 없음</h4>
+              <p>사전 프로필 취합도 방 개설도 필요 없이 참가자 설치만으로 동작</p>
+            </div>
+            <div class="principle-card">
+              <h4><span>03</span> 공간 브랜드 가치로 이어질 가능성</h4>
+              <p>&ldquo;사람을 만나는 곳&rdquo;이라는 평판이 재방문으로 이어지는지는 다음 검증 과제</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="num">8</p>
+  </section>
+
+  <!-- 9 확장 로드맵 (기존 8·9장 병합) -->
+  <section class="slide">
+    <header>
+      <h2>검증에서 시작해 사람이 머무는 공간으로</h2>
+      <p class="sub">08. ROADMAP · 현장 파일럿으로 효용을 확인하고, 주최자 과금으로 자생한 뒤, 상시 공간으로 넓힌다</p>
+    </header>
+    <div class="content">
+      <div class="step-cards">
+        <div class="step-card">
+          <div class="step-header"><span class="step-idx">STEP 01</span><span class="step-en">PILOT</span></div>
+          <p class="step-title">현장 파일럿</p>
+          <p class="step-sub">실제 행사에서 효용을 먼저 확인</p>
+          <ul class="step-list">
+            <li>국내 IT 컨퍼런스·해커톤 시범 도입</li>
+            <li>참가자 만족도와 피드백 수집</li>
+            <li>밀집도에 따른 체류 판정 조정</li>
+            <li>iOS 단말 지원 확장</li>
+          </ul>
+          <span class="step-badge">효용 검증</span>
+        </div>
+        <div class="step-card">
+          <div class="step-header"><span class="step-idx">STEP 02</span><span class="step-en">SELF-SUSTAINING</span></div>
+          <p class="step-title">주최자 도구와 과금</p>
+          <p class="step-sub">가벼운 B2B 모델로 자생</p>
+          <ul class="step-list">
+            <li>주최자용 현장 교류 대시보드</li>
+            <li>행사당 30~50만 원 수준 과금</li>
+            <li>낮은 1인당 추론 원가로 운영 성립</li>
+            <li>행사 플랫폼·기획사 파트너십</li>
+          </ul>
+          <span class="step-badge">자생 모델</span>
+        </div>
+        <div class="step-card active">
+          <div class="step-header"><span class="step-idx">STEP 03</span><span class="step-en">EVERYDAY SPACE</span></div>
+          <p class="step-title">상시 공간으로</p>
+          <p class="step-sub">방을 미리 열 필요가 없어 가능한 확장</p>
+          <ul class="step-list">
+            <li>코워킹 라운지 입주사 간 커피챗</li>
+            <li>사내 온보딩 · 신입과 도메인 전문가</li>
+            <li>대학 도서관·세미나실 연구 파트너</li>
+            <li>웨어러블 연동</li>
+          </ul>
+          <span class="step-badge">지점·시즌 구독</span>
+        </div>
+      </div>
+      <p class="ai-foot">행사 밖에서 사람이 충분히 모이는지는 아직 확인하지 못했다. STEP 01이 그것을 재는 단계다</p>
+    </div>
+    <p class="num">9</p>
+  </section>
+
+
+  <!-- 10 결론 및 요약 -->
+  <section class="slide center dark">
+    <div class="content close-grid">
+      <div>
+        <p class="wordmark">Bside</p>
+        <p class="close-quote" style="margin-top: 24px;">&ldquo;사람과 사람 사이, 가장 어려운 첫 마디를 기술로 건넵니다.&rdquo;</p>
+        <p class="close-subquote">참가자에게는 새로운 기회를, 주최자에게는 확실한 성공을 주는 앱</p>
+        <div class="close-links">
+          <p><b>운영 배포 서버:</b> https://bside-api.sungblab.com (HTTPS)</p>
+          <p><b>비즈니스 모델:</b> 참가자 100% 무료 &nbsp;|&nbsp; 주최자 건당 30~40만 원 &nbsp;|&nbsp; 공간 상시 구독</p>
+          <p><b>단위 경제학:</b> 참가자 1인당 추론 원가 20~30원 &nbsp;|&nbsp; 서버·인건비 별도</p>
+          <p><b>글로벌 벤치마크:</b> Mentimeter (개인 리텐션 없이 연매출 750억 원 흑자 입증)</p>
+          <p><b>팀 Bside:</b> 코쓱톤 2026 &nbsp;|&nbsp; 3조 Clauding</p>
+        </div>
+      </div>
+      <div class="phone"><img src="assets/w4-chat.png" alt="Bside 1:1 채팅 화면"></div>
+    </div>
+  </section>
+
+  <div id="rail"><i></i></div>
+</div>
+</div>
+
+<script>
+(function () {
+  var all = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var frame = document.getElementById('frame');
+  var bar = document.querySelector('#rail i');
+
+  // ?only=main | backup
+  var only = (/[?&]only=(\w+)/.exec(location.search) || [])[1];
+  var slides = all.filter(function (el) {
+    if (only === 'main') return !el.hasAttribute('data-backup');
+    if (only === 'backup') return el.hasAttribute('data-backup');
+    return true;
+  });
+  slides.forEach(function (el) { el.classList.add('inplay'); });
+
+  var i = 0;
+
+  function fit() {
+    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    frame.style.setProperty('--scale', s);
+  }
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    all.forEach(function (el) { el.classList.remove('on'); });
+    slides[i].classList.add('on');
+    bar.style.width = ((i + 1) / slides.length * 100) + '%';
+  }
+
+  window.addEventListener('resize', fit);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+
+  frame.addEventListener('click', function (e) {
+    var r = frame.getBoundingClientRect();
+    show(e.clientX < r.left + r.width * 0.25 ? i - 1 : i + 1);
+  });
+
+  // ?s=N — PNG 추출 시 특정 장만 띄운다
+  var q = parseInt((/[?&]s=(\d+)/.exec(location.search) || [])[1], 10);
+  fit();
+  show(isNaN(q) ? 0 : q - 1);
+})();
+</script>
+
+</body>
+</html>
