@@ -45,7 +45,7 @@ export default function Entry() {
     </div>;
   };
   return <section className="screen entry-screen">
-    <PageHeader title={editing ? '내 정보' : 'Bside'} onBack={editing ? () => actions.navigate('nearby') : undefined} eyebrow={editing ? me.profile.nickname : '가까이 있는 사람과 이야기를 시작해요'} />
+    <PageHeader title={editing ? '내 정보' : 'Bside'} onBack={editing ? actions.goBack : undefined} eyebrow={editing ? me.profile.nickname : '가까이 있는 사람과 이야기를 시작해요'} />
     {/* 소개를 저장한다고 곧바로 내 존재를 BLE로 알리지는 않는다. 발견을 켜는 건 다음 화면의 명시적인 선택이다. */}
     <p className="intro">{editing ? '지금의 나와 만나고 싶은 사람을 알려주세요.' : '어떤 이야기를 나누고 싶나요?\n소개를 남긴 뒤 주변 발견을 켜면 가까이 있는 사람을 찾아요.'}</p>
     <p className="privacy-note">자기소개와 만나고 싶은 사람은 주변에서 발견된 사람에게 보여요.</p>

@@ -21,5 +21,5 @@ export function EmptyState({ title, text, action, compact }) {
 }
 export function Navigation() {
   const { state, actions } = useDiscovery();
-  return <nav className="navigation" aria-label="메뉴">{[['nearby', '주변'], ['conversations', '대화']].map(([view, title]) => <button key={view} type="button" aria-current={state.view === view ? 'page' : undefined} onClick={() => actions.navigate(view)}>{title}{view === 'conversations' && state.conversations.length > 0 && <span>{state.conversations.length}</span>}</button>)}</nav>;
+  return <nav className="navigation" aria-label="메뉴">{[['nearby', '주변'], ['conversations', '대화']].map(([view, title]) => <button key={view} type="button" aria-current={state.view === view ? 'page' : undefined} onClick={() => actions.navigate(view)}>{title}</button>)}</nav>;
 }

@@ -10,16 +10,14 @@ export default function DiscoveryPanel() {
   const blocker = enabled ? nativeBlocker(state.native) : null;
   return <section className="discovery-panel" aria-labelledby="discovery-title">
     <div className="section-head">
-      <div>
-        <h2 id="discovery-title">주변 발견 {enabled ? '켜짐' : '꺼짐'}</h2>
-        <p className="dim">{enabled
-          ? '주변 사람에게 내 소개가 보이고, 가까이 있는 사람을 찾고 있어요.'
-          : '새로 발견하지 않고 내 소개도 보이지 않아요. 나눈 대화는 그대로 있어요.'}</p>
+      <h2 id="discovery-title">주변 교류 참여</h2>
+      <div className="row">
+        <span className="discovery-state" aria-hidden="true">{busy ? '변경 중…' : enabled ? '켜짐' : '꺼짐'}</span>
+        <button type="button" className="discovery-switch" role="switch" disabled={busy}
+          aria-labelledby="discovery-title" aria-checked={enabled} onClick={() => actions.setDiscovery(!enabled)}>
+          <span aria-hidden="true" />
+        </button>
       </div>
-      <button type="button" className="btn btn-ghost" disabled={busy}
-        aria-pressed={enabled} onClick={() => actions.setDiscovery(!enabled)}>
-        {busy ? '변경 중…' : enabled ? '끄기' : '켜기'}
-      </button>
     </div>
     {blocker && <p className={'operation-notice ' + blocker.level} role="status">
       {blocker.text}

@@ -11,9 +11,16 @@ export default function Conversations() {
     {state.conversationsLoading && !state.conversations.length ? <Loading text="대화를 불러오고 있어요" /> :
       !state.conversations.length && !state.conversationsError ? <EmptyState title="아직 시작한 대화가 없어요" text="주변 사람의 소개를 보고 첫 인사를 건네보세요." action={<button className="btn btn-ghost" onClick={() => actions.navigate('nearby')}>주변 둘러보기</button>} /> :
       <ul className="people-list conversations-list">{state.conversations.map((conversation) => <li key={conversation.conversation_id}><button className="person" onClick={() => actions.navigate('chat', conversation.participant.user_id)}>
-        {/* 근접 이탈은 대화가 끝난 게 아니다. 지금 가까이 있는지만 알려준다. */}
-        <span className="section-head"><strong className="trunc">{conversation.participant.profile.nickname}</strong>{!nearby.has(conversation.participant.user_id) && <span className="badge">주변에 없음</span>}</span>
+        <span className="section-head"><strong className="trunc">{conversation.participant.profile.nickname}</strong><time className="conversation-time" dateTime={conversation.last_message.created_at}>{messageTime(conversation.last_message.created_at)}</time></span>
         <span className="person-description clamp-two">{conversation.last_message.sender_id === state.me.user_id ? '나: ' : ''}{conversation.last_message.text}</span>
+        {state.me.discovery_enabled && nearby.has(conversation.participant.user_id) && <span className="badge nearby-badge">지금 주변</span>}
       </button></li>)}</ul>}
   </section>;
+}
+
+function messageTime(value) {
+  const date = new Date(value);
+  const today = new Date();
+  if (date.toDateString() === today.toDateString()) return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleDateString('ko-KR', { ...(date.getFullYear() !== today.getFullYear() ? { year: 'numeric' } : {}), month: 'long', day: 'numeric' });
 }
