@@ -4,7 +4,7 @@
 
 ## 읽는 순서
 
-1. [PRD](PRD.md), [공통 용어](../CONTEXT.md).
+1. [PRD](PRD.md), [공통 용어](../GLOSSARY.md).
 2. [개발 기준](../docs/development-contract.md), [API](../docs/api-contract.md), [Android 구성](../docs/android-design.md), [저장](../server/docs/redis.md).
 3. [화면](design.md), [프론트 작업](frontend-plan.md), [프로토콜](protocol.md), [AI 지침](prompts.md).
 4. [팀 작업](../docs/team-plan.md), [검증](../docs/validation.md), [시연](scenario.md), [배포](../docs/deployment.md).

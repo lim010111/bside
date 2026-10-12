@@ -176,7 +176,7 @@ Android APK 빌드·기기 설치와 웹/네이티브 API 주소 설정은 [Andr
 | 문서 | 내용 |
 | --- | --- |
 | [제품 방향](docs/product-direction.md) · [개발 기준](docs/development-contract.md) | 현재 제품 범위와 동작 원칙 |
-| [공통 용어](CONTEXT.md) · [API 계약](docs/api-contract.md) | 발견·추천·대화 모델과 API |
+| [공통 용어](GLOSSARY.md) · [API 계약](docs/api-contract.md) | 발견·추천·대화 모델과 API |
 | [웹](web/README.md) · [Android](android/README.md) · [서버](server/README.md) | 각 구성의 실행과 구현 |
 | [배포](docs/deployment.md) · [AI 평가](server/evals/README.md) | 운영 구성과 평가 재현 |
 | [해커톤 기준](docs/hackathon-brief.md) · [발표 흐름](pitch/script.md) | 주제·평가 기준과 발표 구성 |
