@@ -1,6 +1,6 @@
 # BLE MVP 개발 기준
 
-상태: **2026-09-20, B1~B14 통합. 사용자 최종 합의 완료. BLE 전환 코드 구현·실기기 검증 전이다.** 제품 원본은 [결정 기록](product-direction.md), 공통 용어는 [CONTEXT](../CONTEXT.md)다. 제목과 본문의 기준은 기존 행사 계약과 요청·수락 초안보다 우선한다. 이전 행사 계약은 [이력](history/event-mvp/docs/development-contract.md)에 보관한다.
+상태: **2026-09-20, B1~B14 통합. 사용자 최종 합의 완료. BLE 전환 코드 구현·실기기 검증 전이다.** 제품 원본은 [결정 기록](product-direction.md), 공통 용어는 [CONTEXT](../GLOSSARY.md)다. 제목과 본문의 기준은 기존 행사 계약과 요청·수락 초안보다 우선한다. 이전 행사 계약은 [이력](history/event-mvp/docs/development-contract.md)에 보관한다.
 
 ## 제품 행동
 

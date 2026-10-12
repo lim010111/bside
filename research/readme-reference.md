@@ -38,7 +38,7 @@
 
 ## 현재 사실과 맞추기 위해 확인한 자료
 
-- 제품 흐름은 [현재 제품 결정](../docs/product-direction.md), [공통 용어](../CONTEXT.md), 실제 웹·Android·서버 코드와 대조했습니다.
+- 제품 흐름은 [현재 제품 결정](../docs/product-direction.md), [공통 용어](../GLOSSARY.md), 실제 웹·Android·서버 코드와 대조했습니다.
 - 실기기 발견·채팅은 [Android 검증](../android/README.md#검증), 운영 주소의 추천·푸시 수신은 [최신 배포 기록](../docs/deployment.md#확인된-것)을 근거로 삼았습니다. 예전 README에 남은 미검증 표기는 최신 기록으로 갱신했습니다.
 - 추천 지연은 [최신 실모델 전후 비교](../server/docs/ai-latency-ab.md)의 측정 경계·표본 수·실패 결과를 함께 옮겼습니다. 서버 내부 처리 시간을 사용자가 보는 전체 지연으로 표현하지 않았습니다.
 - 구성도는 [기존 서비스 구성도](../docs/assets/bside-service-architecture.png)를 확인해 재사용했습니다. 과거 행사 방 기반 화면 캡처는 현재 사용 흐름과 달라 넣지 않았습니다.
